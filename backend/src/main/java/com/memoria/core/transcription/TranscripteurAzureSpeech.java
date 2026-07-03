@@ -24,15 +24,18 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
     private final String cle;
     private final String region;
     private final String langue;
+    private final String typeContenu;
 
     public TranscripteurAzureSpeech(
             @Value("${azure.speech.key}") String cle,
             @Value("${azure.speech.region}") String region,
-            @Value("${azure.speech.langue:fr-FR}") String langue
+            @Value("${azure.speech.langue:fr-FR}") String langue,
+            @Value("${azure.speech.content-type:audio/wav; codecs=audio/pcm; samplerate=16000}") String typeContenu
     ) {
         this.cle = cle;
         this.region = region;
         this.langue = langue;
+        this.typeContenu = typeContenu;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
         HttpRequest requete = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(30))
                 .header("Ocp-Apim-Subscription-Key", cle)
-                .header("Content-Type", "audio/wav; codecs=audio/pcm; samplerate=16000")
+                .header("Content-Type", typeContenu)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(audio))
                 .build();
 

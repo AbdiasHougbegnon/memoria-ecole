@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +28,13 @@ public class SessionController {
     public CreateSessionResponse creerSession(@Valid @RequestBody CreateSessionRequest requete) {
         Session session = sessionService.creerSession(requete.titre());
         return new CreateSessionResponse(session.getId());
+    }
+
+    @GetMapping
+    public List<SessionResponse> listerSessions() {
+        return sessionService.listerSessions().stream()
+                .map(SessionResponse::depuis)
+                .toList();
     }
 
     @GetMapping("/{id}")

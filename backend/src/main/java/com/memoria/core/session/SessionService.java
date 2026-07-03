@@ -3,6 +3,7 @@ package com.memoria.core.session;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -24,6 +25,10 @@ public class SessionService {
     public Session obtenirSession(UUID id) {
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new SessionNotFoundException(id));
+    }
+
+    public List<Session> listerSessions() {
+        return sessionRepository.findAllByOrderByDateCreationDesc();
     }
 
     public Session terminerSession(UUID id) {

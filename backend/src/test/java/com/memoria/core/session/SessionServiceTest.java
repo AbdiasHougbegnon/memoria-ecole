@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -101,5 +102,15 @@ class SessionServiceTest {
 
         assertThatThrownBy(() -> sessionService.terminerSession(idInconnu))
                 .isInstanceOf(SessionNotFoundException.class);
+    }
+
+    @Test
+    void listerSessions_retourne_les_sessions_triees_par_date_de_creation_decroissante() {
+        List<Session> sessions = List.of(new Session("Recente"), new Session("Ancienne"));
+        when(sessionRepository.findAllByOrderByDateCreationDesc()).thenReturn(sessions);
+
+        List<Session> resultat = sessionService.listerSessions();
+
+        assertThat(resultat).isEqualTo(sessions);
     }
 }

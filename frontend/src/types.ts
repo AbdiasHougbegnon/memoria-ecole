@@ -1,0 +1,28 @@
+export type SessionStatus = 'EN_COURS' | 'TERMINEE' | 'ERREUR'
+
+export interface Session {
+  id: string
+  titre: string
+  dateCreation: string
+  statut: SessionStatus
+  cheminFichierAudio: string | null
+}
+
+export type TranscriptionStatut = 'REUSSIE' | 'ECHEC'
+
+export interface TranscriptionSegment {
+  numeroSequence: number
+  texte: string | null
+  statut: TranscriptionStatut
+  dateCreation: string
+}
+
+export type ResumeStatut = 'REUSSI' | 'ECHEC'
+
+export interface Resume {
+  texteResume: string | null
+  pointsCles: string[]
+  segmentsSources: number[]
+  statut: ResumeStatut
+  dateCreation: string
+}
