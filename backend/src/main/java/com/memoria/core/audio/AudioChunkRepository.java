@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface AudioChunkRepository extends JpaRepository<AudioChunk, UUID> {
 
     Optional<AudioChunk> findBySessionIdAndNumeroSequence(UUID sessionId, int numeroSequence);
+
+    long countBySessionId(UUID sessionId);
 }

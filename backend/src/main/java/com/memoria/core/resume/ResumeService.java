@@ -4,6 +4,7 @@ import com.memoria.core.session.SessionTermineeEvent;
 import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.core.transcription.TranscriptionStatut;
+import com.memoria.core.transcription.ToutesTranscriptionsTermineesEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -33,10 +34,26 @@ public class ResumeService {
         this.generateurResume = generateurResume;
     }
 
+    // La fin de session et l'arrivee de la derniere transcription peuvent
+    // survenir dans n'importe quel ordre (course connue) : on tente de
+    // generer le resume dans les deux cas, avec une garde d'idempotence.
     @Async
     @EventListener
     public void surSessionTerminee(SessionTermineeEvent evenement) {
-        UUID sessionId = evenement.sessionId();
+        genererResumeSiPossible(evenement.sessionId());
+    }
+
+    @Async
+    @EventListener
+    public void surToutesTranscriptionsTerminees(ToutesTranscriptionsTermineesEvent evenement) {
+        genererResumeSiPossible(evenement.sessionId());
+    }
+
+    private void genererResumeSiPossible(UUID sessionId) {
+        if (resumeRepository.findBySessionId(sessionId).isPresent()) {
+            return;
+        }
+
         List<Transcription> transcriptionsReussies = transcriptionRepository
                 .findBySessionIdOrderByNumeroSequenceAsc(sessionId).stream()
                 .filter(transcription -> transcription.getStatut() == TranscriptionStatut.REUSSIE)
@@ -55,20 +72,25 @@ public class ResumeService {
 
         try {
             ResumeGenere genere = generateurResume.genererResume(transcriptComplet);
-            enregistrer(sessionId, genere.texteResume(), genere.pointsCles(), segmentsSources, ResumeStatut.REUSSI);
+            enregistrerSiAbsent(sessionId, genere.texteResume(), genere.pointsCles(), segmentsSources, ResumeStatut.REUSSI);
         } catch (Exception e) {
             LOG.warn("Echec de la generation du resume pour la session {}", sessionId, e);
-            enregistrer(sessionId, null, List.of(), segmentsSources, ResumeStatut.ECHEC);
+            enregistrerSiAbsent(sessionId, null, List.of(), segmentsSources, ResumeStatut.ECHEC);
         }
     }
 
-    private void enregistrer(
+    private void enregistrerSiAbsent(
             UUID sessionId,
             String texteResume,
             List<String> pointsCles,
             List<Integer> segmentsSources,
             ResumeStatut statut
     ) {
+        if (resumeRepository.findBySessionId(sessionId).isPresent()) {
+            // Une execution concurrente (course session-terminee /
+            // toutes-transcriptions-terminees) a deja cree le resume.
+            return;
+        }
         Resume resume = new Resume(sessionId, texteResume, pointsCles, segmentsSources, statut);
         resumeRepository.save(resume);
     }

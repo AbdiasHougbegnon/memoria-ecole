@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface TranscriptionRepository extends JpaRepository<Transcription, UUID> {
 
     List<Transcription> findBySessionIdOrderByNumeroSequenceAsc(UUID sessionId);
+
+    long countBySessionId(UUID sessionId);
 }

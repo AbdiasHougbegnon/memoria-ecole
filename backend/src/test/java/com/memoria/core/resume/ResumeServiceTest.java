@@ -4,6 +4,7 @@ import com.memoria.core.session.SessionTermineeEvent;
 import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.core.transcription.TranscriptionStatut;
+import com.memoria.core.transcription.ToutesTranscriptionsTermineesEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,7 @@ class ResumeServiceTest {
                 new Transcription(sessionId, 1, null, TranscriptionStatut.ECHEC),
                 new Transcription(sessionId, 2, "Nous avons decide X.", TranscriptionStatut.REUSSIE)
         );
+        when(resumeRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurResume.genererResume("Bonjour a tous. Nous avons decide X."))
                 .thenReturn(new ResumeGenere("Synthese de la reunion.", List.of("Decision X prise")));
@@ -71,6 +73,7 @@ class ResumeServiceTest {
         List<Transcription> transcriptions = List.of(
                 new Transcription(sessionId, 0, null, TranscriptionStatut.ECHEC)
         );
+        when(resumeRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
 
         resumeService.surSessionTerminee(new SessionTermineeEvent(sessionId));
@@ -85,6 +88,7 @@ class ResumeServiceTest {
         List<Transcription> transcriptions = List.of(
                 new Transcription(sessionId, 0, "Bonjour.", TranscriptionStatut.REUSSIE)
         );
+        when(resumeRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurResume.genererResume(any())).thenThrow(new GenerationResumeException("Azure OpenAI indisponible"));
 
@@ -96,6 +100,39 @@ class ResumeServiceTest {
         assertThat(resume.getStatut()).isEqualTo(ResumeStatut.ECHEC);
         assertThat(resume.getTexteResume()).isNull();
         assertThat(resume.getSegmentsSources()).containsExactly(0);
+    }
+
+    @Test
+    void surToutesTranscriptionsTerminees_genere_le_resume_si_aucun_nexiste_encore() {
+        UUID sessionId = UUID.randomUUID();
+        List<Transcription> transcriptions = List.of(
+                new Transcription(sessionId, 0, "Bonjour a tous.", TranscriptionStatut.REUSSIE)
+        );
+        when(resumeRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
+        when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
+        when(generateurResume.genererResume("Bonjour a tous."))
+                .thenReturn(new ResumeGenere("Synthese.", List.of()));
+
+        resumeService.surToutesTranscriptionsTerminees(new ToutesTranscriptionsTermineesEvent(sessionId));
+
+        verify(resumeRepository).save(any());
+    }
+
+    @Test
+    void genererResumeSiPossible_ne_fait_rien_si_un_resume_existe_deja() {
+        // Couvre la course entre SessionTermineeEvent et
+        // ToutesTranscriptionsTermineesEvent : si l'un des deux a deja
+        // genere le resume, l'autre ne doit rien refaire.
+        UUID sessionId = UUID.randomUUID();
+        Resume resumeExistant = new Resume(sessionId, "Deja fait", List.of(), List.of(0), ResumeStatut.REUSSI);
+        when(resumeRepository.findBySessionId(sessionId)).thenReturn(Optional.of(resumeExistant));
+
+        resumeService.surSessionTerminee(new SessionTermineeEvent(sessionId));
+        resumeService.surToutesTranscriptionsTerminees(new ToutesTranscriptionsTermineesEvent(sessionId));
+
+        verify(generateurResume, never()).genererResume(any());
+        verify(resumeRepository, never()).save(any());
+        verify(transcriptionRepository, never()).findBySessionIdOrderByNumeroSequenceAsc(any());
     }
 
     @Test
