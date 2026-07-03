@@ -3,6 +3,7 @@ package com.memoria.core.audio;
 import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionService;
 import com.memoria.core.session.SessionStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -14,15 +15,18 @@ public class AudioChunkService {
     private final AudioChunkRepository audioChunkRepository;
     private final StockageAudioPort stockageAudio;
     private final SessionService sessionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AudioChunkService(
             AudioChunkRepository audioChunkRepository,
             StockageAudioPort stockageAudio,
-            SessionService sessionService
+            SessionService sessionService,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.audioChunkRepository = audioChunkRepository;
         this.stockageAudio = stockageAudio;
         this.sessionService = sessionService;
+        this.eventPublisher = eventPublisher;
     }
 
     public ResultatEnregistrementChunk enregistrerChunk(UUID sessionId, int numeroSequence, byte[] donnees) {
@@ -38,6 +42,8 @@ public class AudioChunkService {
 
         String cheminStockage = stockageAudio.sauvegarder(sessionId, numeroSequence, donnees);
         AudioChunk chunk = new AudioChunk(sessionId, numeroSequence, cheminStockage, donnees.length);
-        return new ResultatEnregistrementChunk(audioChunkRepository.save(chunk), false);
+        AudioChunk chunkSauvegarde = audioChunkRepository.save(chunk);
+        eventPublisher.publishEvent(new ChunkAudioEnregistreEvent(sessionId, numeroSequence, donnees));
+        return new ResultatEnregistrementChunk(chunkSauvegarde, false);
     }
 }

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -34,11 +35,14 @@ class AudioChunkServiceTest {
     @Mock
     private SessionService sessionService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private AudioChunkService audioChunkService;
 
     @BeforeEach
     void setUp() {
-        audioChunkService = new AudioChunkService(audioChunkRepository, stockageAudio, sessionService);
+        audioChunkService = new AudioChunkService(audioChunkRepository, stockageAudio, sessionService, eventPublisher);
     }
 
     @Test
@@ -58,6 +62,7 @@ class AudioChunkServiceTest {
         assertThat(resultat.chunk().getNumeroSequence()).isEqualTo(0);
         assertThat(resultat.chunk().getCheminStockage()).isEqualTo("/data/audio/x/0.chunk");
         assertThat(resultat.chunk().getTailleOctets()).isEqualTo(3);
+        verify(eventPublisher).publishEvent(new ChunkAudioEnregistreEvent(session.getId(), 0, donnees));
     }
 
     @Test
@@ -73,6 +78,7 @@ class AudioChunkServiceTest {
         assertThat(resultat.chunk()).isSameAs(chunkExistant);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
         verify(audioChunkRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -83,6 +89,7 @@ class AudioChunkServiceTest {
         assertThatThrownBy(() -> audioChunkService.enregistrerChunk(idInconnu, 0, new byte[]{1}))
                 .isInstanceOf(SessionNotFoundException.class);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -95,5 +102,6 @@ class AudioChunkServiceTest {
         assertThatThrownBy(() -> audioChunkService.enregistrerChunk(sessionId, 0, new byte[]{1}))
                 .isInstanceOf(SessionNonActiveException.class);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 }
