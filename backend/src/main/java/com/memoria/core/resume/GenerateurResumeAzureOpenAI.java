@@ -60,6 +60,11 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
 
     @Override
     public ResumeGenere genererResume(String transcriptComplet) {
+        // Cette ressource Azure expose la Responses API (endpoint du type
+        // https://{ressource}.services.ai.azure.com/openai/v1/responses),
+        // pas l'ancienne Chat Completions API (/openai/deployments/{modele}/
+        // chat/completions) qui renvoie systematiquement 404 sur ce type de
+        // ressource AI Foundry -- verifie empiriquement, ne pas y revenir.
         ObjectNode corpsRequete = JSON.createObjectNode();
         corpsRequete.put("model", modele);
         corpsRequete.put("instructions", CONSIGNE_SYSTEME);

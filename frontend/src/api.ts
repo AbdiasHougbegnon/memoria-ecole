@@ -54,7 +54,7 @@ export async function obtenirTranscriptions(id: string): Promise<TranscriptionSe
 
 export async function obtenirResume(id: string): Promise<Resume | null> {
   const reponse = await fetch(`${BASE}/${id}/resume`)
-  if (reponse.status === 404) {
+  if (reponse.status === 404 || reponse.status === 204) {
     return null
   }
   return (await verifierReponse(reponse)).json()

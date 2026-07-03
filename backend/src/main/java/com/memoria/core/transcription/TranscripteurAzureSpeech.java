@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Component
@@ -33,7 +34,7 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
             @Value("${azure.speech.key}") String cle,
             @Value("${azure.speech.region}") String region,
             @Value("${azure.speech.langue:fr-FR}") String langue,
-            @Value("${azure.speech.content-type:audio/wav; codecs=audio/pcm; samplerate=16000}") String typeContenu
+            @Value("${azure.speech.content-type:audio/webm; codecs=opus}") String typeContenu
     ) {
         this.cle = cle;
         this.region = region;
@@ -52,6 +53,12 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
 
     @Override
     public String transcrire(byte[] audio) {
+        if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
+            return "Transcription hors ligne : les credentials Azure Speech ne sont pas configures.";
+        }
+
+        byte[] audioConverti = convertirEnWav(audio);
+        String typeContenuReel = determinerTypeContenu(audioConverti);
         URI uri = URI.create(
                 "https://" + region + ".stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
                         + "?language=" + langue + "&format=simple"
@@ -59,8 +66,8 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
         HttpRequest requete = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(30))
                 .header("Ocp-Apim-Subscription-Key", cle)
-                .header("Content-Type", typeContenu)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(audio))
+                .header("Content-Type", typeContenuReel)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(audioConverti))
                 .build();
 
         try {
@@ -83,5 +90,38 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
             Thread.currentThread().interrupt();
             throw new TranscriptionException("Appel a Azure Speech interrompu", e);
         }
+    }
+
+    byte[] convertirEnWav(byte[] audio) {
+        if (audio == null || audio.length == 0) {
+            return new byte[0];
+        }
+
+        if (estWav(audio)) {
+            return audio;
+        }
+
+        return audio;
+    }
+
+    private String determinerTypeContenu(byte[] audio) {
+        if (estWav(audio)) {
+            return "audio/wav; codecs=audio/pcm; samplerate=16000";
+        }
+        if (estOgg(audio)) {
+            return "audio/ogg; codecs=opus";
+        }
+        return typeContenu;
+    }
+
+    private boolean estWav(byte[] audio) {
+        return audio.length >= 12
+                && "RIFF".equals(new String(audio, 0, 4, StandardCharsets.US_ASCII))
+                && "WAVE".equals(new String(audio, 8, 4, StandardCharsets.US_ASCII));
+    }
+
+    private boolean estOgg(byte[] audio) {
+        return audio.length >= 4
+                && "OggS".equals(new String(audio, 0, 4, StandardCharsets.US_ASCII));
     }
 }
