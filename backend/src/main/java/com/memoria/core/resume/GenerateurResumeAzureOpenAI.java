@@ -3,6 +3,8 @@ package com.memoria.core.resume;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,7 @@ import java.util.List;
 @Component
 public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
 
+    private static final Logger LOG = LoggerFactory.getLogger(GenerateurResumeAzureOpenAI.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private static final String CONSIGNE_SYSTEME = """
@@ -43,6 +46,16 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
         this.endpoint = endpoint;
         this.cle = cle;
         this.modele = modele;
+
+        if (endpoint == null || endpoint.isBlank() || cle == null || cle.isBlank()
+                || modele == null || modele.isBlank()) {
+            LOG.warn(
+                    "azure.openai.endpoint, azure.openai.key ou azure.openai.deployment est vide : "
+                            + "la generation de resume echouera tant que AZURE_OPENAI_ENDPOINT / "
+                            + "AZURE_OPENAI_KEY / AZURE_OPENAI_DEPLOYMENT ne sont pas definies dans "
+                            + "l'environnement qui lance l'application."
+            );
+        }
     }
 
     @Override

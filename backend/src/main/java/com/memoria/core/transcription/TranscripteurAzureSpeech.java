@@ -2,6 +2,8 @@ package com.memoria.core.transcription;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +17,7 @@ import java.time.Duration;
 @Component
 public class TranscripteurAzureSpeech implements TranscripteurPort {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TranscripteurAzureSpeech.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -36,6 +39,15 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
         this.region = region;
         this.langue = langue;
         this.typeContenu = typeContenu;
+
+        if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
+            LOG.warn(
+                    "azure.speech.key ou azure.speech.region est vide : toutes les transcriptions "
+                            + "echoueront tant que AZURE_SPEECH_KEY / AZURE_SPEECH_REGION ne sont pas "
+                            + "definies dans l'environnement qui lance l'application (redemarrer le "
+                            + "terminal/IDE apres un setx ne suffit pas, il faut aussi relancer l'appli)."
+            );
+        }
     }
 
     @Override

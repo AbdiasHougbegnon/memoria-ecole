@@ -3,16 +3,23 @@ import { Link, useParams } from 'react-router-dom'
 import { obtenirResume, obtenirSession, obtenirTranscriptions } from '../api'
 import type { Resume, Session, TranscriptionSegment } from '../types'
 
+// Nombre de relectures tentees apres la fin de la session avant d'abandonner
+// l'attente d'un resume (environ 15s a raison d'une tentative toutes les 3s).
+const MAX_TENTATIVES_APRES_FIN = 5
+
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [session, setSession] = useState<Session | null>(null)
   const [transcriptions, setTranscriptions] = useState<TranscriptionSegment[]>([])
   const [resume, setResume] = useState<Resume | null>(null)
   const [chargement, setChargement] = useState(true)
+  const [resumeAbandonne, setResumeAbandonne] = useState(false)
 
   useEffect(() => {
     if (!id) return
     let annule = false
+    let tentativesApresFin = 0
+    let intervalle: number
 
     async function charger() {
       const [s, t, r] = await Promise.all([
@@ -20,19 +27,37 @@ export function SessionDetailPage() {
         obtenirTranscriptions(id!),
         obtenirResume(id!),
       ])
-      if (!annule) {
-        setSession(s)
-        setTranscriptions(t)
-        setResume(r)
-        setChargement(false)
+      if (annule) return
+
+      setSession(s)
+      setTranscriptions(t)
+      setResume(r)
+      setChargement(false)
+
+      if (r) {
+        // Resume obtenu (succes ou echec) : plus rien de nouveau a attendre.
+        window.clearInterval(intervalle)
+        return
+      }
+
+      if (s.statut === 'EN_COURS') {
+        tentativesApresFin = 0
+        return
+      }
+
+      // Session terminee et toujours pas de resume : soit il est encore en
+      // cours de generation, soit aucune transcription n'a abouti et aucun
+      // resume ne sera jamais produit. On n'interroge pas indefiniment.
+      tentativesApresFin += 1
+      if (tentativesApresFin >= MAX_TENTATIVES_APRES_FIN) {
+        setResumeAbandonne(true)
+        window.clearInterval(intervalle)
       }
     }
 
     void charger()
 
-    // La transcription et le resume arrivent de facon asynchrone cote serveur :
-    // on relit periodiquement tant que la page est ouverte.
-    const intervalle = window.setInterval(() => void charger(), 3000)
+    intervalle = window.setInterval(() => void charger(), 3000)
     return () => {
       annule = true
       window.clearInterval(intervalle)
@@ -66,7 +91,11 @@ export function SessionDetailPage() {
           <p className="text-sm text-slate-500">
             {session.statut === 'EN_COURS'
               ? 'Le resume sera genere a la fin de la session.'
-              : 'Resume en cours de generation...'}
+              : !resumeAbandonne
+                ? 'Resume en cours de generation...'
+                : transcriptions.some((segment) => segment.statut === 'REUSSIE')
+                  ? 'La generation du resume prend plus de temps que prevu.'
+                  : "Aucun resume : aucune transcription n'a abouti pour cette session."}
           </p>
         )}
         {resume?.statut === 'ECHEC' && (
