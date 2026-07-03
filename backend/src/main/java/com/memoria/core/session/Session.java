@@ -60,4 +60,8 @@ public class Session {
     public String getCheminFichierAudio() {
         return cheminFichierAudio;
     }
+
+    public void terminer() {
+        this.statut = SessionStatus.TERMINEE;
+    }
 }

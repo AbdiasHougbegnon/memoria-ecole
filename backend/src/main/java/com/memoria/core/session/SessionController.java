@@ -34,4 +34,10 @@ public class SessionController {
         Session session = sessionService.obtenirSession(id);
         return SessionResponse.depuis(session);
     }
+
+    @PostMapping("/{id}/terminer")
+    public SessionResponse terminerSession(@PathVariable UUID id) {
+        Session session = sessionService.terminerSession(id);
+        return SessionResponse.depuis(session);
+    }
 }

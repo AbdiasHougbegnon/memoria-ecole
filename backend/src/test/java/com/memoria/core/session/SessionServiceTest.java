@@ -62,4 +62,36 @@ class SessionServiceTest {
         assertThatThrownBy(() -> sessionService.obtenirSession(idInconnu))
                 .isInstanceOf(SessionNotFoundException.class);
     }
+
+    @Test
+    void terminerSession_fait_passer_le_statut_a_terminee() {
+        Session session = new Session("Cours de reseaux");
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(sessionRepository.save(session)).thenReturn(session);
+
+        Session resultat = sessionService.terminerSession(session.getId());
+
+        assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
+    }
+
+    @Test
+    void terminerSession_est_idempotent_si_deja_terminee() {
+        Session session = new Session("Cours de reseaux");
+        session.terminer();
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(sessionRepository.save(session)).thenReturn(session);
+
+        Session resultat = sessionService.terminerSession(session.getId());
+
+        assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
+    }
+
+    @Test
+    void terminerSession_leve_une_exception_quand_la_session_est_introuvable() {
+        UUID idInconnu = UUID.randomUUID();
+        when(sessionRepository.findById(idInconnu)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sessionService.terminerSession(idInconnu))
+                .isInstanceOf(SessionNotFoundException.class);
+    }
 }

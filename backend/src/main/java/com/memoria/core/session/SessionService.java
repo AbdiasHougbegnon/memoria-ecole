@@ -22,4 +22,10 @@ public class SessionService {
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new SessionNotFoundException(id));
     }
+
+    public Session terminerSession(UUID id) {
+        Session session = obtenirSession(id);
+        session.terminer();
+        return sessionRepository.save(session);
+    }
 }
