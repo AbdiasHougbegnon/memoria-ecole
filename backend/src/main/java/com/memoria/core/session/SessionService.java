@@ -1,5 +1,6 @@
 package com.memoria.core.session;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -8,9 +9,11 @@ import java.util.UUID;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public SessionService(SessionRepository sessionRepository) {
+    public SessionService(SessionRepository sessionRepository, ApplicationEventPublisher eventPublisher) {
         this.sessionRepository = sessionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public Session creerSession(String titre) {
@@ -25,7 +28,12 @@ public class SessionService {
 
     public Session terminerSession(UUID id) {
         Session session = obtenirSession(id);
+        boolean etaitDejaTerminee = session.getStatut() == SessionStatus.TERMINEE;
         session.terminer();
-        return sessionRepository.save(session);
+        Session sessionSauvegardee = sessionRepository.save(session);
+        if (!etaitDejaTerminee) {
+            eventPublisher.publishEvent(new SessionTermineeEvent(id));
+        }
+        return sessionSauvegardee;
     }
 }

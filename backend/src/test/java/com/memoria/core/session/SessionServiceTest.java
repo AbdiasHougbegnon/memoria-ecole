@@ -5,12 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,11 +23,14 @@ class SessionServiceTest {
     @Mock
     private SessionRepository sessionRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private SessionService sessionService;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        sessionService = new SessionService(sessionRepository);
+        sessionService = new SessionService(sessionRepository, eventPublisher);
     }
 
     @Test
@@ -64,7 +70,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void terminerSession_fait_passer_le_statut_a_terminee() {
+    void terminerSession_fait_passer_le_statut_a_terminee_et_publie_un_evenement() {
         Session session = new Session("Cours de reseaux");
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
         when(sessionRepository.save(session)).thenReturn(session);
@@ -72,10 +78,11 @@ class SessionServiceTest {
         Session resultat = sessionService.terminerSession(session.getId());
 
         assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
+        verify(eventPublisher).publishEvent(new SessionTermineeEvent(session.getId()));
     }
 
     @Test
-    void terminerSession_est_idempotent_si_deja_terminee() {
+    void terminerSession_est_idempotent_et_ne_republie_pas_levenement_si_deja_terminee() {
         Session session = new Session("Cours de reseaux");
         session.terminer();
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
@@ -84,6 +91,7 @@ class SessionServiceTest {
         Session resultat = sessionService.terminerSession(session.getId());
 
         assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

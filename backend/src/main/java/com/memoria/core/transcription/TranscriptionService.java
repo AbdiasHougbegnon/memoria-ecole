@@ -2,6 +2,8 @@ package com.memoria.core.transcription;
 
 import com.memoria.core.audio.ChunkAudioEnregistreEvent;
 import com.memoria.core.session.SessionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,8 @@ import java.util.UUID;
 
 @Service
 public class TranscriptionService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TranscriptionService.class);
 
     private final TranscriptionRepository transcriptionRepository;
     private final TranscripteurPort transcripteur;
@@ -33,6 +37,7 @@ public class TranscriptionService {
             String texte = transcripteur.transcrire(evenement.donnees());
             enregistrer(evenement, TranscriptionStatut.REUSSIE, texte);
         } catch (Exception e) {
+            LOG.warn("Echec de la transcription du chunk {} de la session {}", evenement.numeroSequence(), evenement.sessionId(), e);
             enregistrer(evenement, TranscriptionStatut.ECHEC, null);
         }
     }
