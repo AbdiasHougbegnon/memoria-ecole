@@ -64,7 +64,10 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
                         + "?language=" + langue + "&format=simple"
         );
         HttpRequest requete = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(30))
+                // Un chunk WAV non compresse de 30s pese plusieurs Mo ; 30s de
+                // delai n'etait pas toujours suffisant pour l'upload + le
+                // traitement Azure, d'ou des echecs intermittents observes.
+                .timeout(Duration.ofSeconds(90))
                 .header("Ocp-Apim-Subscription-Key", cle)
                 .header("Content-Type", typeContenuReel)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(audioConverti))
