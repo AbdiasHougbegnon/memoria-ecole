@@ -3,5 +3,5 @@ package com.memoria.core.transcription;
 // Detail d'infrastructure remplacable (Azure Speech aujourd'hui, un autre fournisseur demain).
 public interface TranscripteurPort {
 
-    String transcrire(byte[] audio);
+    ResultatTranscription transcrire(byte[] audio);
 }

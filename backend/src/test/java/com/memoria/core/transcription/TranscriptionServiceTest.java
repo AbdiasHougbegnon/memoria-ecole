@@ -51,10 +51,15 @@ class TranscriptionServiceTest {
     }
 
     @Test
-    void surChunkEnregistre_sauvegarde_le_texte_reconnu_quand_la_transcription_reussit() {
+    void surChunkEnregistre_sauvegarde_le_texte_et_les_segments_locuteur_quand_la_transcription_reussit() {
         UUID sessionId = UUID.randomUUID();
         ChunkAudioEnregistreEvent evenement = new ChunkAudioEnregistreEvent(sessionId, 0, new byte[]{1, 2, 3});
-        when(transcripteur.transcrire(evenement.donnees())).thenReturn("Bonjour tout le monde");
+        List<SegmentLocuteur> segments = List.of(
+                new SegmentLocuteur(1, "Bonjour", 0, 500),
+                new SegmentLocuteur(2, "tout le monde", 500, 700)
+        );
+        when(transcripteur.transcrire(evenement.donnees()))
+                .thenReturn(new ResultatTranscription("Bonjour tout le monde", segments));
         when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
 
         transcriptionService.surChunkEnregistre(evenement);
@@ -66,6 +71,7 @@ class TranscriptionServiceTest {
         assertThat(transcription.getNumeroSequence()).isEqualTo(0);
         assertThat(transcription.getTexte()).isEqualTo("Bonjour tout le monde");
         assertThat(transcription.getStatut()).isEqualTo(TranscriptionStatut.REUSSIE);
+        assertThat(transcription.getSegmentsLocuteur()).isEqualTo(segments);
     }
 
     @Test
@@ -82,13 +88,14 @@ class TranscriptionServiceTest {
         Transcription transcription = captor.getValue();
         assertThat(transcription.getStatut()).isEqualTo(TranscriptionStatut.ECHEC);
         assertThat(transcription.getTexte()).isNull();
+        assertThat(transcription.getSegmentsLocuteur()).isEmpty();
     }
 
     @Test
     void surChunkEnregistre_ne_publie_rien_si_la_session_est_encore_en_cours() {
         UUID sessionId = UUID.randomUUID();
         ChunkAudioEnregistreEvent evenement = new ChunkAudioEnregistreEvent(sessionId, 0, new byte[]{1});
-        when(transcripteur.transcrire(any())).thenReturn("texte");
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("texte", List.of()));
         when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
 
         transcriptionService.surChunkEnregistre(evenement);
@@ -102,7 +109,7 @@ class TranscriptionServiceTest {
         ChunkAudioEnregistreEvent evenement = new ChunkAudioEnregistreEvent(sessionId, 1, new byte[]{1});
         Session session = new Session("Cours");
         session.terminer();
-        when(transcripteur.transcrire(any())).thenReturn("texte");
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("texte", List.of()));
         when(sessionService.obtenirSession(sessionId)).thenReturn(session);
         when(audioChunkRepository.countBySessionId(sessionId)).thenReturn(2L);
         when(transcriptionRepository.countBySessionId(sessionId)).thenReturn(2L);
@@ -118,7 +125,7 @@ class TranscriptionServiceTest {
         ChunkAudioEnregistreEvent evenement = new ChunkAudioEnregistreEvent(sessionId, 0, new byte[]{1});
         Session session = new Session("Cours");
         session.terminer();
-        when(transcripteur.transcrire(any())).thenReturn("texte");
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("texte", List.of()));
         when(sessionService.obtenirSession(sessionId)).thenReturn(session);
         when(audioChunkRepository.countBySessionId(sessionId)).thenReturn(3L);
         when(transcriptionRepository.countBySessionId(sessionId)).thenReturn(2L);

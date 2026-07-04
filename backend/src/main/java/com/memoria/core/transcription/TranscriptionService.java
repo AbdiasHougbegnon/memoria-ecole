@@ -43,17 +43,24 @@ public class TranscriptionService {
     @EventListener
     public void surChunkEnregistre(ChunkAudioEnregistreEvent evenement) {
         try {
-            String texte = transcripteur.transcrire(evenement.donnees());
-            enregistrer(evenement, TranscriptionStatut.REUSSIE, texte);
+            ResultatTranscription resultat = transcripteur.transcrire(evenement.donnees());
+            enregistrer(evenement, TranscriptionStatut.REUSSIE, resultat.texteComplet(), resultat.segments());
         } catch (Exception e) {
             LOG.warn("Echec de la transcription du chunk {} de la session {}", evenement.numeroSequence(), evenement.sessionId(), e);
-            enregistrer(evenement, TranscriptionStatut.ECHEC, null);
+            enregistrer(evenement, TranscriptionStatut.ECHEC, null, List.of());
         }
         signalerSiToutesLesTranscriptionsSontTerminees(evenement.sessionId());
     }
 
-    private void enregistrer(ChunkAudioEnregistreEvent evenement, TranscriptionStatut statut, String texte) {
-        Transcription transcription = new Transcription(evenement.sessionId(), evenement.numeroSequence(), texte, statut);
+    private void enregistrer(
+            ChunkAudioEnregistreEvent evenement,
+            TranscriptionStatut statut,
+            String texte,
+            List<SegmentLocuteur> segments
+    ) {
+        Transcription transcription = new Transcription(
+                evenement.sessionId(), evenement.numeroSequence(), texte, statut, segments
+        );
         transcriptionRepository.save(transcription);
     }
 

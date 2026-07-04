@@ -131,10 +131,21 @@ export function SessionDetailPage() {
               <span className="mr-2 font-mono text-xs text-slate-400">
                 #{segment.numeroSequence}
               </span>
-              {segment.statut === 'REUSSIE' ? (
-                <span className="text-slate-800">{segment.texte}</span>
-              ) : (
+              {segment.statut !== 'REUSSIE' ? (
                 <span className="italic text-red-600">Echec de la transcription</span>
+              ) : segment.segmentsLocuteur.length > 0 ? (
+                <div className="mt-1 flex flex-col gap-1">
+                  {segment.segmentsLocuteur.map((locuteur, index) => (
+                    <p key={index}>
+                      <span className="mr-2 font-medium text-slate-500">
+                        Intervenant {locuteur.locuteur}
+                      </span>
+                      <span className="text-slate-800">{locuteur.texte}</span>
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-slate-800">{segment.texte}</span>
               )}
             </li>
           ))}

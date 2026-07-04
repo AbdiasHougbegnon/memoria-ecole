@@ -10,11 +10,19 @@ export interface Session {
 
 export type TranscriptionStatut = 'REUSSIE' | 'ECHEC'
 
+export interface SegmentLocuteur {
+  locuteur: number
+  texte: string
+  offsetMillisecondes: number
+  dureeMillisecondes: number
+}
+
 export interface TranscriptionSegment {
   numeroSequence: number
   texte: string | null
   statut: TranscriptionStatut
   dateCreation: string
+  segmentsLocuteur: SegmentLocuteur[]
 }
 
 export type ResumeStatut = 'REUSSI' | 'ECHEC'

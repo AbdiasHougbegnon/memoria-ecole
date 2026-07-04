@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,12 +15,16 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Component
 public class TranscripteurAzureSpeech implements TranscripteurPort {
 
     private static final Logger LOG = LoggerFactory.getLogger(TranscripteurAzureSpeech.class);
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String API_VERSION = "2025-10-15";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -28,18 +33,18 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
     private final String cle;
     private final String region;
     private final String langue;
-    private final String typeContenu;
+    private final int maxLocuteurs;
 
     public TranscripteurAzureSpeech(
             @Value("${azure.speech.key}") String cle,
             @Value("${azure.speech.region}") String region,
             @Value("${azure.speech.langue:fr-FR}") String langue,
-            @Value("${azure.speech.content-type:audio/webm; codecs=opus}") String typeContenu
+            @Value("${azure.speech.max-locuteurs:4}") int maxLocuteurs
     ) {
         this.cle = cle;
         this.region = region;
         this.langue = langue;
-        this.typeContenu = typeContenu;
+        this.maxLocuteurs = maxLocuteurs;
 
         if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
             LOG.warn(
@@ -52,25 +57,28 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
     }
 
     @Override
-    public String transcrire(byte[] audio) {
+    public ResultatTranscription transcrire(byte[] audio) {
         if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
-            return "Transcription hors ligne : les credentials Azure Speech ne sont pas configures.";
+            return new ResultatTranscription(
+                    "Transcription hors ligne : les credentials Azure Speech ne sont pas configures.",
+                    List.of()
+            );
         }
 
-        byte[] audioConverti = convertirEnWav(audio);
-        String typeContenuReel = determinerTypeContenu(audioConverti);
+        String frontiere = "MemoriaBoundary" + UUID.randomUUID();
+        String definition = "{\"locales\":[\"" + langue + "\"],\"diarization\":{\"maxSpeakers\":"
+                + maxLocuteurs + ",\"enabled\":true}}";
+        byte[] corps = construireCorpsMultipart(frontiere, audio, definition);
+
         URI uri = URI.create(
-                "https://" + region + ".stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
-                        + "?language=" + langue + "&format=simple"
+                "https://" + region + ".api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe"
+                        + "?api-version=" + API_VERSION
         );
         HttpRequest requete = HttpRequest.newBuilder(uri)
-                // Un chunk WAV non compresse de 30s pese plusieurs Mo ; 30s de
-                // delai n'etait pas toujours suffisant pour l'upload + le
-                // traitement Azure, d'ou des echecs intermittents observes.
                 .timeout(Duration.ofSeconds(90))
                 .header("Ocp-Apim-Subscription-Key", cle)
-                .header("Content-Type", typeContenuReel)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(audioConverti))
+                .header("Content-Type", "multipart/form-data; boundary=" + frontiere)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(corps))
                 .build();
 
         try {
@@ -80,13 +88,7 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
                         "Azure Speech a repondu avec le statut " + reponse.statusCode() + " : " + reponse.body()
                 );
             }
-
-            JsonNode corps = JSON.readTree(reponse.body());
-            String statutReconnaissance = corps.path("RecognitionStatus").asText();
-            if (!"Success".equals(statutReconnaissance)) {
-                throw new TranscriptionException("Azure Speech n'a pas reconnu l'audio (statut : " + statutReconnaissance + ")");
-            }
-            return corps.path("DisplayText").asText();
+            return extraireResultat(reponse.body());
         } catch (IOException e) {
             throw new TranscriptionException("Echec de l'appel a Azure Speech", e);
         } catch (InterruptedException e) {
@@ -95,36 +97,46 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
         }
     }
 
-    byte[] convertirEnWav(byte[] audio) {
-        if (audio == null || audio.length == 0) {
-            return new byte[0];
-        }
+    private byte[] construireCorpsMultipart(String frontiere, byte[] audio, String definition) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            String crlf = "\r\n";
 
-        if (estWav(audio)) {
-            return audio;
-        }
+            out.write(("--" + frontiere + crlf).getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Disposition: form-data; name=\"audio\"; filename=\"audio.wav\"" + crlf)
+                    .getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Type: application/octet-stream" + crlf + crlf).getBytes(StandardCharsets.UTF_8));
+            out.write(audio);
+            out.write(crlf.getBytes(StandardCharsets.UTF_8));
 
-        return audio;
+            out.write(("--" + frontiere + crlf).getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Disposition: form-data; name=\"definition\"" + crlf + crlf)
+                    .getBytes(StandardCharsets.UTF_8));
+            out.write(definition.getBytes(StandardCharsets.UTF_8));
+            out.write(crlf.getBytes(StandardCharsets.UTF_8));
+
+            out.write(("--" + frontiere + "--" + crlf).getBytes(StandardCharsets.UTF_8));
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new TranscriptionException("Echec de construction de la requete Azure Speech", e);
+        }
     }
 
-    private String determinerTypeContenu(byte[] audio) {
-        if (estWav(audio)) {
-            return "audio/wav; codecs=audio/pcm; samplerate=16000";
-        }
-        if (estOgg(audio)) {
-            return "audio/ogg; codecs=opus";
-        }
-        return typeContenu;
-    }
+    private ResultatTranscription extraireResultat(String corpsReponse) throws IOException {
+        JsonNode racine = JSON.readTree(corpsReponse);
 
-    private boolean estWav(byte[] audio) {
-        return audio.length >= 12
-                && "RIFF".equals(new String(audio, 0, 4, StandardCharsets.US_ASCII))
-                && "WAVE".equals(new String(audio, 8, 4, StandardCharsets.US_ASCII));
-    }
+        String texteComplet = racine.path("combinedPhrases").path(0).path("text").asText();
 
-    private boolean estOgg(byte[] audio) {
-        return audio.length >= 4
-                && "OggS".equals(new String(audio, 0, 4, StandardCharsets.US_ASCII));
+        List<SegmentLocuteur> segments = new ArrayList<>();
+        for (JsonNode phrase : racine.path("phrases")) {
+            segments.add(new SegmentLocuteur(
+                    phrase.path("speaker").asInt(0),
+                    phrase.path("text").asText(),
+                    phrase.path("offsetMilliseconds").asLong(0),
+                    phrase.path("durationMilliseconds").asLong(0)
+            ));
+        }
+
+        return new ResultatTranscription(texteComplet, segments);
     }
 }

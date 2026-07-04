@@ -1,14 +1,20 @@
 package com.memoria.core.transcription;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -37,17 +43,33 @@ public class Transcription {
     @Column(name = "date_creation", nullable = false)
     private Instant dateCreation;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "transcription_segments_locuteur", joinColumns = @JoinColumn(name = "transcription_id"))
+    @OrderColumn(name = "position")
+    private List<SegmentLocuteur> segmentsLocuteur;
+
     protected Transcription() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
     public Transcription(UUID sessionId, int numeroSequence, String texte, TranscriptionStatut statut) {
+        this(sessionId, numeroSequence, texte, statut, List.of());
+    }
+
+    public Transcription(
+            UUID sessionId,
+            int numeroSequence,
+            String texte,
+            TranscriptionStatut statut,
+            List<SegmentLocuteur> segmentsLocuteur
+    ) {
         this.id = UUID.randomUUID();
         this.sessionId = sessionId;
         this.numeroSequence = numeroSequence;
         this.texte = texte;
         this.statut = statut;
         this.dateCreation = Instant.now();
+        this.segmentsLocuteur = segmentsLocuteur;
     }
 
     public UUID getId() {
@@ -72,5 +94,9 @@ public class Transcription {
 
     public Instant getDateCreation() {
         return dateCreation;
+    }
+
+    public List<SegmentLocuteur> getSegmentsLocuteur() {
+        return segmentsLocuteur;
     }
 }
