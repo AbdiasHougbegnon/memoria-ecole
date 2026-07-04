@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface ResumeRepository extends JpaRepository<Resume, UUID> {
 
-    Optional<Resume> findBySessionId(UUID sessionId);
+    Optional<Resume> findBySessionIdAndType(UUID sessionId, ResumeType type);
 }

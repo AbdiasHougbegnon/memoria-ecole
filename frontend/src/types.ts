@@ -27,7 +27,10 @@ export interface TranscriptionSegment {
 
 export type ResumeStatut = 'REUSSI' | 'ECHEC'
 
+export type ResumeType = 'COURT' | 'DETAILLE' | 'ACTIONS'
+
 export interface Resume {
+  type: ResumeType
   texteResume: string | null
   pointsCles: string[]
   segmentsSources: number[]

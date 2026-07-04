@@ -23,10 +23,27 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
     private static final Logger LOG = LoggerFactory.getLogger(GenerateurResumeAzureOpenAI.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private static final String CONSIGNE_SYSTEME = """
+    private static final String CONSIGNE_COURT = """
+            Tu es un assistant qui resume tres brievement des transcriptions de reunions ou de cours, en francais.
+            Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
+            {"resume": "une synthese en une ou deux phrases maximum, l'essentiel seulement", "points_cles": []}
+            Le tableau points_cles doit rester vide pour ce type de resume.
+            Aucun texte avant ou apres le JSON, aucun bloc de code markdown.
+            """;
+
+    private static final String CONSIGNE_DETAILLE = """
             Tu es un assistant qui resume des transcriptions de reunions ou de cours, en francais.
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {"resume": "un paragraphe de synthese fidele au contenu", "points_cles": ["point 1", "point 2"]}
+            Aucun texte avant ou apres le JSON, aucun bloc de code markdown.
+            """;
+
+    private static final String CONSIGNE_ACTIONS = """
+            Tu es un assistant qui extrait les actions concretes et decisions de suivi d'une transcription de
+            reunion ou de cours, en francais.
+            Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
+            {"resume": "une phrase de contexte tres courte", "points_cles": ["action a l'imperatif", "autre action"]}
+            Si aucune action concrete n'est mentionnee, renvoie points_cles comme un tableau vide.
             Aucun texte avant ou apres le JSON, aucun bloc de code markdown.
             """;
 
@@ -59,7 +76,7 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
     }
 
     @Override
-    public ResumeGenere genererResume(String transcriptComplet) {
+    public ResumeGenere genererResume(ResumeType type, String transcriptComplet) {
         // Cette ressource Azure expose la Responses API (endpoint du type
         // https://{ressource}.services.ai.azure.com/openai/v1/responses),
         // pas l'ancienne Chat Completions API (/openai/deployments/{modele}/
@@ -67,7 +84,7 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
         // ressource AI Foundry -- verifie empiriquement, ne pas y revenir.
         ObjectNode corpsRequete = JSON.createObjectNode();
         corpsRequete.put("model", modele);
-        corpsRequete.put("instructions", CONSIGNE_SYSTEME);
+        corpsRequete.put("instructions", consigneSystemePour(type));
         corpsRequete.put("input", transcriptComplet);
 
         try {
@@ -94,6 +111,14 @@ public class GenerateurResumeAzureOpenAI implements GenerateurResumePort {
             Thread.currentThread().interrupt();
             throw new GenerationResumeException("Appel a Azure OpenAI interrompu", e);
         }
+    }
+
+    private String consigneSystemePour(ResumeType type) {
+        return switch (type) {
+            case COURT -> CONSIGNE_COURT;
+            case DETAILLE -> CONSIGNE_DETAILLE;
+            case ACTIONS -> CONSIGNE_ACTIONS;
+        };
     }
 
     private String extraireTexteDeSortie(JsonNode corpsReponse) {

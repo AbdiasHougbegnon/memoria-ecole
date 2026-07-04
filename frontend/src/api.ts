@@ -1,4 +1,4 @@
-import type { Resume, Session, TranscriptionSegment } from './types'
+import type { Resume, ResumeType, Session, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -52,10 +52,17 @@ export async function obtenirTranscriptions(id: string): Promise<TranscriptionSe
   return reponse.json()
 }
 
-export async function obtenirResume(id: string): Promise<Resume | null> {
-  const reponse = await fetch(`${BASE}/${id}/resume`)
+export async function obtenirResume(id: string, type: ResumeType): Promise<Resume | null> {
+  const reponse = await fetch(`${BASE}/${id}/resumes/${type}`)
   if (reponse.status === 404 || reponse.status === 204) {
     return null
   }
   return (await verifierReponse(reponse)).json()
+}
+
+export async function genererResume(id: string, type: ResumeType): Promise<Resume> {
+  const reponse = await verifierReponse(
+    await fetch(`${BASE}/${id}/resumes/${type}`, { method: 'POST' }),
+  )
+  return reponse.json()
 }

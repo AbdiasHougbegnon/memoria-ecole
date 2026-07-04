@@ -3,13 +3,14 @@ package com.memoria.core.resume;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/sessions/{sessionId}/resume")
+@RequestMapping("/api/v1/sessions/{sessionId}/resumes/{type}")
 public class ResumeController {
 
     private final ResumeService resumeService;
@@ -19,11 +20,16 @@ public class ResumeController {
     }
 
     @GetMapping
-    public ResponseEntity<ResumeResponse> obtenirResume(@PathVariable UUID sessionId) {
+    public ResponseEntity<ResumeResponse> obtenirResume(@PathVariable UUID sessionId, @PathVariable ResumeType type) {
         try {
-            return ResponseEntity.ok(ResumeResponse.depuis(resumeService.obtenirResume(sessionId)));
+            return ResponseEntity.ok(ResumeResponse.depuis(resumeService.obtenirResume(sessionId, type)));
         } catch (ResumeNotFoundException ignored) {
             return ResponseEntity.noContent().build();
         }
+    }
+
+    @PostMapping
+    public ResumeResponse genererResume(@PathVariable UUID sessionId, @PathVariable ResumeType type) {
+        return ResumeResponse.depuis(resumeService.obtenirOuGenererResume(sessionId, type));
     }
 }

@@ -11,20 +11,28 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "resumes")
+@Table(
+        name = "resumes",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"session_id", "type"})
+)
 public class Resume {
 
     @Id
     private UUID id;
 
-    @Column(name = "session_id", nullable = false, unique = true)
+    @Column(name = "session_id", nullable = false)
     private UUID sessionId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ResumeType type;
 
     @Column(name = "texte_resume", columnDefinition = "text")
     private String texteResume;
@@ -53,6 +61,7 @@ public class Resume {
 
     public Resume(
             UUID sessionId,
+            ResumeType type,
             String texteResume,
             List<String> pointsCles,
             List<Integer> segmentsSources,
@@ -60,6 +69,7 @@ public class Resume {
     ) {
         this.id = UUID.randomUUID();
         this.sessionId = sessionId;
+        this.type = type;
         this.texteResume = texteResume;
         this.pointsCles = pointsCles;
         this.segmentsSources = segmentsSources;
@@ -73,6 +83,10 @@ public class Resume {
 
     public UUID getSessionId() {
         return sessionId;
+    }
+
+    public ResumeType getType() {
+        return type;
     }
 
     public String getTexteResume() {
