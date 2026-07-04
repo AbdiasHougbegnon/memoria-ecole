@@ -37,3 +37,15 @@ export interface Resume {
   statut: ResumeStatut
   dateCreation: string
 }
+
+export type TypeDocument = 'PDF' | 'PHOTO'
+export type StatutDocument = 'EN_ATTENTE' | 'REUSSI' | 'ECHEC'
+
+export interface DocumentItem {
+  id: string
+  type: TypeDocument
+  nomFichier: string
+  texteExtrait: string | null
+  statut: StatutDocument
+  dateCreation: string
+}

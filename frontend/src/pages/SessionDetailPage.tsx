@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { genererResume, obtenirResume, obtenirSession, obtenirTranscriptions } from '../api'
-import type { Resume, ResumeType, Session, TranscriptionSegment } from '../types'
+import {
+  genererResume,
+  obtenirDocuments,
+  obtenirResume,
+  obtenirSession,
+  obtenirTranscriptions,
+  televerserDocument,
+} from '../api'
+import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
 
 // Nombre de relectures tentees apres la fin de la session avant d'abandonner
 // l'attente d'un resume (environ 15s a raison d'une tentative toutes les 3s).
@@ -44,6 +51,9 @@ export function SessionDetailPage() {
   const [ongletActif, setOngletActif] = useState<ResumeType>('DETAILLE')
   const [generationEnCours, setGenerationEnCours] = useState<ResumeType | null>(null)
   const [erreurGeneration, setErreurGeneration] = useState<string | null>(null)
+  const [documents, setDocuments] = useState<DocumentItem[]>([])
+  const [televersementEnCours, setTeleversementEnCours] = useState(false)
+  const [erreurTeleversement, setErreurTeleversement] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -52,16 +62,18 @@ export function SessionDetailPage() {
     let intervalle: number
 
     async function charger() {
-      const [s, t, r] = await Promise.all([
+      const [s, t, r, d] = await Promise.all([
         obtenirSession(id!),
         obtenirTranscriptions(id!),
         obtenirResume(id!, 'DETAILLE'),
+        obtenirDocuments(id!),
       ])
       if (annule) return
 
       setSession(s)
       setTranscriptions(t)
       setResumesParType((precedent) => ({ ...precedent, DETAILLE: r }))
+      setDocuments(d)
       setChargement(false)
 
       if (r || s.statut === 'EN_COURS') {
@@ -104,6 +116,20 @@ export function SessionDetailPage() {
       setErreurGeneration("Impossible de generer ce resume (aucune transcription disponible pour le moment ?).")
     } finally {
       setGenerationEnCours(null)
+    }
+  }
+
+  async function surSelectionFichier(fichier: File | undefined) {
+    if (!fichier || !id) return
+    setErreurTeleversement(null)
+    setTeleversementEnCours(true)
+    try {
+      const document = await televerserDocument(id, fichier)
+      setDocuments((precedent) => [...precedent, document])
+    } catch {
+      setErreurTeleversement("Echec de l'envoi du document.")
+    } finally {
+      setTeleversementEnCours(false)
     }
   }
 
@@ -210,6 +236,56 @@ export function SessionDetailPage() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+          Documents
+        </h2>
+
+        <label className="mb-3 inline-block cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">
+          {televersementEnCours ? 'Envoi en cours...' : 'Ajouter un PDF ou une photo'}
+          <input
+            type="file"
+            accept="application/pdf,image/*"
+            className="hidden"
+            disabled={televersementEnCours}
+            onChange={(e) => {
+              void surSelectionFichier(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+        </label>
+
+        {erreurTeleversement && <p className="mb-2 text-sm text-red-600">{erreurTeleversement}</p>}
+
+        {documents.length === 0 && (
+          <p className="text-sm text-slate-500">Aucun document depose pour le moment.</p>
+        )}
+        <ul className="flex flex-col gap-2">
+          {documents.map((document) => (
+            <li
+              key={document.id}
+              className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                  {document.type}
+                </span>
+                <span className="font-medium text-slate-800">{document.nomFichier}</span>
+              </div>
+              {document.statut === 'EN_ATTENTE' && (
+                <p className="text-slate-500 italic">Extraction du texte en cours...</p>
+              )}
+              {document.statut === 'ECHEC' && (
+                <p className="text-red-600 italic">Echec de l'extraction du texte.</p>
+              )}
+              {document.statut === 'REUSSI' && (
+                <p className="whitespace-pre-wrap text-slate-800">{document.texteExtrait}</p>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   )

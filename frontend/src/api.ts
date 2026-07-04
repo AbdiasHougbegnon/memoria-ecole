@@ -1,4 +1,4 @@
-import type { Resume, ResumeType, Session, TranscriptionSegment } from './types'
+import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -63,6 +63,20 @@ export async function obtenirResume(id: string, type: ResumeType): Promise<Resum
 export async function genererResume(id: string, type: ResumeType): Promise<Resume> {
   const reponse = await verifierReponse(
     await fetch(`${BASE}/${id}/resumes/${type}`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirDocuments(id: string): Promise<DocumentItem[]> {
+  const reponse = await verifierReponse(await fetch(`${BASE}/${id}/documents`))
+  return reponse.json()
+}
+
+export async function televerserDocument(id: string, fichier: File): Promise<DocumentItem> {
+  const corps = new FormData()
+  corps.append('fichier', fichier)
+  const reponse = await verifierReponse(
+    await fetch(`${BASE}/${id}/documents`, { method: 'POST', body: corps }),
   )
   return reponse.json()
 }
