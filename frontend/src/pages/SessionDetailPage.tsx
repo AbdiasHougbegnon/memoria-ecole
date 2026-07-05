@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import {
+  genererCompteRendu,
   genererResume,
+  obtenirCompteRendu,
   obtenirDocuments,
   obtenirResume,
   obtenirSession,
@@ -10,7 +12,7 @@ import {
   televerserDocument,
 } from '../api'
 import { redimensionnerImageSiNecessaire } from '../redimensionnerImage'
-import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
+import type { CompteRendu, DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
 
 // Nombre de relectures tentees apres la fin de la session avant d'abandonner
 // l'attente d'un resume (environ 15s a raison d'une tentative toutes les 3s).
@@ -58,6 +60,9 @@ export function SessionDetailPage() {
   const [erreurTeleversement, setErreurTeleversement] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
+  const [compteRendu, setCompteRendu] = useState<CompteRendu | null>(null)
+  const [compteRenduEnCours, setCompteRenduEnCours] = useState(false)
+  const [erreurCompteRendu, setErreurCompteRendu] = useState<string | null>(null)
   // Le microphone n'est accessible que sur localhost ou en HTTPS (contexte
   // securise impose par les navigateurs) : on reste donc sur localhost pour
   // enregistrer, et on ne demande l'IP reseau du PC que pour construire le
@@ -73,11 +78,12 @@ export function SessionDetailPage() {
     let intervalle: number
 
     async function charger() {
-      const [s, t, r, d] = await Promise.all([
+      const [s, t, r, d, cr] = await Promise.all([
         obtenirSession(id!),
         obtenirTranscriptions(id!),
         obtenirResume(id!, 'DETAILLE'),
         obtenirDocuments(id!),
+        obtenirCompteRendu(id!),
       ])
       if (annule) return
 
@@ -85,6 +91,7 @@ export function SessionDetailPage() {
       setTranscriptions(t)
       setResumesParType((precedent) => ({ ...precedent, DETAILLE: r }))
       setDocuments(d)
+      setCompteRendu(cr)
       setChargement(false)
 
       if (r || s.statut === 'EN_COURS') {
@@ -127,6 +134,21 @@ export function SessionDetailPage() {
       setErreurGeneration("Impossible de generer ce resume (aucune transcription disponible pour le moment ?).")
     } finally {
       setGenerationEnCours(null)
+    }
+  }
+
+  async function genererLeCompteRendu() {
+    if (!id || compteRenduEnCours) return
+    setErreurCompteRendu(null)
+    setCompteRenduEnCours(true)
+    try {
+      setCompteRendu(await genererCompteRendu(id))
+    } catch {
+      setErreurCompteRendu(
+        "Impossible de generer le compte rendu (aucune transcription disponible pour le moment ?).",
+      )
+    } finally {
+      setCompteRenduEnCours(false)
     }
   }
 
@@ -235,6 +257,68 @@ export function SessionDetailPage() {
           resumeOnglet === undefined && <p className="text-sm text-slate-500">Chargement...</p>}
 
         {resumeOnglet && <ContenuResume resume={resumeOnglet} />}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+          Compte rendu complet (Entreprise)
+        </h2>
+
+        {!compteRendu && (
+          <button
+            onClick={() => void genererLeCompteRendu()}
+            disabled={compteRenduEnCours}
+            className="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200"
+          >
+            {compteRenduEnCours ? 'Generation en cours...' : 'Generer le compte rendu complet'}
+          </button>
+        )}
+
+        {erreurCompteRendu && <p className="mt-2 text-sm text-red-600">{erreurCompteRendu}</p>}
+
+        {compteRendu && compteRendu.statut === 'ECHEC' && (
+          <p className="text-sm text-red-600">La generation du compte rendu a echoue.</p>
+        )}
+
+        {compteRendu && compteRendu.statut === 'REUSSI' && (
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-800">{compteRendu.synthese}</p>
+
+            {compteRendu.decisions.length > 0 && (
+              <>
+                <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Decisions
+                </h3>
+                <ul className="list-disc pl-5 text-sm text-slate-700">
+                  {compteRendu.decisions.map((decision, index) => (
+                    <li key={index}>{decision}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {compteRendu.actions.length > 0 && (
+              <>
+                <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Actions
+                </h3>
+                <ul className="flex flex-col gap-1 text-sm text-slate-700">
+                  {compteRendu.actions.map((action, index) => (
+                    <li key={index}>
+                      {action.description}
+                      {action.responsable && (
+                        <span className="ml-2 text-xs text-slate-500">({action.responsable})</span>
+                      )}
+                      {action.echeance && (
+                        <span className="ml-2 text-xs text-slate-400">- {action.echeance}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
       </section>
 
       <section>

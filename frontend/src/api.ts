@@ -1,4 +1,4 @@
-import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from './types'
+import type { CompteRendu, DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -77,6 +77,21 @@ export async function televerserDocument(id: string, fichier: File): Promise<Doc
   corps.append('fichier', fichier)
   const reponse = await verifierReponse(
     await fetch(`${BASE}/${id}/documents`, { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirCompteRendu(id: string): Promise<CompteRendu | null> {
+  const reponse = await fetch(`${BASE}/${id}/compte-rendu`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function genererCompteRendu(id: string): Promise<CompteRendu> {
+  const reponse = await verifierReponse(
+    await fetch(`${BASE}/${id}/compte-rendu`, { method: 'POST' }),
   )
   return reponse.json()
 }

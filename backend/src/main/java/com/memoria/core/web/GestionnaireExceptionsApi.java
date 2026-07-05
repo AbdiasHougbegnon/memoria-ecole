@@ -1,7 +1,6 @@
 package com.memoria.core.web;
 
 import com.memoria.core.audio.SessionNonActiveException;
-import com.memoria.core.resume.AucuneTranscriptionDisponibleException;
 import com.memoria.core.resume.ResumeNotFoundException;
 import com.memoria.core.session.SessionNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -27,8 +26,18 @@ public class GestionnaireExceptionsApi {
     public void gererResumeIntrouvable() {
     }
 
-    @ExceptionHandler(AucuneTranscriptionDisponibleException.class)
+    @ExceptionHandler(com.memoria.core.resume.AucuneTranscriptionDisponibleException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public void gererAucuneTranscriptionDisponible() {
+    public void gererAucuneTranscriptionDisponibleResume() {
+    }
+
+    @ExceptionHandler(com.memoria.entreprise.compterendu.CompteRenduNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererCompteRenduIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.entreprise.compterendu.AucuneTranscriptionDisponibleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererAucuneTranscriptionDisponibleCompteRendu() {
     }
 }

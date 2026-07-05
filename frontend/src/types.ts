@@ -49,3 +49,20 @@ export interface DocumentItem {
   statut: StatutDocument
   dateCreation: string
 }
+
+export type StatutCompteRendu = 'REUSSI' | 'ECHEC'
+
+export interface ActionCompteRendu {
+  description: string
+  responsable: string | null
+  echeance: string | null
+}
+
+export interface CompteRendu {
+  synthese: string | null
+  decisions: string[]
+  actions: ActionCompteRendu[]
+  segmentsSources: number[]
+  statut: StatutCompteRendu
+  dateCreation: string
+}
