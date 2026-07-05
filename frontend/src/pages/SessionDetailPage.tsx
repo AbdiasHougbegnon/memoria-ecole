@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import QRCode from 'qrcode'
 import {
   genererResume,
   obtenirDocuments,
@@ -8,6 +9,7 @@ import {
   obtenirTranscriptions,
   televerserDocument,
 } from '../api'
+import { redimensionnerImageSiNecessaire } from '../redimensionnerImage'
 import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
 
 // Nombre de relectures tentees apres la fin de la session avant d'abandonner
@@ -54,6 +56,15 @@ export function SessionDetailPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [televersementEnCours, setTeleversementEnCours] = useState(false)
   const [erreurTeleversement, setErreurTeleversement] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
+  // Le microphone n'est accessible que sur localhost ou en HTTPS (contexte
+  // securise impose par les navigateurs) : on reste donc sur localhost pour
+  // enregistrer, et on ne demande l'IP reseau du PC que pour construire le
+  // lien du QR code, sans changer l'origine de la page elle-meme.
+  const [adresseReseau, setAdresseReseau] = useState(() =>
+    /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) ? '' : window.location.host,
+  )
 
   useEffect(() => {
     if (!id) return
@@ -124,7 +135,8 @@ export function SessionDetailPage() {
     setErreurTeleversement(null)
     setTeleversementEnCours(true)
     try {
-      const document = await televerserDocument(id, fichier)
+      const fichierEnvoye = await redimensionnerImageSiNecessaire(fichier)
+      const document = await televerserDocument(id, fichierEnvoye)
       setDocuments((precedent) => [...precedent, document])
     } catch {
       setErreurTeleversement("Echec de l'envoi du document.")
@@ -132,6 +144,30 @@ export function SessionDetailPage() {
       setTeleversementEnCours(false)
     }
   }
+
+  async function afficherQrCode() {
+    if (!id) return
+    if (qrCodeImage) {
+      setQrCodeImage(null)
+      return
+    }
+    await regenererQrCode()
+  }
+
+  async function regenererQrCode() {
+    if (!id) return
+    const hote = adresseReseau.trim() || window.location.host
+    const url = `http://${hote}/mobile/sessions/${id}`
+    setQrCodeUrl(url)
+    setQrCodeImage(await QRCode.toDataURL(url, { width: 220, margin: 1 }))
+  }
+
+  useEffect(() => {
+    if (qrCodeImage) {
+      void regenererQrCode()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adresseReseau])
 
   if (chargement) {
     return <p className="p-8 text-sm text-slate-500">Chargement...</p>
@@ -243,19 +279,47 @@ export function SessionDetailPage() {
           Documents
         </h2>
 
-        <label className="mb-3 inline-block cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">
-          {televersementEnCours ? 'Envoi en cours...' : 'Ajouter un PDF ou une photo'}
+        <div className="mb-3 flex flex-wrap gap-2">
+          <label className="inline-block cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">
+            {televersementEnCours ? 'Envoi en cours...' : 'Ajouter un PDF ou une photo'}
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              disabled={televersementEnCours}
+              onChange={(e) => {
+                void surSelectionFichier(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </label>
+
           <input
-            type="file"
-            accept="application/pdf,image/*"
-            className="hidden"
-            disabled={televersementEnCours}
-            onChange={(e) => {
-              void surSelectionFichier(e.target.files?.[0])
-              e.target.value = ''
-            }}
+            type="text"
+            value={adresseReseau}
+            onChange={(e) => setAdresseReseau(e.target.value)}
+            placeholder="IP locale du PC:port (ex. 192.168.1.10:5173)"
+            className="w-64 rounded-lg border border-slate-200 px-2 py-1 text-sm"
           />
-        </label>
+
+          <button
+            onClick={() => void afficherQrCode()}
+            className="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200"
+          >
+            {qrCodeImage ? 'Masquer le QR code' : 'Ajouter depuis un telephone (QR code)'}
+          </button>
+        </div>
+
+        {qrCodeImage && (
+          <div className="mb-4 flex flex-col items-center gap-2 rounded-lg border border-slate-200 bg-white p-4">
+            <img src={qrCodeImage} alt="QR code pour ajouter une photo depuis un telephone" />
+            <p className="text-xs break-all text-slate-400">{qrCodeUrl}</p>
+            <p className="text-xs text-slate-500">
+              Scanne ce QR code avec un telephone connecte au meme reseau Wi-Fi. Le micro reste
+              utilisable ici car cette page continue de tourner sur localhost.
+            </p>
+          </div>
+        )}
 
         {erreurTeleversement && <p className="mb-2 text-sm text-red-600">{erreurTeleversement}</p>}
 

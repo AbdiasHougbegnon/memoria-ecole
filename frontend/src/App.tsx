@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { SessionsListPage } from './pages/SessionsListPage'
 import { SessionDetailPage } from './pages/SessionDetailPage'
+import { MobileUploadPage } from './pages/MobileUploadPage'
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
         <Routes>
           <Route path="/" element={<SessionsListPage />} />
           <Route path="/sessions/:id" element={<SessionDetailPage />} />
+          <Route path="/mobile/sessions/:id" element={<MobileUploadPage />} />
         </Routes>
       </div>
     </BrowserRouter>
