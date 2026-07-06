@@ -294,6 +294,35 @@ azure.search.index=memoria-segments
 ```
 Le `:` après le nom de la variable d'environnement (`${AZURE_SEARCH_ENDPOINT:}`) donne une valeur par défaut vide si la variable n'existe pas — sans ça, Spring refuserait de démarrer du tout en l'absence de la variable. C'est ce qui permet à l'application de démarrer même sans ces clés (avec un simple `WARN` dans les logs, voir le constructeur de `RechercheAzureAiSearch`), plutôt que de planter au démarrage.
 
+### 6.7 — Les fichiers "petits" qu'on n'a pas encore détaillés
+
+Trois catégories de fichiers restent, volontairement mises à part parce qu'elles suivent chacune un patron mécanique déjà vu ailleurs dans le projet — mais chacune mérite une explication précise, pas juste "c'est trivial".
+
+**`IndexRechercheRepository`** :
+```java
+public interface IndexRechercheRepository extends JpaRepository<IndexRecherche, UUID> {
+    Optional<IndexRecherche> findBySessionId(UUID sessionId);
+}
+```
+Une interface, sans aucune implémentation écrite nulle part dans le code — et pourtant elle fonctionne. C'est **Spring Data JPA** qui génère automatiquement le code réel derrière cette interface, au démarrage de l'application, à partir du nom de la méthode. `findBySessionId(UUID sessionId)` est décodé littéralement : "trouve par le champ `sessionId`" — Spring construit tout seul la requête SQL équivalente (`SELECT * FROM index_recherche WHERE session_id = ?`). `extends JpaRepository<IndexRecherche, UUID>` donne aussi gratuitement des méthodes déjà prêtes qu'on n'a pas eu besoin de nommer : `save(...)`, `findById(...)`, `findAll()`, etc. — c'est pour ça qu'on ne voit jamais de `save()` "réécrit à la main" nulle part dans ce projet.
+
+**`GenerationEmbeddingException` et `RechercheException`** :
+```java
+public class RechercheException extends RuntimeException {
+    public RechercheException(String message) { super(message); }
+    public RechercheException(String message, Throwable cause) { super(message, cause); }
+}
+```
+Deux classes qui ne font quasiment rien de plus qu'une `RuntimeException` standard — et c'est précisément le but. Pourquoi ne pas simplement lancer `new RuntimeException("...")` directement dans `RechercheAzureAiSearch` ? Parce qu'une exception **typée** (une classe à part) permet, ailleurs dans le code (ou plus tard, si besoin), d'écrire `catch (RechercheException e)` pour réagir *seulement* aux erreurs venant d'Azure AI Search, sans intercepter par erreur une tout autre exception qui n'a rien à voir. Dans `RechercheService.indexerSiPossible()`, le `catch (Exception e)` générique attrape en fait aussi bien `RechercheException` que `GenerationEmbeddingException` — les deux existent surtout pour que le **message d'erreur** soit clair dans les logs (`"Azure AI Search a repondu avec le statut ..."` plutôt qu'une exception anonyme), et pour documenter, rien qu'en lisant la signature d'une méthode, quel genre d'échec elle peut produire.
+
+**`RechercheResultatResponse`** :
+```java
+public record RechercheResultatResponse(UUID sessionId, String titreSession, Instant dateSession, String texte, ...) {
+    public static RechercheResultatResponse depuis(ResultatRecherche resultat) { ... }
+}
+```
+C'est le DTO ("Data Transfer Object") exposé par `RechercheController` — la règle du projet, déjà expliquée en Phase 2 (diarization), est de **ne jamais renvoyer un objet interne directement en JSON**, toujours passer par un DTO dédié à l'API. Ici, il se trouve que `RechercheResultatResponse` a exactement les mêmes champs que `ResultatRecherche` (le record interne utilisé entre `RechercheService` et `RecherchePort`) — ce qui peut sembler être une duplication inutile. Ce n'en est pas une : `ResultatRecherche` appartient à la couche "domaine/port" (elle pourrait exister même si l'API HTTP n'existait pas), alors que `RechercheResultatResponse` appartient à la couche "web" (son seul rôle est d'être sérialisée en JSON). Si un jour l'un des deux doit changer sans l'autre (par exemple, cacher le score de pertinence dans l'API publique tout en le gardant en interne pour du débogage), les deux classes séparées permettent ce changement sans rien casser ailleurs.
+
 ---
 
 ## 7. Les tests unitaires, expliqués

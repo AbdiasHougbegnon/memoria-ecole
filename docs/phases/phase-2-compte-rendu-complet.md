@@ -160,6 +160,48 @@ public void gererAucuneTranscriptionDisponibleCompteRendu() {}
 ```
 Raison de ce détail syntaxique : le module `resume` (moteur) a **déjà** sa propre classe `AucuneTranscriptionDisponibleException` (dans `com.memoria.core.resume`) — même nom, package différent. Java ne permet pas d'importer deux classes différentes avec le même nom simple dans un seul fichier ; écrire le nom complet dans l'annotation évite le conflit sans avoir à renommer l'une des deux classes (qui, elles, ont chacune leur bonne raison de porter ce nom dans leur propre contexte).
 
+### Les fichiers restants : repository, exceptions, DTO de réponse
+
+Pour être complet, les fichiers qui n'ont pas encore été détaillés individuellement — chacun suit un patron déjà utilisé ailleurs dans le projet, mais chacun a sa raison d'être.
+
+**`CompteRenduRepository`** :
+```java
+public interface CompteRenduRepository extends JpaRepository<CompteRendu, UUID> {
+    Optional<CompteRendu> findBySessionId(UUID sessionId);
+}
+```
+Une interface vide de tout code — Spring Data JPA génère l'implémentation réelle tout seul, au démarrage, en lisant le nom de la méthode : `findBySessionId` devient une vraie requête SQL (`WHERE session_id = ?`), sans qu'on ait écrit une seule ligne de SQL. `extends JpaRepository<CompteRendu, UUID>` fournit aussi, gratuitement, `save()`, `findById()`, etc. — jamais réécrits à la main dans ce projet.
+
+**`CompteRenduNotFoundException` et `AucuneTranscriptionDisponibleException`** :
+```java
+public class CompteRenduNotFoundException extends RuntimeException {
+    public CompteRenduNotFoundException(UUID sessionId) {
+        super("Aucun compte rendu disponible pour la session " + sessionId);
+    }
+}
+```
+Deux classes minces, chacune avec un seul constructeur qui fabrique un message d'erreur clair et précis. Pourquoi une classe dédiée plutôt qu'une `RuntimeException` générique ? Parce que `GestionnaireExceptionsApi` (juste au-dessus) a besoin de les distinguer par leur **type** pour leur associer un code HTTP différent (`404` pour "introuvable", `409 Conflict` pour "rien à résumer") — un `catch`/`@ExceptionHandler` ne peut cibler que des classes précises, jamais "un message qui contient tel mot".
+
+**`GenerationCompteRenduException`** :
+```java
+public class GenerationCompteRenduException extends RuntimeException {
+    public GenerationCompteRenduException(String message) { super(message); }
+    public GenerationCompteRenduException(String message, Throwable cause) { super(message, cause); }
+}
+```
+Lancée par `GenerateurCompteRenduAzureOpenAI` dès que quelque chose se passe mal avec Azure OpenAI (statut HTTP inattendu, réponse illisible...). Elle n'est **jamais attrapée spécifiquement** par son propre type ailleurs dans le code — elle remonte jusqu'au `catch (Exception e)` générique de `CompteRenduService.obtenirOuGenererCompteRendu()`, qui marque simplement le compte rendu en `ECHEC`. Son rôle n'est donc pas de permettre un traitement différencié (comme les deux exceptions précédentes), mais de **documenter clairement, dans le message d'erreur des logs**, que l'échec vient précisément de l'appel à Azure OpenAI et pas d'ailleurs (base de données, bug de code...) — utile le jour où il faut déboguer un vrai échec en production.
+
+**`ActionCompteRenduResponse` et `CompteRenduResponse`** :
+```java
+public record ActionCompteRenduResponse(String description, String responsable, String echeance) {
+    public static ActionCompteRenduResponse depuis(ActionCompteRendu action) { ... }
+}
+public record CompteRenduResponse(String synthese, List<String> decisions, List<ActionCompteRenduResponse> actions, ...) {
+    public static CompteRenduResponse depuis(CompteRendu compteRendu) { ... }
+}
+```
+Les DTO ("Data Transfer Object") renvoyés par `CompteRenduController` — jamais l'entité JPA (`CompteRendu`) directement. Même règle que partout ailleurs dans le projet (déjà expliquée en détail dans la doc de la diarization, Phase 2) : le contrôleur ne renvoie jamais un objet de base de données tel quel au navigateur, toujours une traduction dédiée à l'API, construite par une méthode `depuis(...)`. Remarque la **cascade** : `CompteRenduResponse.depuis()` appelle lui-même `ActionCompteRenduResponse::depuis` sur chaque action de la liste (`compteRendu.getActions().stream().map(ActionCompteRenduResponse::depuis).toList()`) — un DTO composé peut être construit à partir d'autres petits DTO, exactement comme l'entité `CompteRendu` est composée de plusieurs `ActionCompteRendu`.
+
 ---
 
 ## 5. Le vrai bug d'architecture rencontré : Spring Boot ne voyait pas le nouveau package

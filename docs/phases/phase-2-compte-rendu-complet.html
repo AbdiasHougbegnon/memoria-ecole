@@ -1,0 +1,396 @@
+<title>Memoria — Dossier technique Phase 2 : compte rendu complet</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 2 · première brique Entreprise</span>
+    <h1 class="title">Le compte rendu complet</h1>
+    <p class="dek">Dossier de référence complet : le besoin, les décisions de conception, le contrat Azure OpenAI, chaque classe et méthode du backend, un vrai bug d'architecture Spring Boot expliqué en détail, les tests, le frontend, et comment on a vérifié.</p>
+    <div class="factrow">
+      <span class="fact"><strong>com.memoria.entreprise</strong>&nbsp;— premier package produit</span>
+      <span class="fact"><strong>Azure OpenAI</strong>&nbsp;Responses API</span>
+      <span class="fact"><strong>7</strong>&nbsp;tests backend</span>
+      <span class="fact">tag <code>phase-2-compte-rendu-complet</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi valider avant de coder</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Décisions de conception</a>
+    <a href="#contrat">Le contrat Azure OpenAI</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Le vrai bug</span>
+    <a href="#bug-archi">Spring Boot ne voyait pas le package</a>
+    <a href="#timeout">Le délai d'attente Azure OpenAI</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#tests">Tests unitaires</a>
+    <a href="#frontend">Le frontend</a>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin, et pourquoi valider avant de coder</h2>
+      <p class="lead"><code>memoria-master-prompt.md</code> distingue le <strong style="color:var(--text)">moteur</strong> (transcription, résumé générique) de la couche <strong style="color:var(--text)">Entreprise</strong> (décisions, engagements, échéances, responsables). Le compte rendu complet est la version Entreprise du résumé : synthèse + décisions actées + actions à faire, avec qui doit la faire et pour quand, quand c'est mentionné.</p>
+      <p class="lead">Avant d'écrire une ligne de code : vérification du principe non négociable de <code>CLAUDE.md</code> — « toute nouvelle capacité répond à un vrai besoin métier validé, pas juste techniquement possible ». Déjà validé en amont (entretiens antérieurs), reconfirmé explicitement par principe avant de concevoir.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Décisions de conception</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4 style="margin-bottom:8px">Comment désigner le responsable ?</h4>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0">Le texte contient des repères « Intervenant N » (diarization, Phase 2) — jamais de vrai nom propre. <strong style="color:var(--text)">Décision</strong> : reprendre « Intervenant N » tel quel, ou laisser vide. Jamais inventer un nom.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">Sortie structurée ou texte libre ?</h4>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0">Pour extraire synthèse + décisions + actions avec leur propre structure. <strong style="color:var(--text)">Décision</strong> : objet JSON avec schéma précis dans le prompt système — même principe déjà utilisé pour les résumés.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contrat">
+      <h2><span class="num">§</span> Le contrat avec Azure OpenAI</h2>
+      <p class="lead">Même ressource et même API que pour les résumés — la <strong>Responses API</strong>, pas l'ancienne Chat Completions (404 systématique sur ce type de ressource AI Foundry, déjà découvert en Phase 2 diarization).</p>
+      <div class="card">
+        <p class="codecap">Prompt système envoyé (extrait)</p>
+        <pre><code>Tu es un assistant qui redige un compte rendu de reunion ou de cours complet et fidele.
+La transcription peut contenir des reperes "Intervenant N" : reprends-les tels quels,
+n'invente jamais de nom propre.
+Reponds UNIQUEMENT avec un objet JSON :
+{
+  "synthese": "...",
+  "decisions": ["decision actee 1", ...],
+  "actions": [{"description": "...", "responsable": "Intervenant 2 ou null", "echeance": "... ou null"}]
+}
+Le champ responsable/echeance doit valoir JSON null (pas la chaine "null") si absent.</code></pre>
+        <p style="margin-top:10px">Le détail qui compte : préciser explicitement « JSON <code>null</code>, pas la chaîne <code>"null"</code> » — sans ça, un modèle de langage a tendance à écrire littéralement le mot comme texte, ce qui casserait <code>action.path("responsable").isNull()</code> côté Java.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+      <p class="lead">Tous dans <code>com.memoria.entreprise.compterendu</code> — remarque <code>entreprise</code>, pas <code>core</code> : ce vocabulaire (décision, action, responsable) n'existe nulle part dans le moteur.</p>
+
+      <details class="filecard" open>
+        <summary><span>CompteRendu</span><span class="desc">entité <span class="pill entity">JPA</span></span></summary>
+        <div class="filebody">
+          <pre><code>@Column(name = "session_id", nullable = false, unique = true)
+private UUID sessionId; // un seul compte rendu par session (contrairement a Resume)
+
+@ElementCollection(fetch = FetchType.EAGER) @OrderColumn(name = "position")
+private List&lt;String&gt; decisions;
+@ElementCollection(fetch = FetchType.EAGER) @OrderColumn(name = "position")
+private List&lt;ActionCompteRendu&gt; actions;</code></pre>
+          <p>Trois <code>@ElementCollection</code> distinctes (trois tables en base), chacune <code>EAGER</code> + <code>@OrderColumn</code> — sans <code>EAGER</code>, Hibernate charge « à la demande », et lire après fermeture de session (sérialisation JSON) plante. Bug déjà rencontré une fois en Phase 1 avec <code>Resume</code> — réflexe systématique depuis.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>ActionCompteRendu</span><span class="desc"><code>@Embeddable</code></span></summary>
+        <div class="filebody">
+          <p><code>description</code>, <code>responsable</code> (« Intervenant N » ou <code>null</code>), <code>echeance</code> — <strong>texte libre</strong> (« vendredi prochain »), jamais convertie en vraie date : un contresens de conversion automatique serait pire qu'une information laissée telle quelle.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>ActionExtraite / CompteRenduGenere</span><span class="desc">records — DTO du port</span></summary>
+        <div class="filebody">
+          <p><code>ActionExtraite</code> (ce que le port renvoie) et <code>ActionCompteRendu</code> (l'<code>@Embeddable</code> stocké) sont volontairement deux classes séparées qui se ressemblent — <code>ActionExtraite</code> n'a aucune dépendance JPA, un détail de persistance ne fuite jamais jusqu'à l'interface du port. <code>CompteRenduService</code> fait la conversion entre les deux.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>CompteRenduService</span><span class="desc">orchestration, cache, échec</span></summary>
+        <div class="filebody">
+          <p><strong>obtenirOuGenererCompteRendu(sessionId)</strong> — généré <strong>uniquement à la demande</strong> (jamais automatique comme le résumé DETAILLE) : chaque génération coûte un appel Azure OpenAI, en ajouter un systématiquement doublerait le coût par session. Une fois généré (succès ou échec), mis en cache <strong>pour toujours</strong> — jamais régénéré. <code>enregistrerSiAbsent</code> revérifie une dernière fois avant insertion, contre une course entre deux requêtes simultanées.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>GestionnaireExceptionsApi</span><span class="desc">modifié — conflit de nom résolu</span></summary>
+        <div class="filebody">
+          <pre><code>@ExceptionHandler(com.memoria.entreprise.compterendu.AucuneTranscriptionDisponibleException.class)
+@ResponseStatus(HttpStatus.CONFLICT)
+public void gererAucuneTranscriptionDisponibleCompteRendu() {}</code></pre>
+          <p>Nom de classe complet plutôt qu'un <code>import</code> : le module <code>resume</code> a <strong>déjà</strong> sa propre classe <code>AucuneTranscriptionDisponibleException</code> (même nom, package différent). Java interdit d'importer deux classes de même nom simple dans un fichier — le nom complet évite le conflit sans renommer l'une des deux.</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">CompteRenduRepository</td><td>interface Spring Data JPA — <code>findBySessionId</code> génère la requête SQL depuis le nom, sans implémentation écrite</td></tr>
+            <tr><td class="mono">CompteRenduNotFoundException / AucuneTranscriptionDisponibleException</td><td>exceptions typées, distinguées par <code>GestionnaireExceptionsApi</code> pour associer un code HTTP différent (404 / 409)</td></tr>
+            <tr><td class="mono">GenerationCompteRenduException</td><td>jamais attrapée spécifiquement — juste un message de log clair sur l'origine de l'échec (Azure OpenAI)</td></tr>
+            <tr><td class="mono">ActionCompteRenduResponse / CompteRenduResponse</td><td>DTO exposés par le contrôleur — jamais l'entité JPA directement ; <code>CompteRenduResponse.depuis()</code> appelle en cascade <code>ActionCompteRenduResponse::depuis</code> sur chaque action</td></tr>
+            <tr><td class="mono">CompteRenduController</td><td><code>/api/v1/sessions/{id}/compte-rendu</code> — <code>GET</code> 204 si rien généré, <code>POST</code> génère ou renvoie le cache</td></tr>
+            <tr><td class="mono">GenerateurCompteRenduAzureOpenAI</td><td>même structure que pour les résumés — extrait <code>output[].content[].text</code>, parse le JSON, retire un éventuel bloc markdown superflu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="bug-archi">
+      <h2><span class="num">§</span> Le vrai bug d'architecture : Spring Boot ne voyait pas le nouveau package</h2>
+      <p class="lead">La partie la plus instructive — se reproduira dès qu'une nouvelle couche produit (École, ou une deuxième fonctionnalité Entreprise) sera ajoutée sans comprendre la cause.</p>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Le symptôme</h4>
+          <p><code>GET /api/v1/sessions/{id}/compte-rendu</code> → <strong style="color:var(--warn)">404</strong> — pas une erreur métier, un vrai « cette route n'existe pas », comme si le contrôleur n'était jamais chargé.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>La cause</h4>
+          <p>Spring Boot scanne à partir du package de la classe <code>@SpringBootApplication</code> et descend dans ses sous-packages. <code>CoreApplication</code> vivait dans <code>com.memoria.core</code> — <code>com.memoria.entreprise.compterendu</code> est un package <strong>frère</strong>, pas un sous-package. Invisible.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Première tentative, qui a cassé autre chose</h4>
+          <pre><code>@SpringBootApplication(scanBasePackages = "com.memoria")
+@EntityScan("com.memoria")
+@EnableJpaRepositories("com.memoria")</code></pre>
+          <p>Le 404 disparaît, mais <code>ResumeControllerTest</code> (<code>@WebMvcTest</code>) casse : <code>BeanCreationException</code> sur <code>entityManagerFactory</code>. Ces annotations manuelles contournent le mécanisme d'exclusion automatique de <code>@WebMvcTest</code>, qui force alors le chargement de toute l'infra JPA dans un test qui n'en a pas.</p>
+        </div>
+        <div class="step">
+          <span class="n">4</span>
+          <h4>Le vrai correctif : déplacer <code>CoreApplication</code></h4>
+          <pre><code>package com.memoria; // au lieu de com.memoria.core
+
+@SpringBootApplication
+@EnableAsync
+public class CoreApplication { ... }</code></pre>
+          <p>Aucune annotation manuelle. Le scan par défaut part de <code>com.memoria</code> et descend naturellement dans <code>core</code> <em>et</em> <code>entreprise</code>. Résultat : les deux problèmes résolus en même temps — 48/48 tests verts, endpoint fonctionnel.</p>
+        </div>
+      </div>
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>La leçon générale</strong> — le point d'entrée <code>@SpringBootApplication</code> doit toujours vivre au niveau du package <strong>parent commun</strong> à tout ce qu'il doit découvrir. Ajouter des annotations de scan pour « forcer » la visibilité d'un package mal placé est un correctif de surface qui introduit d'autres effets de bord. Corriger l'emplacement du fichier est la vraie solution.</p>
+      </div>
+    </section>
+
+    <section id="timeout">
+      <h2><span class="num">§</span> Deuxième correction : le délai d'attente Azure OpenAI</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">—</span>
+          <h4>HttpTimeoutException sur une vraie transcription longue</h4>
+          <p class="symptom"><span class="label">Symptôme —</span> <code>request timed out</code> sur un cours de plusieurs minutes (60s de délai).</p>
+          <p class="why"><span class="label">Cause —</span> une sortie structurée (synthèse + décisions + actions) demande plus de texte généré qu'un résumé simple — logiquement plus lent.</p>
+          <p class="fix"><span class="label">Correctif —</span> délai porté à 120s. Précédent identique déjà dans le projet (Azure Speech 30s→90s, Phase 1). Retesté après correctif : succès en 5,7s réelles, listes vides correctement pour un contenu de cours sans décision ni action.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les 7 tests unitaires</h2>
+      <p class="lead"><code>CompteRenduServiceTest.java</code> — structure identique à <code>ResumeServiceTest</code> (Phase 2).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">genere_et_sauvegarde_a_partir_des_transcriptions_reussies</td><td>cas nominal — transcriptions en échec ignorées, chaque champ (synthese/decisions/description/responsable/echeance) bien reporté</td></tr>
+            <tr><td class="mono">marque_echec_quand_le_generateur_echoue</td><td>exception Azure → sauvegardé quand même, <code>ECHEC</code>, champs vides/nuls, jamais de crash</td></tr>
+            <tr><td class="mono">renvoie_le_compte_rendu_deja_en_cache_sans_regenerer</td><td><code>verify(..., never())</code> — aucun nouvel appel Azure OpenAI si déjà généré</td></tr>
+            <tr><td class="mono">leve_une_exception_si_aucune_transcription_na_reussi</td><td><code>AucuneTranscriptionDisponibleException</code> avant tout appel Azure</td></tr>
+            <tr><td class="mono">leve_une_exception_si_la_session_est_introuvable</td><td>échoue dès la première ligne (<code>sessionService.obtenirSession</code>)</td></tr>
+            <tr><td class="mono">obtenirCompteRendu_existant / introuvable</td><td>méthode de lecture simple (<code>GET</code>), séparée de la génération (<code>POST</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <p class="lead">Section ajoutée dans <code>SessionDetailPage.tsx</code> — pas une nouvelle page (contrairement à la recherche sémantique, Phase 3, qui a sa page dédiée).</p>
+      <div class="grid-2">
+        <div class="card">
+          <p class="codecap">api.ts</p>
+          <pre><code>export async function obtenirCompteRendu(id) {
+  const r = await fetch(`${'{'}BASE{'}'}/${'{'}id{'}'}/compte-rendu`)
+  if (r.status === 404 || r.status === 204) return null
+  return (await verifierReponse(r)).json()
+}</code></pre>
+          <p style="margin-top:8px">404 <em>et</em> 204 traités comme un simple <code>null</code> — pas une erreur, juste « pas encore de compte rendu », un état normal.</p>
+        </div>
+        <div class="card">
+          <p class="codecap">Affichage en 3 états qui s'excluent</p>
+          <pre><code>{!compteRendu && &lt;button&gt;Generer...&lt;/button&gt;}
+{compteRendu?.statut === 'ECHEC' && &lt;p&gt;message d'echec&lt;/p&gt;}
+{compteRendu?.statut === 'REUSSI' && ( /* synthese + listes */ )}</code></pre>
+          <p style="margin-top:8px">Jamais deux blocs visibles en même temps — conditions mutuellement exclusives.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Session avec de vraies décisions/actions</h4>
+          <p>Vérifié via Playwright que synthèse, décisions et actions (bon « Intervenant N », bonne échéance) apparaissaient correctement. Un premier essai de vérification automatique avait échoué à tort en cherchant du texte en MAJUSCULES — la mise en majuscule est du CSS (<code>text-transform</code>), pas le contenu réel du DOM. Erreur du script, pas du produit.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Cours de mathématiques (aucune décision réelle)</h4>
+          <p>Vérifié que les listes ressortaient bien <strong>vides</strong>, sans qu'Azure OpenAI n'invente du contenu pour « remplir » le format. C'est aussi ce test qui a révélé le problème de délai (transcription nettement plus longue).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>responsable reste « Intervenant N »</strong>, jamais un vrai nom — attendra la reconnaissance de voix récurrente (Phase 3).</li>
+        <li><strong>echeance reste un texte libre</strong>, jamais une vraie date — évite un contresens de conversion automatique.</li>
+        <li><strong>Pas de workflow de confirmation humaine</strong> sur les actions extraites — cette brique extrait et affiche ; le suivi de cycle de vie des tâches est prévu en Phase 4.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Si un nouvel endpoint répond 404 sans raison apparente après l'ajout d'un package produit : relire la section « le vrai bug » avant de chercher ailleurs — presque toujours le même problème, toujours la même solution (jamais d'annotations de scan manuelles).</li>
+          <li>Pour ajuster le prompt Azure OpenAI : <code>GenerateurCompteRenduAzureOpenAI.CONSIGNE</code>, aucun autre fichier à toucher.</li>
+          <li>Si un délai d'attente réapparaît sur une transcription longue : <code>.timeout(Duration.ofSeconds(120))</code> dans <code>GenerateurCompteRenduAzureOpenAI</code> — déjà ajusté deux fois dans le projet, signe qu'il faudra un jour le rendre proportionnel à la taille du texte.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-2-compte-rendu-complet</code> — vérifiée sur 2 vraies sessions, poussée sur <code>origin/master</code>.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 2 (compte rendu complet, première brique Entreprise).
+    </footer>
+  </main>
+</div>

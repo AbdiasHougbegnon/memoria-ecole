@@ -1,0 +1,500 @@
+<title>Memoria — Dossier technique Phase 3 : recherche sémantique</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f3;
+    --border: #dde1e7;
+    --text: #1b1f27;
+    --text-muted: #5b6472;
+    --text-faint: #8791a1;
+    --accent: #c97a2e;
+    --accent-strong: #9c5f22;
+    --accent-wash: #f6e6d3;
+    --code-bg: #eef0f3;
+    --ok: #3a7d5c;
+    --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip, .kbd { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+  h3.sub { font-size: 1.02rem; margin-top: 4px; }
+  h3.sub .tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); background: var(--accent-wash); border-radius: 5px; padding: 2px 7px; margin-left: 8px; vertical-align: middle; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .pipeline { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .pstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .pstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .pstep .pname { font-weight: 600; }
+  .pstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .parrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .commit-row { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.86rem; align-items: baseline; }
+  .commit-row:last-child { border-bottom: none; }
+  .commit-row .hash { color: var(--accent-strong); }
+  .commit-row .msg { color: var(--text-muted); }
+  .commit-row .msg strong { color: var(--text); font-weight: 500; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .concept { display: flex; flex-direction: column; gap: 6px; }
+  .concept .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .concept p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 3 · Mémoire &amp; recherche</span>
+    <h1 class="title">La recherche sémantique, de bout en bout</h1>
+    <p class="dek">Dossier de référence complet : le besoin, les concepts (embeddings, recherche vectorielle), le vrai parcours de provisionnement Azure (avec les erreurs), chaque classe et chaque méthode du backend, les tests, le frontend React expliqué, et tout ce qui a cassé en route — pour pouvoir tout reconstruire sans assistance.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Azure AI Search</strong>&nbsp;+ Azure OpenAI embeddings</span>
+      <span class="fact"><strong>text-embedding-ada-002</strong>&nbsp;· 1536 dim</span>
+      <span class="fact"><strong>56</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-3-recherche-semantique</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi cette brique</a>
+    <a href="#concepts">Concepts clés</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Décisions prises avant le code</a>
+    <span class="toc-label">Azure</span>
+    <a href="#azure">Provisionner les ressources</a>
+    <a href="#contrat">Le contrat des API</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <a href="#tests">Tests unitaires</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#react">React, expliqué</a>
+    <span class="toc-label">Fonctionnalités</span>
+    <a href="#reindexation">Réindexer l'historique</a>
+    <span class="toc-label">Fiabilisation</span>
+    <a href="#erreurs">Erreurs rencontrées</a>
+    <a href="#verification">Comment on a vérifié</a>
+    <a href="#limites">Limites connues</a>
+    <span class="toc-label">Référence</span>
+    <a href="#git">Git &amp; reprise en main</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead"><code>memoria-master-prompt.md</code> demande de retrouver « le passage exact, avec son timestamp », sur <strong style="color:var(--text)">tout l'historique</strong> des sessions — pas juste dans une session à la fois. Ce n'est pas un <code>Ctrl+F</code> : taper « c'est quand qu'on a parlé du budget ? » doit retrouver le passage même si personne n'a jamais dit le mot « budget », parce qu'on cherche une <strong style="color:var(--text)">signification</strong>, pas une chaîne de caractères.</p>
+      <p class="lead">C'est la première brique de la Phase 3, et la première du projet à utiliser une base de données vectorielle.</p>
+    </section>
+
+    <section id="concepts">
+      <h2><span class="num">§</span> Concepts clés, avant le code</h2>
+      <div class="grid-3">
+        <div class="card concept">
+          <span class="k">Embedding (vecteur)</span>
+          <p>Une liste de 1536 nombres qui représente le <em>sens</em> d'un texte. Deux phrases qui veulent dire la même chose, même écrites très différemment, ont des listes de nombres mathématiquement proches. Un modèle d'IA (<code>text-embedding-ada-002</code>) fait cette transformation.</p>
+        </div>
+        <div class="card concept">
+          <span class="k">Recherche vectorielle (KNN)</span>
+          <p>Vectoriser la question, puis demander « quels vecteurs stockés sont les plus proches de celui-ci ? ». Azure AI Search utilise <strong>HNSW</strong> pour éviter de comparer à tous les vecteurs un par un. <strong style="color:var(--warn)">Piège</strong> : ça renvoie toujours les k plus proches, même si rien n'est pertinent — jamais de vrai « aucun résultat ».</p>
+        </div>
+        <div class="card concept">
+          <span class="k">Ports &amp; adaptateurs</span>
+          <p>Une interface Java qui décrit le besoin (<code>RecherchePort</code>, <code>GenerateurEmbeddingPort</code>), une classe qui sait parler à Azure (<code>RechercheAzureAiSearch</code>, <code>GenerateurEmbeddingAzureOpenAI</code>). Deux ports séparés parce que ce sont deux ressources Azure indépendantes, remplaçables chacune de leur côté.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Décisions de conception</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4 style="margin-bottom:8px">Quelle granularité indexer ?</h4>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0">Session entière, chunk de 30s, ou segment de locuteur ? Choisi : <strong style="color:var(--text)">le segment</strong> — le seul niveau qui a déjà un <code>offsetMillisecondes</code> précis (diarization, Phase 2), exigé par <code>CLAUDE.md</code> : « traçable jusqu'au passage exact ». Coût maîtrisé en envoyant tous les segments d'une session en <strong>un seul</strong> appel d'embeddings.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">Quand déclencher l'indexation ?</h4>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0">À la <strong style="color:var(--text)">fin de session</strong>, pas chunk par chunk — le besoin est une recherche historique, pas temps réel. Réutilise exactement le mécanisme d'événements déjà en place pour les résumés.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">pgvector ou Azure AI Search ?</h4>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0"><code>pgvector</code> était recommandé par défaut (gratuit, cohérent avec l'approche monolithe du projet). <strong style="color:var(--text)">L'utilisateur a choisi Azure AI Search</strong> explicitement — service managé dédié, reranking et recherche hybride disponibles. Ce choix a entraîné tout le provisionnement de la section suivante.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="azure">
+      <h2><span class="num">§</span> Provisionner les ressources Azure — le vrai parcours</h2>
+      <p class="lead">Deux choses à créer : un déploiement de modèle d'embeddings sur <code>memoria-openai</code>, et — déjà là — la ressource Azure AI Search elle-même. Rien ne s'est passé du premier coup.</p>
+
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4><code>az login</code> a résisté</h4>
+          <p><code>az login</code> classique n'ouvrait jamais de navigateur. <code>--use-device-code</code> obtenait bien un token mais <code>az account show</code> répondait toujours « Please run az login » (souscriptions vides). <strong style="color:var(--ok)">Contournement</strong> : tout faire depuis <strong>Azure Cloud Shell</strong> (déjà authentifié via le portail) plutôt que perdre du temps en local.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Trouver la ressource et les modèles disponibles</h4>
+          <pre><code class="mono">az cognitiveservices account list --query "[].{name:name, resourceGroup:resourceGroup, kind:kind}" -o table
+az cognitiveservices account list-models --name memoria-openai --resource-group memoria-rg -o table</code></pre>
+          <p><code>memoria-rg</code> / <code>memoria-openai</code>. Modèles candidats : <code>text-embedding-3-small</code> (recommandé au départ), <code>text-embedding-ada-002</code>, <code>text-embedding-3-large</code>.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>SKU incompatible, puis quota à zéro</h4>
+          <p><code>text-embedding-3-small</code> + SKU <code>Standard</code> → <span class="mono" style="color:var(--warn)">SKU non supporté dans francecentral</span>. Avec <code>GlobalStandard</code> → <span class="mono" style="color:var(--warn)">quota disponible = 0</span>, sur ce compte Azure for Students. Vérifié précisément avec :</p>
+          <pre><code class="mono">az cognitiveservices usage list --location francecentral --query "[?contains(name.value,'embedding')]" -o json</code></pre>
+          <p><code>OpenAI.Standard.text-embedding-ada-002</code> avait 240K TPM disponibles. <strong style="color:var(--ok)">Décision</strong> (validée avec l'utilisateur) : basculer sur <code>ada-002</code>.</p>
+        </div>
+        <div class="step">
+          <span class="n">4</span>
+          <h4>Le déploiement qui a marché — puis sa capacité augmentée</h4>
+          <pre><code class="mono">az cognitiveservices account deployment create --name memoria-openai --resource-group memoria-rg \
+  --deployment-name text-embedding-ada-002 --model-name text-embedding-ada-002 --model-version "2" \
+  --model-format OpenAI --sku-name "Standard" --sku-capacity 10</code></pre>
+          <p>Capacité initiale à <code>1</code> (1000 tokens/min) — insuffisante pour une vraie session (section Erreurs). Portée à <code>10</code>. Nom de déploiement utilisé tel quel dans <code>AZURE_OPENAI_EMBEDDING_DEPLOYMENT</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contrat">
+      <h2><span class="num">§</span> Le contrat des API Azure</h2>
+      <div class="grid-2">
+        <div class="card">
+          <p class="codecap">Embeddings — Azure OpenAI</p>
+          <pre><code>POST {ressource}/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-05-15
+{"input": ["texte 1", "texte 2", ...]}
+
+→ {"data": [{"index": 0, "embedding": [1536 floats]}, ...]}</code></pre>
+        </div>
+        <div class="card">
+          <p class="codecap">Création d'index — Azure AI Search (idempotent)</p>
+          <pre><code>PUT {search}/indexes/memoria-segments?api-version=2024-07-01
+{
+  "fields": [..., {"name":"vecteur","type":"Collection(Edm.Single)",
+    "dimensions":1536,"vectorSearchProfile":"profil-defaut"}],
+  "vectorSearch": {"algorithms":[{"name":"hnsw-defaut","kind":"hnsw"}],
+    "profiles":[{"name":"profil-defaut","algorithm":"hnsw-defaut"}]}
+}</code></pre>
+        </div>
+        <div class="card">
+          <p class="codecap">Upload de documents (upsert)</p>
+          <pre><code>POST {search}/indexes/memoria-segments/docs/index?api-version=2024-07-01
+{"value":[{"@search.action":"mergeOrUpload","id":"...","vecteur":[...]}]}</code></pre>
+        </div>
+        <div class="card">
+          <p class="codecap">Recherche hybride (vecteur + BM25)</p>
+          <pre><code>POST {search}/indexes/memoria-segments/docs/search?api-version=2024-07-01
+{"search":"texte de la question","queryType":"simple",
+ "vectorQueries":[{"vector":[...],"k":10,"fields":"vecteur","kind":"vector"}]}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+      <p class="lead">Tous dans <code>com.memoria.core.recherche</code> — remarque <code>core</code>, pas <code>entreprise</code>/<code>ecole</code> : la recherche est une fonctionnalité du moteur partagé.</p>
+
+      <details class="filecard" open>
+        <summary><span>RechercheService</span><span class="desc">le chef d'orchestre</span></summary>
+        <div class="filebody">
+          <p><strong>indexerSiPossible(sessionId)</strong> — 4 étapes : (1) garde d'idempotence (un <code>IndexRecherche</code> existant fait sortir tout de suite), (2) filtre les transcriptions <code>REUSSIE</code>, (3) aplatit tous les <code>SegmentLocuteur</code> en <code>List&lt;SegmentARecherche&gt;</code> en retirant les textes vides, (4) un seul appel <code>genererEmbeddings</code> puis <code>indexerSegments</code> — toute exception attrapée marque <code>ECHEC</code> plutôt que de planter.</p>
+          <pre><code>@Async @EventListener
+public void surSessionTerminee(SessionTermineeEvent e) { indexerSiPossible(e.sessionId()); }
+@Async @EventListener
+public void surToutesTranscriptionsTerminees(ToutesTranscriptionsTermineesEvent e) { indexerSiPossible(e.sessionId()); }</code></pre>
+          <p><strong>Pourquoi deux déclencheurs identiques ?</strong> Fin de session et dernière transcription arrivent dans un ordre imprévisible (course connue, déjà rencontrée pour les résumés). Les deux appellent la même logique idempotente — peu importe l'ordre, jamais de double indexation.</p>
+          <p><strong>rechercher(requete, limite)</strong> vectorise la question puis délègue au port, en transmettant <em>aussi</em> le texte brut (recherche hybride). <strong>reindexerHistorique()</strong> — voir section dédiée plus bas.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>RecherchePort → RechercheAzureAiSearch</span><span class="desc">l'adaptateur Azure AI Search</span></summary>
+        <div class="filebody">
+          <p><strong>assurerIndexExiste()</strong> (<code>@PostConstruct</code>, exécutée au démarrage) : <code>PUT</code> idempotent qui crée ou met à jour l'index — l'application s'auto-provisionne son propre schéma, aucune étape manuelle.</p>
+          <p><strong>indexerSegments(...)</strong> : construit un document par segment avec <code>"@search.action":"mergeOrUpload"</code> — id déterministe <code>{sessionId}_{numeroSequence}_{offsetMillisecondes}</code>, donc rappeler deux fois ne duplique jamais rien.</p>
+          <p><strong>rechercher(texteRequete, vecteurRequete, limite)</strong> : envoie <code>vectorQueries</code> <em>et</em> <code>search</code> dans la même requête — recherche hybride, voir Erreurs.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>GenerateurEmbeddingPort → GenerateurEmbeddingAzureOpenAI</span><span class="desc">texte → vecteur</span></summary>
+        <div class="filebody">
+          <p><code>genererEmbeddings(List&lt;String&gt;)</code> — toujours une liste, jamais un texte à la fois (un seul appel HTTP par session). Azure ne garantit pas l'ordre de retour : chaque élément a un champ <code>index</code>, <strong>trié explicitement</strong> avant de renvoyer les vecteurs, pour que <code>vecteurs.get(i)</code> corresponde toujours à <code>textes.get(i)</code>.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>IndexRecherche</span><span class="desc">l'entité de garde <span class="pill entity">entité</span></span></summary>
+        <div class="filebody">
+          <p>Une ligne par session (<code>sessionId</code> unique), avec juste <code>nombreSegments</code> et <code>statut</code> (<code>REUSSI</code>/<code>ECHEC</code>). <strong>Ne contient aucun vecteur, aucun texte</strong> — le vrai contenu vit entièrement dans Azure AI Search. Cette table n'est qu'un marqueur pour la garde d'idempotence.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>RechercheController</span><span class="desc"><code>/api/v1/recherche</code></span></summary>
+        <div class="filebody">
+          <p><code>GET ?q=...&amp;limite=10</code> — global, pas scopé à une session, reflet direct du besoin « tout l'historique ». <code>POST /reindexation</code> renvoie <code>202 Accepted</code> (travail en arrière-plan, pas de suivi de progression).</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SegmentARecherche / ResultatRecherche</td><td>records — DTO internes entre service et ports (entrée / sortie)</td></tr>
+            <tr><td class="mono">StatutIndexRecherche</td><td>enum <code>REUSSI</code> / <code>ECHEC</code></td></tr>
+            <tr><td class="mono">IndexRechercheRepository</td><td>interface Spring Data JPA — <code>findBySessionId</code> génère la requête SQL rien qu'à partir du nom de la méthode, aucune implémentation écrite</td></tr>
+            <tr><td class="mono">GenerationEmbeddingException / RechercheException</td><td>exceptions typées — messages de log clairs, pas de traitement différencié (attrapées génériquement par <code>catch (Exception e)</code>)</td></tr>
+            <tr><td class="mono">RechercheResultatResponse</td><td>DTO exposé par le contrôleur — jamais l'objet interne directement en JSON, même si les champs se ressemblent</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les 8 tests unitaires, expliqués</h2>
+      <p class="lead"><code>RechercheServiceTest.java</code> — Mockito simule <code>GenerateurEmbeddingPort</code> et <code>RecherchePort</code> (jamais de vrai appel Azure dans les tests : lent, payant, dépendant du réseau).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">indexe_les_segments_des_transcriptions_reussies</td><td>cas nominal — segments transformés, embeddings appelés, <code>IndexRecherche</code> <code>REUSSI</code> sauvegardé</td></tr>
+            <tr><td class="mono">ne_fait_rien_si_aucune_transcription_na_reussi</td><td>zéro appel embeddings si tout a échoué (coût évité)</td></tr>
+            <tr><td class="mono">ne_fait_rien_si_...aucun_segment_exploitable</td><td>texte vide/espaces filtré ; sort avant même de charger la session</td></tr>
+            <tr><td class="mono">marque_echec_quand_lembedding_echoue</td><td>exception Azure → <code>ECHEC</code> sauvegardé, jamais de crash, jamais d'appel à Azure AI Search après</td></tr>
+            <tr><td class="mono">surToutesTranscriptionsTerminees_indexe_si_rien_nexiste</td><td>le second déclencheur fonctionne seul</td></tr>
+            <tr><td class="mono">indexerSiPossible_ne_fait_rien_si_deja_indexee</td><td>la garde d'idempotence bloque la course entre les deux événements</td></tr>
+            <tr><td class="mono">reindexerHistorique_indexe...et_ignore_les_autres</td><td>3 sessions (à indexer / sans transcription / en cours) — seule la bonne déclenche un travail</td></tr>
+            <tr><td class="mono">rechercher_embed_la_requete_et_delegue</td><td>texte <em>et</em> vecteur transmis ensemble au port (nécessaire pour l'hybride)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — aucune configuration spécifique à ce module.</p>
+    </section>
+
+    <section id="react">
+      <h2><span class="num">§</span> Le frontend, et les bases de React utilisées ici</h2>
+      <p class="lead"><code>RecherchePage.tsx</code> — si React est encore nouveau, voici chaque notion utilisée, à partir du code réel.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h4 style="margin-bottom:8px"><code>useState</code> — la mémoire d'un composant</h4>
+          <pre><code>const [requete, setRequete] = useState('')</code></pre>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin:8px 0 0">Appeler <code>setRequete(...)</code> ne modifie pas juste une variable : ça dit à React « réaffiche ce composant ». 5 cases mémoire dans cette page (<code>requete</code>, <code>resultats</code>, <code>chargement</code>, <code>aRecherche</code>, <code>reindexationLancee</code>).</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">Champ « contrôlé »</h4>
+          <pre><code>&lt;input value={requete} onChange={e =&gt; setRequete(e.target.value)} /&gt;</code></pre>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin:8px 0 0">La valeur affichée vient <em>entièrement</em> de l'état React, jamais du navigateur seul — chaque frappe met à jour l'état, qui réaffiche le champ.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">Soumission async, avec <code>finally</code></h4>
+          <pre><code>e.preventDefault()
+setChargement(true)
+try { setResultats(await rechercher(requete)) }
+finally { setChargement(false) }</code></pre>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin:8px 0 0"><code>finally</code> garantit que le bouton se réactive même si la recherche échoue — sinon il resterait bloqué indéfiniment.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px">Affichage conditionnel &amp; listes</h4>
+          <pre><code>{aRecherche && !chargement && resultats.length === 0 && (...)}
+{resultats.map((r, i) => &lt;li key={i}&gt;...&lt;/li&gt;)}</code></pre>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin:8px 0 0"><code>condition &amp;&amp; élément</code> n'affiche rien si <code>condition</code> est fausse. <code>.map()</code> transforme un tableau en JSX, jamais de boucle <code>for</code> dans le rendu.</p>
+        </div>
+      </div>
+      <p class="lead">Le lien de « drill-down » (<code>&lt;Link to={\`/sessions/${'{'}resultat.sessionId{'}'}\`}&gt;</code>) change de page sans recharger l'appli — c'est la traçabilité <code>CLAUDE.md</code> : redescendre du résultat de recherche vers la session complète.</p>
+    </section>
+
+    <section id="reindexation">
+      <h2><span class="num">§</span> Réindexer l'historique</h2>
+      <p class="lead">Fonctionnalité apparue en testant, pas prévue à la conception : toutes les sessions créées <em>avant</em> cette brique n'ont jamais déclenché <code>surSessionTerminee</code> — jamais indexées sans rattrapage.</p>
+      <div class="card">
+        <p style="margin:0 0 10px; color:var(--text-muted); font-size:0.9rem"><code>reindexerHistorique()</code> réutilise <strong style="color:var(--text)">exactement</strong> <code>indexerSiPossible</code> — aucune nouvelle logique, juste une nouvelle façon de la déclencher : parcourir toutes les sessions <code>TERMINEE</code>. La garde d'idempotence filtre les déjà-traitées toute seule.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Constat réel sur la base du projet</th><th>Résultat</th></tr></thead>
+            <tbody>
+              <tr><td>52 sessions terminées, 38 avec transcriptions réussies</td><td class="mono">11 indexées avec succès</td></tr>
+              <tr><td>27 sessions sans aucun <code>SegmentLocuteur</code> (antérieures à la diarization)</td><td class="mono" style="color:var(--warn)">non indexables, assumé</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="erreurs">
+      <h2><span class="num">§</span> Erreurs rencontrées, dans l'ordre</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">01</span>
+          <h4>Conflit de schéma d'index</h4>
+          <p class="symptom"><span class="label">Symptôme —</span> <code>statut 400 — "Existing field 'id' cannot be changed"</code> au démarrage.</p>
+          <p class="why"><span class="label">Cause —</span> un index de test créé à la main (curl) avec un schéma légèrement différent du code Java final. Azure autorise d'ajouter des champs à un index existant, jamais de changer leurs propriétés.</p>
+          <p class="fix"><span class="label">Correctif —</span> <code>DELETE /indexes/memoria-segments</code>, laissé recréer proprement au redémarrage.</p>
+        </div>
+        <div class="bug">
+          <span class="n">02</span>
+          <h4>Limite de débit dépassée (RateLimitReached)</h4>
+          <p class="symptom"><span class="label">Symptôme —</span> réindexation d'une vraie session (30 segments, ~1239 tokens estimés) : <code>RateLimitReached</code>.</p>
+          <p class="why"><span class="label">Cause —</span> capacité de déploiement au minimum (1000 tokens/min) — juste assez pour un test unitaire, pas pour une vraie session.</p>
+          <p class="fix"><span class="label">Correctif —</span> capacité portée à 10 (10K tokens/min). Une vraie réunion de 30 min dépasse largement 1000 tokens : ne jamais laisser une capacité minimale « juste pour tester ».</p>
+        </div>
+        <div class="bug">
+          <span class="n">03</span>
+          <h4>Précision médiocre du vecteur seul</h4>
+          <p class="symptom"><span class="label">Symptôme —</span> utilisateur : « c'est pas beaucoup précis ». Question pertinente → score 0.887 ; question hors-sujet → 0.831. Écart de 0.05, trop faible.</p>
+          <p class="why"><span class="label">Cause —</span> propriété connue de <code>ada-002</code> : scores cosinus resserrés dans une bande étroite (souvent 0.8-0.9), peu importe la pertinence réelle.</p>
+          <p class="fix"><span class="label">Correctif —</span> recherche hybride (vecteur + BM25, fusionnés par Azure via RRF). Après correctif : 3 résultats pertinents groupés (0.033/0.031/0.031) puis chute nette (0.025), contre un seul résultat marginal (0.029) puis chute immédiate (0.017) pour le bruit. Coût : zéro, aucune réindexation nécessaire.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié que ça marchait vraiment</h2>
+      <div class="card">
+        <div class="step"><span class="n">1</span><h4>API brute au <code>curl</code>, avant tout code Java</h4><p>Index de test, vrai vecteur, question reformulée différemment du texte source → bon document en premier (score 0.855).</p></div>
+        <div class="step"><span class="n">2</span><h4>End-to-end avec données insérées directement en base</h4><p>Session créée via l'API, transcription/segments insérés en SQL, puis <code>terminer</code> déclenche l'indexation <strong>réelle</strong> (vrais appels Azure). Question reformulée → bon passage en premier.</p></div>
+        <div class="step"><span class="n">3</span><h4>Interface avec Playwright</h4><p>Recherche, capture d'écran, clic réel sur le lien de résultat, vérification de l'URL obtenue, aucune erreur console.</p></div>
+        <div class="step"><span class="n">4</span><h4>Vraie session existante du projet</h4><p>« Comment le couple a-t-il trouvé sa fortune ? » retrouve le passage sur le trésor — alors que le mot « fortune » n'apparaît nulle part (la transcription dit « trillionnaires »).</p></div>
+        <div class="step"><span class="n">5</span><h4>Réindexation en masse sur toute la base réelle</h4><p>Suivie en interrogeant directement PostgreSQL jusqu'à stabilisation — a révélé la limite des 27 sessions sans segments.</p></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>KNN renvoie toujours des résultats</strong>, même hors-sujet — amélioré par l'hybride, pas résolu à la racine. Reranking sémantique payant ou <code>text-embedding-3-large</code> (quota dispo, mais réindexation complète nécessaire) seraient les prochaines étapes.</li>
+        <li><strong>27 sessions historiques non cherchables</strong> (avant la diarization) — assumé, ne se reproduira plus.</li>
+        <li><strong>Pas de suivi de progression</strong> de la réindexation en masse — <code>202</code> immédiat, sans indicateur d'avancement dans l'interface.</li>
+        <li><strong>Capacité Azure OpenAI (10K tokens/min)</strong> pragmatique, pas dimensionnée pour du multi-utilisateur massif — à revoir en Phase 4 (multi-tenant).</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Recréer les ressources Azure : suivre la section « Provisionner » dans l'ordre — utiliser le <strong>Cloud Shell</strong>, pas <code>az login</code> en local.</li>
+          <li>Modifier le schéma de l'index : supprimer l'index existant (<code>DELETE /indexes/memoria-segments</code>) avant de relancer, sinon Azure refuse la mise à jour — puis relancer <code>POST /api/v1/recherche/reindexation</code>.</li>
+          <li>Changer de modèle d'embeddings : nouveau déploiement Azure → <code>AZURE_OPENAI_EMBEDDING_DEPLOYMENT</code> → <code>DIMENSIONS_VECTEUR</code> dans <code>RechercheAzureAiSearch.java</code> si la dimension change → supprimer/recréer l'index → réindexer.</li>
+          <li>Chemin de bout en bout : navigateur → <code>RecherchePage.tsx</code> → <code>api.ts</code> → <code>RechercheController</code> → <code>RechercheService</code> → les deux ports → Azure OpenAI + Azure AI Search, puis retour en DTO.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-3-recherche-semantique</code> — vérifiée end-to-end avec de vraies données, poussée sur <code>origin/master</code>.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 3 (recherche sémantique, réindexation, recherche hybride).
+    </footer>
+  </main>
+</div>
