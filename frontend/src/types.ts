@@ -66,3 +66,15 @@ export interface CompteRendu {
   statut: StatutCompteRendu
   dateCreation: string
 }
+
+export interface RechercheResultat {
+  sessionId: string
+  titreSession: string
+  dateSession: string
+  texte: string
+  locuteur: number
+  offsetMillisecondes: number
+  dureeMillisecondes: number
+  numeroSequence: number
+  score: number
+}

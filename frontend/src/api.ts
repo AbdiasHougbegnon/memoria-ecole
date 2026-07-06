@@ -1,4 +1,4 @@
-import type { CompteRendu, DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from './types'
+import type { CompteRendu, DocumentItem, RechercheResultat, Resume, ResumeType, Session, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -94,4 +94,14 @@ export async function genererCompteRendu(id: string): Promise<CompteRendu> {
     await fetch(`${BASE}/${id}/compte-rendu`, { method: 'POST' }),
   )
   return reponse.json()
+}
+
+export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {
+  const parametres = new URLSearchParams({ q: requete, limite: String(limite) })
+  const reponse = await verifierReponse(await fetch(`/api/v1/recherche?${parametres}`))
+  return reponse.json()
+}
+
+export async function reindexerHistorique(): Promise<void> {
+  await verifierReponse(await fetch('/api/v1/recherche/reindexation', { method: 'POST' }))
 }
