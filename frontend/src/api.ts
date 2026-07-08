@@ -1,4 +1,4 @@
-import type { CompteRendu, DocumentItem, RechercheResultat, Resume, ResumeType, Session, TranscriptionSegment } from './types'
+import type { CompteRendu, DocumentItem, FilMemoire, RechercheResultat, Resume, ResumeType, Session, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -104,4 +104,9 @@ export async function rechercher(requete: string, limite = 10): Promise<Recherch
 
 export async function reindexerHistorique(): Promise<void> {
   await verifierReponse(await fetch('/api/v1/recherche/reindexation', { method: 'POST' }))
+}
+
+export async function listerFilsMemoire(): Promise<FilMemoire[]> {
+  const reponse = await verifierReponse(await fetch('/api/v1/fils-memoire'))
+  return reponse.json()
 }

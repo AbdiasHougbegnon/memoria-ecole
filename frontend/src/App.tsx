@@ -3,6 +3,7 @@ import { SessionsListPage } from './pages/SessionsListPage'
 import { SessionDetailPage } from './pages/SessionDetailPage'
 import { MobileUploadPage } from './pages/MobileUploadPage'
 import { RecherchePage } from './pages/RecherchePage'
+import { FilsMemoirePage } from './pages/FilsMemoirePage'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/sessions/:id" element={<SessionDetailPage />} />
           <Route path="/mobile/sessions/:id" element={<MobileUploadPage />} />
           <Route path="/recherche" element={<RecherchePage />} />
+          <Route path="/fils-memoire" element={<FilsMemoirePage />} />
         </Routes>
       </div>
     </BrowserRouter>

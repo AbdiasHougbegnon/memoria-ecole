@@ -32,9 +32,14 @@ export function SessionsListPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Memoria</h1>
-        <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
-          Rechercher
-        </Link>
+        <div className="flex gap-4">
+          <Link to="/fils-memoire" className="text-sm text-slate-500 hover:text-slate-700">
+            Fils de memoire
+          </Link>
+          <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
+            Rechercher
+          </Link>
+        </div>
       </div>
 
       <Recorder

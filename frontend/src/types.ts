@@ -78,3 +78,18 @@ export interface RechercheResultat {
   numeroSequence: number
   score: number
 }
+
+export interface SessionSommaire {
+  id: string
+  titre: string
+  dateCreation: string
+}
+
+export interface FilMemoire {
+  id: string
+  nom: string
+  resumeCumulatif: string
+  sessions: SessionSommaire[]
+  dateCreation: string
+  dateMiseAJour: string
+}
