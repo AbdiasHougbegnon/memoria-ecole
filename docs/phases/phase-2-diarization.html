@@ -1,0 +1,356 @@
+<title>Memoria — Dossier technique Phase 2 : diarization</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 2 · identification des locuteurs</span>
+    <h1 class="title">La diarization : savoir qui a dit quoi</h1>
+    <p class="dek">Dossier de référence complet : le besoin, une vraie enquête API (un premier essai qui échoue silencieusement, la découverte du détail qui change tout), le contrat exact d'Azure Speech, chaque fichier backend et frontend, comment on a vérifié avec de vraies voix, et la limite connue qui explique pourquoi "Intervenant N" n'est pas encore stable d'une session à l'autre.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Azure Speech</strong>&nbsp;Fast Transcription API</span>
+      <span class="fact">multipart/form-data — construit à la main</span>
+      <span class="fact">tag <code>phase-2-diarization</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi la diarization</a>
+    <span class="toc-label">L'enquête</span>
+    <a href="#enquete">Chercher avant de coder</a>
+    <a href="#contrat">Le contrat de l'API</a>
+    <span class="toc-label">Backend</span>
+    <a href="#backend">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">Frontend et lien avec le backend</a>
+    <span class="toc-label">Fiabilisation</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <a href="#limite">La limite connue</a>
+    <span class="toc-label">Référence</span>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Jusque-là, <code>TranscripteurAzureSpeech</code> appelait l'API de reconnaissance "courte durée" d'Azure Speech — faite pour transcrire <em>une</em> voix. Elle ne sait pas distinguer plusieurs personnes qui parlent dans le même enregistrement. Pour un transcript de réunion ou de cours utile, il faut savoir <strong style="color:var(--text)">qui</strong> a dit quoi, pas juste ce qui a été dit.</p>
+    </section>
+
+    <section id="enquete">
+      <h2><span class="num">§</span> Pourquoi il a fallu chercher avant de coder</h2>
+      <p class="lead">Un piège déjà rencontré une fois avec Azure OpenAI : une API qui ressemble à ce qu'on attend, mais qui ne fonctionne pas comme les tutoriels génériques le laissent penser. Plutôt que de deviner le format et écrire du Java dessus tout de suite, test direct au <code>curl</code>, en dehors de toute application.</p>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Premier essai — raté, silencieusement</h4>
+          <pre><code>curl -X POST "https://{region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2024-11-15" \
+  -H "Ocp-Apim-Subscription-Key: {cle}" \
+  -F "audio=@fichier.wav;type=audio/wav" \
+  -F "definition=@definition.json;type=application/json"</code></pre>
+          <p>Résultat : <strong style="color:var(--warn)">statut 200</strong>, une vraie transcription revenait... mais <strong>aucune information de locuteur</strong>, malgré la diarization demandée dans <code>definition.json</code>. Pas d'erreur, juste silencieusement ignoré — le genre de bug le plus dur à repérer : tout a l'air de marcher.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Retour à la documentation officielle</h4>
+          <p>Deux choses en sont ressorties : le bon format JSON était déjà celui utilisé (<code>{"diarization":{"enabled":true,"maxSpeakers":N}}</code>) ; mais l'exemple officiel envoyait <code>definition</code> <strong>directement comme texte</strong> dans le formulaire, pas comme fichier joint.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Le vrai test, qui a marché</h4>
+          <pre><code>curl -X POST "https://{region}.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15" \
+  -H "Ocp-Apim-Subscription-Key: {cle}" \
+  -F "audio=@fichier.wav;type=audio/wav" \
+  -F 'definition={"locales":["fr-FR"],"diarization":{"maxSpeakers":4,"enabled":true}}'</code></pre>
+          <p>Cette fois, la réponse contenait bien <code>"speaker":1</code>, <code>"speaker":2</code>... <strong style="color:var(--text)">La différence tenait à un seul détail</strong> : envoyer <code>definition</code> comme <em>valeur de champ</em> (<code>-F 'definition={...}'</code>) plutôt que comme <em>fichier attaché</em> (<code>-F "definition=@fichier.json"</code>). Azure traite ces deux formes différemment dans le multipart, sans le signaler par une erreur.</p>
+        </div>
+      </div>
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>La leçon retenue pour la suite du projet</strong> — quand une API Azure "a l'air de marcher" (200, réponse plausible) mais qu'un comportement attendu manque, ne jamais supposer que c'est impossible : vérifier le format exact de la requête avant d'accuser l'API ou le service.</p>
+      </div>
+    </section>
+
+    <section id="contrat">
+      <h2><span class="num">§</span> Le contrat de l'API, une fois découvert</h2>
+      <div class="grid-2">
+        <div class="card">
+          <p class="codecap">Requête</p>
+          <p style="margin:0 0 8px; font-size:0.88rem"><strong>Endpoint</strong> — <code>POST .../speechtotext/transcriptions:transcribe?api-version=2025-10-15</code></p>
+          <p style="margin:0 0 8px; font-size:0.88rem"><strong>En-tête</strong> — <code>Ocp-Apim-Subscription-Key</code></p>
+          <p style="margin:0; font-size:0.88rem"><strong>Corps</strong> — <code>multipart/form-data</code> : <code>audio</code> (fichier joint), <code>definition</code> (texte brut, pas un fichier)</p>
+        </div>
+        <div class="card">
+          <p class="codecap">Réponse (extrait)</p>
+          <pre><code>{
+  "combinedPhrases": [{ "text": "texte complet du chunk" }],
+  "phrases": [
+    { "speaker": 1, "offsetMilliseconds": 80, "durationMilliseconds": 1800,
+      "text": "Bonjour, je m'appelle Marie.", "confidence": 0.90 },
+    { "speaker": 2, "...": "..." }
+  ]
+}</code></pre>
+        </div>
+      </div>
+      <p class="lead">Le champ <code>speaker</code> est un entier (1, 2, 3...), présent uniquement quand la diarization est activée — c'est ce champ qui permet de savoir qui a dit quoi.</p>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Les changements backend, fichier par fichier</h2>
+      <p class="lead">Tous dans <code>com.memoria.core.transcription</code>.</p>
+
+      <details class="filecard" open>
+        <summary><span>SegmentLocuteur</span><span class="desc"><code>@Embeddable</code> — nouveau</span></summary>
+        <div class="filebody">
+          <pre><code>@Embeddable
+public class SegmentLocuteur {
+    private int locuteur;
+    private String texte;
+    private long offsetMillisecondes;
+    private long dureeMillisecondes;
+}</code></pre>
+          <p>Pas une entité à part entière avec son propre repository — juste un petit objet de valeur toujours chargé avec son <code>Transcription</code> parent. Un <code>SegmentLocuteur</code> = une prise de parole. Un chunk de 30s peut contenir plusieurs prises de parole de personnes différentes, d'où la liste.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>TranscripteurPort</span><span class="desc">un seul changement de type de retour</span></summary>
+        <div class="filebody">
+          <pre><code>public record ResultatTranscription(String texteComplet, List&lt;SegmentLocuteur&gt; segments) {}
+
+public interface TranscripteurPort {
+    ResultatTranscription transcrire(byte[] audio); // avant : String transcrire(byte[] audio)
+}</code></pre>
+          <p>Comme c'est une interface (un "port"), ce changement force à mettre à jour son unique implémentation et son unique appelant — exactement l'effet recherché : le compilateur indique où adapter le code.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>TranscripteurAzureSpeech</span><span class="desc">récrit en grande partie</span></summary>
+        <div class="filebody">
+          <p><strong>Construction manuelle du corps multipart.</strong> Le <code>HttpClient</code> de Java (<code>java.net.http</code>) n'a pas de méthode intégrée pour construire une requête <code>multipart/form-data</code>, contrairement à <code>curl -F</code>. Il faut fabriquer le corps à la main : une suite de sections séparées par une "frontière" (<code>boundary</code>, une chaîne <code>UUID</code> aléatoire à chaque appel), chacune avec ses propres en-têtes.</p>
+          <p><strong>Simplification du format audio.</strong> L'ancienne API avait besoin qu'on lui dise explicitement le format audio envoyé, et le code inspectait les octets pour deviner WAV ou Ogg. La nouvelle API <strong>détecte le format toute seule</strong> — tout ce code de détection a été supprimé, plus simple qu'avant.</p>
+          <p><strong>Extraction du résultat.</strong> <code>combinedPhrases[0].text</code> devient <code>texteComplet</code>, chaque élément de <code>phrases[]</code> devient un <code>SegmentLocuteur</code>.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>Transcription</span><span class="desc">entité, modifiée <span class="pill entity">JPA</span></span></summary>
+        <div class="filebody">
+          <pre><code>@ElementCollection(fetch = FetchType.EAGER)
+@CollectionTable(name = "transcription_segments_locuteur", joinColumns = @JoinColumn(name = "transcription_id"))
+@OrderColumn(name = "position")
+private List&lt;SegmentLocuteur&gt; segmentsLocuteur;</code></pre>
+          <p><strong style="color:var(--warn)">fetch = FetchType.EAGER</strong> — sans ça, Hibernate charge la liste "à la demande", et la lire après fermeture de la session de base de données (sérialisation JSON) plante. Déjà rencontré une fois avec <code>Resume</code> en Phase 1 — cette fois <code>EAGER</code> dès le départ. <strong>@OrderColumn</strong> garantit l'ordre chronologique des segments.</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">TranscriptionService</td><td>modifié a minima — récupère <code>resultat.texteComplet()</code> et <code>resultat.segments()</code> au lieu d'un simple texte ; gestion des échecs inchangée</td></tr>
+            <tr><td class="mono">SegmentLocuteurResponse / TranscriptionResponse</td><td>DTO — jamais l'entité JPA directement ; <code>TranscriptionResponse</code> gagne un champ <code>segmentsLocuteur: List&lt;SegmentLocuteurResponse&gt;</code></td></tr>
+            <tr><td class="mono">TranscriptionController</td><td><strong>inchangé</strong> — il fait déjà <code>TranscriptionResponse::depuis</code>, qui inclut désormais les segments automatiquement ; intérêt du découpage en couches</td></tr>
+            <tr><td class="mono">application.properties</td><td><code>azure.speech.max-locuteurs=4</code> remplace <code>azure.speech.content-type=...</code> (la nouvelle API détecte le format toute seule) — <code>max-locuteurs</code> = <code>maxSpeakers</code> envoyé à Azure (2 à 35 autorisés)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Frontend, et le lien avec le backend</h2>
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>Point essentiel</strong> — il n'y a pas de contrat partagé automatique entre le backend Java et le frontend TypeScript. <code>SegmentLocuteurResponse</code> (Java) et <code>SegmentLocuteur</code> (TypeScript) sont deux déclarations complètement séparées, à garder synchronisées à la main. Un renommage de champ côté Java sans le faire côté TypeScript n'est détecté par rien — juste une valeur <code>undefined</code> silencieuse.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <p class="codecap">types.ts</p>
+          <pre><code>export interface SegmentLocuteur {
+  locuteur: number
+  texte: string
+  offsetMillisecondes: number
+  dureeMillisecondes: number
+}</code></pre>
+          <p style="margin-top:8px">Noms de champs recopiés <strong>exactement</strong> depuis <code>SegmentLocuteurResponse.java</code> — Jackson sérialise en gardant le nom des champs tel quel.</p>
+        </div>
+        <div class="card">
+          <p class="codecap">SessionDetailPage.tsx</p>
+          <pre><code>{segment.segmentsLocuteur.length > 0 ? (
+  segment.segmentsLocuteur.map((l, i) => (
+    &lt;p key={i}&gt;&lt;b&gt;Intervenant {l.locuteur}&lt;/b&gt; {l.texte}&lt;/p&gt;
+  ))
+) : (
+  &lt;span&gt;{segment.texte}&lt;/span&gt;
+)}</code></pre>
+          <p style="margin-top:8px">Si vide (ancien enregistrement d'avant ce changement), on retombe sur le texte complet — <strong>aucune session existante n'est cassée</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié que ça marchait vraiment</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Test à 2 voix</h4>
+          <p>Fichier audio généré avec deux voix de synthèse Windows différentes (Hortense en français, Zira en anglais), simulant "Marie" puis "Paul". Résultat : <code>speaker:1</code> pour Marie, <code>speaker:2</code> pour Paul — vérifié jusqu'à l'affichage réel dans le navigateur via Playwright.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Test à 3 voix</h4>
+          <p>Même voix (Hortense) réutilisée pour deux "personnes" différentes (juste une vitesse de parole différente), plus une troisième voix distincte. Résultat : les deux premières fusionnées en un seul locuteur, la troisième ressortie séparément. <strong style="color:var(--ok)">Pas un bug</strong> — ça prouve que la diarization distingue par les caractéristiques acoustiques réelles (timbre, hauteur), pas par la vitesse d'élocution.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limite">
+      <h2><span class="num">§</span> La limite connue, assumée, pas corrigée ici</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">—</span>
+          <h4>Chaque chunk de 30s est transcrit indépendamment des autres</h4>
+          <p class="symptom"><span class="label">Consequence —</span> si le chunk n°0 dit <code>speaker:1</code> pour Marie, rien ne garantit que le chunk n°1 dira aussi <code>speaker:1</code> pour Marie — Azure pourrait l'appeler <code>speaker:2</code>, chaque appel API étant traité comme une conversation à part.</p>
+          <p class="why"><span class="label">Donc —</span> la numérotation "Intervenant N" est fiable <em>à l'intérieur</em> d'un même chunk de 30s, mais pas garantie stable sur toute la session — encore moins d'une session à l'autre.</p>
+          <p class="fix"><span class="label">Reste a construire —</span> la reconnaissance de voix récurrente (reconnaître "c'est la voix de Marie" indépendamment de l'ordre des chunks, et d'une session à l'autre) — explicitement prévue pour la Phase 3, pas encore construite.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Pour retester l'API Azure directement (sans passer par l'application), la commande <code>curl</code> de la section « Le contrat » fonctionne telle quelle — utile si Azure change encore le comportement de son API.</li>
+          <li>Pour ajuster le nombre maximum de locuteurs détectés : uniquement <code>azure.speech.max-locuteurs</code> dans <code>application.properties</code>, aucun code à toucher.</li>
+          <li>Chemin de bout en bout, même principe que partout ailleurs dans le projet : navigateur → <code>SessionDetailPage.tsx</code> → <code>api.ts</code> (<code>obtenirTranscriptions</code>) → <code>TranscriptionController</code> → <code>TranscriptionService</code> → base de données, puis retour en DTO.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-2-diarization</code> — vérifiée avec de vraies voix distinctes, poussée sur <code>origin/master</code>.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 2 (diarization, identification des locuteurs via Azure Speech Fast Transcription API).
+    </footer>
+  </main>
+</div>
