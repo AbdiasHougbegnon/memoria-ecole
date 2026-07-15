@@ -40,4 +40,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererAucuneTranscriptionDisponibleCompteRendu() {
     }
+
+    @ExceptionHandler(com.memoria.entreprise.engagement.EngagementNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererEngagementIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.entreprise.engagement.TransitionEngagementInvalideException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererTransitionEngagementInvalide() {
+    }
 }

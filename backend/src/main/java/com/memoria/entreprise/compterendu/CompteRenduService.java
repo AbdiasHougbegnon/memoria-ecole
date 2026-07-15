@@ -6,6 +6,7 @@ import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.core.transcription.TranscriptionStatut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,17 +25,20 @@ public class CompteRenduService {
     private final TranscriptionRepository transcriptionRepository;
     private final GenerateurCompteRenduPort generateurCompteRendu;
     private final SessionService sessionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CompteRenduService(
             CompteRenduRepository compteRenduRepository,
             TranscriptionRepository transcriptionRepository,
             GenerateurCompteRenduPort generateurCompteRendu,
-            SessionService sessionService
+            SessionService sessionService,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.compteRenduRepository = compteRenduRepository;
         this.transcriptionRepository = transcriptionRepository;
         this.generateurCompteRendu = generateurCompteRendu;
         this.sessionService = sessionService;
+        this.eventPublisher = eventPublisher;
     }
 
     // Genere a la demande uniquement (comme les resumes COURT/ACTIONS) : un
@@ -97,7 +101,14 @@ public class CompteRenduService {
             return existant.get();
         }
         CompteRendu compteRendu = new CompteRendu(sessionId, synthese, decisions, actions, segmentsSources, statut);
-        return compteRenduRepository.save(compteRendu);
+        CompteRendu sauvegarde = compteRenduRepository.save(compteRendu);
+        if (statut == StatutCompteRendu.REUSSI) {
+            // Le suivi des engagements (Entreprise) transforme les actions
+            // extraites en elements traces et confirmables par un humain :
+            // voir EngagementService, qui ecoute cet evenement.
+            eventPublisher.publishEvent(new CompteRenduGenereEvent(sessionId));
+        }
+        return sauvegarde;
     }
 
     public CompteRendu obtenirCompteRendu(UUID sessionId) {

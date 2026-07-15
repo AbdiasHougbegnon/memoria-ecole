@@ -1,4 +1,4 @@
-import type { CompteRendu, DocumentItem, FilMemoire, RechercheResultat, Resume, ResumeType, Session, TranscriptionSegment } from './types'
+import type { CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
 
 const BASE = '/api/v1/sessions'
 
@@ -108,5 +108,31 @@ export async function reindexerHistorique(): Promise<void> {
 
 export async function listerFilsMemoire(): Promise<FilMemoire[]> {
   const reponse = await verifierReponse(await fetch('/api/v1/fils-memoire'))
+  return reponse.json()
+}
+
+export async function listerEngagements(statut?: StatutEngagement): Promise<Engagement[]> {
+  const chemin = statut ? `/api/v1/engagements?statut=${statut}` : '/api/v1/engagements'
+  const reponse = await verifierReponse(await fetch(chemin))
+  return reponse.json()
+}
+
+export async function listerEngagementsSession(id: string): Promise<Engagement[]> {
+  const reponse = await verifierReponse(await fetch(`${BASE}/${id}/engagements`))
+  return reponse.json()
+}
+
+export async function confirmerEngagement(id: string): Promise<Engagement> {
+  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/confirmer`, { method: 'POST' }))
+  return reponse.json()
+}
+
+export async function rejeterEngagement(id: string): Promise<Engagement> {
+  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/rejeter`, { method: 'POST' }))
+  return reponse.json()
+}
+
+export async function terminerEngagement(id: string): Promise<Engagement> {
+  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/terminer`, { method: 'POST' }))
   return reponse.json()
 }

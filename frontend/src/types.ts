@@ -93,3 +93,17 @@ export interface FilMemoire {
   dateCreation: string
   dateMiseAJour: string
 }
+
+export type StatutEngagement = 'EN_ATTENTE' | 'CONFIRME' | 'REJETE' | 'TERMINE'
+
+export interface Engagement {
+  id: string
+  sessionId: string
+  sessionTitre: string
+  description: string
+  responsable: string | null
+  echeance: string | null
+  statut: StatutEngagement
+  dateCreation: string
+  dateDerniereMaj: string
+}

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,12 +40,15 @@ class CompteRenduServiceTest {
     @Mock
     private SessionService sessionService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private CompteRenduService compteRenduService;
 
     @BeforeEach
     void setUp() {
         compteRenduService = new CompteRenduService(
-                compteRenduRepository, transcriptionRepository, generateurCompteRendu, sessionService
+                compteRenduRepository, transcriptionRepository, generateurCompteRendu, sessionService, eventPublisher
         );
     }
 
@@ -82,6 +86,7 @@ class CompteRenduServiceTest {
         assertThat(compteRendu.getSegmentsSources()).containsExactly(0, 2);
         assertThat(compteRendu.getStatut()).isEqualTo(StatutCompteRendu.REUSSI);
         assertThat(resultat).isEqualTo(compteRendu);
+        verify(eventPublisher).publishEvent(new CompteRenduGenereEvent(sessionId));
     }
 
     @Test
@@ -104,6 +109,7 @@ class CompteRenduServiceTest {
         assertThat(resultat.getDecisions()).isEmpty();
         assertThat(resultat.getActions()).isEmpty();
         assertThat(resultat.getSegmentsSources()).containsExactly(0);
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -120,6 +126,7 @@ class CompteRenduServiceTest {
         assertThat(resultat).isSameAs(dejaGenere);
         verify(generateurCompteRendu, never()).genererCompteRendu(any());
         verify(transcriptionRepository, never()).findBySessionIdOrderByNumeroSequenceAsc(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

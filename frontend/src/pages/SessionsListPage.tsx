@@ -36,6 +36,9 @@ export function SessionsListPage() {
           <Link to="/fils-memoire" className="text-sm text-slate-500 hover:text-slate-700">
             Fils de memoire
           </Link>
+          <Link to="/engagements" className="text-sm text-slate-500 hover:text-slate-700">
+            Engagements
+          </Link>
           <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
             Rechercher
           </Link>

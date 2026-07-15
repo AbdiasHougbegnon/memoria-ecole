@@ -2,17 +2,28 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import {
+  confirmerEngagement,
   genererCompteRendu,
   genererResume,
+  listerEngagementsSession,
   obtenirCompteRendu,
   obtenirDocuments,
   obtenirResume,
   obtenirSession,
   obtenirTranscriptions,
+  rejeterEngagement,
   televerserDocument,
+  terminerEngagement,
 } from '../api'
 import { redimensionnerImageSiNecessaire } from '../redimensionnerImage'
-import type { CompteRendu, DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
+import type { CompteRendu, DocumentItem, Engagement, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
+
+const LIBELLE_STATUT_ENGAGEMENT: Record<Engagement['statut'], string> = {
+  EN_ATTENTE: 'A confirmer',
+  CONFIRME: 'Confirme',
+  REJETE: 'Rejete',
+  TERMINE: 'Termine',
+}
 
 // Nombre de relectures tentees apres la fin de la session avant d'abandonner
 // l'attente d'un resume (environ 15s a raison d'une tentative toutes les 3s).
@@ -63,6 +74,8 @@ export function SessionDetailPage() {
   const [compteRendu, setCompteRendu] = useState<CompteRendu | null>(null)
   const [compteRenduEnCours, setCompteRenduEnCours] = useState(false)
   const [erreurCompteRendu, setErreurCompteRendu] = useState<string | null>(null)
+  const [engagements, setEngagements] = useState<Engagement[]>([])
+  const [engagementEnCours, setEngagementEnCours] = useState<string | null>(null)
   // Le microphone n'est accessible que sur localhost ou en HTTPS (contexte
   // securise impose par les navigateurs) : on reste donc sur localhost pour
   // enregistrer, et on ne demande l'IP reseau du PC que pour construire le
@@ -78,12 +91,13 @@ export function SessionDetailPage() {
     let intervalle: number
 
     async function charger() {
-      const [s, t, r, d, cr] = await Promise.all([
+      const [s, t, r, d, cr, eng] = await Promise.all([
         obtenirSession(id!),
         obtenirTranscriptions(id!),
         obtenirResume(id!, 'DETAILLE'),
         obtenirDocuments(id!),
         obtenirCompteRendu(id!),
+        listerEngagementsSession(id!),
       ])
       if (annule) return
 
@@ -92,6 +106,7 @@ export function SessionDetailPage() {
       setResumesParType((precedent) => ({ ...precedent, DETAILLE: r }))
       setDocuments(d)
       setCompteRendu(cr)
+      setEngagements(eng)
       setChargement(false)
 
       if (r || s.statut === 'EN_COURS') {
@@ -149,6 +164,16 @@ export function SessionDetailPage() {
       )
     } finally {
       setCompteRenduEnCours(false)
+    }
+  }
+
+  async function agirSurEngagement(engagementId: string, action: (id: string) => Promise<Engagement>) {
+    setEngagementEnCours(engagementId)
+    try {
+      const misAJour = await action(engagementId)
+      setEngagements((precedent) => precedent.map((e) => (e.id === engagementId ? misAJour : e)))
+    } finally {
+      setEngagementEnCours(null)
     }
   }
 
@@ -320,6 +345,60 @@ export function SessionDetailPage() {
           </div>
         )}
       </section>
+
+      {engagements.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+            Engagements
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {engagements.map((engagement) => (
+              <li key={engagement.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                <div className="mb-1 flex items-start justify-between gap-2">
+                  <p className="text-slate-800">{engagement.description}</p>
+                  <span className="shrink-0 text-xs font-medium text-slate-500">
+                    {LIBELLE_STATUT_ENGAGEMENT[engagement.statut]}
+                  </span>
+                </div>
+                {(engagement.responsable || engagement.echeance) && (
+                  <p className="mb-2 text-xs text-slate-500">
+                    {engagement.responsable && <span>{engagement.responsable}</span>}
+                    {engagement.responsable && engagement.echeance && <span> - </span>}
+                    {engagement.echeance && <span>{engagement.echeance}</span>}
+                  </p>
+                )}
+                {engagement.statut === 'EN_ATTENTE' && (
+                  <div className="flex gap-2">
+                    <button
+                      disabled={engagementEnCours === engagement.id}
+                      onClick={() => void agirSurEngagement(engagement.id, confirmerEngagement)}
+                      className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      disabled={engagementEnCours === engagement.id}
+                      onClick={() => void agirSurEngagement(engagement.id, rejeterEngagement)}
+                      className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      Rejeter
+                    </button>
+                  </div>
+                )}
+                {engagement.statut === 'CONFIRME' && (
+                  <button
+                    disabled={engagementEnCours === engagement.id}
+                    onClick={() => void agirSurEngagement(engagement.id, terminerEngagement)}
+                    className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                  >
+                    Marquer comme termine
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
