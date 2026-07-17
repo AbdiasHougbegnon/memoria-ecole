@@ -1,0 +1,362 @@
+<title>Memoria — Dossier technique Phase 4 : suivi des engagements</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  .flowchart { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 4px 2px 14px; font-size: 0.85rem; }
+  .fnode { flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; box-shadow: var(--shadow); white-space: nowrap; }
+  .fnode.terminal { border-color: var(--ok); color: var(--ok); font-weight: 600; }
+  .fnode.terminal.rejete { border-color: var(--warn); color: var(--warn); }
+  .farr { flex: 0 0 auto; padding: 0 10px; color: var(--text-faint); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 4 · Plateforme</span>
+    <h1 class="title">Le suivi des engagements</h1>
+    <p class="dek">Dossier de référence complet : pourquoi les actions extraites du compte rendu deviennent des engagements à part entière, le cycle de vie à quatre statuts avec transitions validées dans le domaine, chaque fichier backend et frontend, les tests, et la vérification en conditions réelles — jusqu'à une vraie session enregistrée à la voix.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Evenement</strong>&nbsp;CompteRenduGenereEvent</span>
+      <span class="fact"><strong>4</strong>&nbsp;statuts, transitions dans le domaine</span>
+      <span class="fact"><strong>72</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-4-suivi-engagements</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi le suivi des engagements</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">Dashboard et section session</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead"><code>memoria-master-prompt.md</code> place le suivi des engagements dans la Phase 4 ("Plateforme"), décrit pour la couche Entreprise comme des "decisions, engagements/tasks, deadlines, owners, projects, clients" avec de l'"action-item tracking with human confirmation".</p>
+      <p class="lead">Le compte rendu complet (Phase 2) extrait déjà des actions via Azure OpenAI, mais elles restent de simples lignes de texte sans identité propre, sans statut, sans façon de dire "celle-ci est faite". Cette brique leur donne un vrai cycle de vie — cohérent avec la doctrine du projet : <strong style="color:var(--text)">l'IA n'est jamais la source de vérité</strong>. Une action extraite reste <code>EN_ATTENTE</code> tant qu'un humain ne l'a pas validée.</p>
+      <p class="lead">Choisie comme première brique de Phase 4 plutôt que l'isolation multi-tenant ou le passage à l'échelle : aucune nouvelle infrastructure requise, et elle prolonge directement un module déjà en place.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Comment déclencher la création des engagements ?</h4>
+        <p style="margin:0 0 12px; font-size:0.9rem; color:var(--text-muted)">Le compte rendu est généré <strong>à la demande</strong> (bouton cliqué par l'utilisateur), pas automatiquement en fin de session — pour ne pas ajouter un appel Azure OpenAI de plus par défaut (discipline de coûts du projet).</p>
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">CompteRenduService</span><span class="pdesc">publie CompteRenduGenereEvent uniquement si nouvellement REUSSI</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">EngagementService</span><span class="pdesc">ecoute l'evenement, totalement decouple (async)</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Un Engagement par action</span><span class="pdesc">statut initial toujours EN_ATTENTE</span></div>
+        </div>
+        <p style="margin:0; font-size:0.88rem; color:var(--text-muted)">Même patron déjà en place dans le projet (<code>SessionTermineeEvent</code>, <code>ToutesTranscriptionsTermineesEvent</code> consommés par <code>ResumeService</code>/<code>FilMemoireService</code>) — reproduit à l'identique plutôt qu'un couplage direct entre services.</p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Le cycle de vie : quatre statuts, deux transitions valides</h4>
+        <div class="flowchart">
+          <div class="fnode">EN_ATTENTE</div>
+          <div class="farr">— confirmer →</div>
+          <div class="fnode">CONFIRME</div>
+          <div class="farr">— terminer →</div>
+          <div class="fnode terminal">TERMINE</div>
+        </div>
+        <div class="flowchart">
+          <div class="fnode" style="visibility:hidden">EN_ATTENTE</div>
+          <div class="farr">— rejeter →</div>
+          <div class="fnode terminal rejete">REJETE</div>
+        </div>
+        <p style="margin:0; font-size:0.88rem; color:var(--text-muted)"><code>REJETE</code> et <code>TERMINE</code> sont terminaux, pas de retour en arrière. Ces règles vivent <strong style="color:var(--text)">dans l'entité</strong> (<code>Engagement.confirmer()/rejeter()/terminer()</code>), qui lève <code>TransitionEngagementInvalideException</code> si l'état ne le permet pas — service et contrôleur n'ont aucune logique de transition à dupliquer.</p>
+      </div>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>Traçabilité</strong> — pas de nouveau mécanisme : un <code>Engagement</code> porte son <code>sessionId</code>, comme <code>Resume.segmentsSources</code> ou <code>CompteRendu.segmentsSources</code>. Pour remonter à la phrase d'origine : session → compte rendu (déjà lié à ses <code>segmentsSources</code>) → transcription.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>CompteRenduGenereEvent</span><span class="desc">nouveau, dans <code>entreprise.compterendu</code></span></summary>
+        <div class="filebody">
+          <pre><code>public record CompteRenduGenereEvent(UUID sessionId) {}</code></pre>
+          <p>Minimal à dessein — comme les autres événements du projet, il porte juste l'identifiant, chaque écouteur va rechercher lui-même ce dont il a besoin.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>CompteRenduService</span><span class="desc">modifié — publie l'événement</span></summary>
+        <div class="filebody">
+          <pre><code>CompteRendu sauvegarde = compteRenduRepository.save(compteRendu);
+if (statut == StatutCompteRendu.REUSSI) {
+    eventPublisher.publishEvent(new CompteRenduGenereEvent(sessionId));
+}
+return sauvegarde;</code></pre>
+          <p>Publié uniquement dans la branche qui sauvegarde réellement un <strong>nouveau</strong> compte rendu — jamais sur une exécution concurrente déjà traitée, jamais sur <code>ECHEC</code>.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>Engagement</span><span class="desc">entité <span class="pill entity">JPA</span> — transitions dans le domaine</span></summary>
+        <div class="filebody">
+          <pre><code>public void confirmer() {
+    if (statut != StatutEngagement.EN_ATTENTE) {
+        throw new TransitionEngagementInvalideException(id, statut, StatutEngagement.CONFIRME);
+    }
+    changerStatut(StatutEngagement.CONFIRME);
+}</code></pre>
+          <p>Toujours créé avec <code>statut = EN_ATTENTE</code> (un seul constructeur public). <code>responsable</code> ("Intervenant N" ou null) et <code>echeance</code> (texte libre) reprennent exactement les mêmes limites déjà assumées par <code>ActionCompteRendu</code> en Phase 2.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>EngagementService</span><span class="desc">le chef d'orchestre</span></summary>
+        <div class="filebody">
+          <pre><code>@Async @EventListener
+public void surCompteRenduGenere(CompteRenduGenereEvent evenement) {
+    if (engagementRepository.existsBySessionId(sessionId)) return;
+    CompteRendu compteRendu = compteRenduRepository.findBySessionId(sessionId).orElse(null);
+    if (compteRendu == null || compteRendu.getStatut() != StatutCompteRendu.REUSSI) return;
+    try {
+        creerEngagements(sessionId, compteRendu.getActions());
+    } catch (Exception e) {
+        LOG.warn("Echec de la creation des engagements pour la session {}", sessionId, e);
+    }
+}</code></pre>
+          <p>Même structure défensive que <code>FilMemoireService</code>/<code>ResumeService</code> : garde d'idempotence à l'entrée, revérifiée juste avant la sauvegarde. Les actions à description vide sont filtrées avant création — Azure OpenAI peut légitimement renvoyer un tableau <code>actions</code> vide.</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">StatutEngagement</td><td>enum — <code>EN_ATTENTE / CONFIRME / REJETE / TERMINE</code></td></tr>
+            <tr><td class="mono">EngagementRepository</td><td><code>existsBySessionId</code>, listes par session / par statut / toutes triées par date</td></tr>
+            <tr><td class="mono">EngagementController</td><td><code>GET /api/v1/engagements</code> (filtre <code>?statut=</code>), <code>GET .../sessions/{id}/engagements</code>, <code>POST .../confirmer|rejeter|terminer</code> — résout le titre de session via <code>SessionService</code>, jamais dupliqué</td></tr>
+            <tr><td class="mono">EngagementNotFoundException / TransitionEngagementInvalideException</td><td>404 et 409 respectivement, enregistrées dans <code>GestionnaireExceptionsApi</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Dashboard et section session</h2>
+      <p class="lead"><code>EngagementsPage.tsx</code> (route <code>/engagements</code>) — dashboard global filtrable par statut, badges colorés, boutons d'action pertinents pour l'état courant. <code>SessionDetailPage.tsx</code> gagne une section "Engagements" sous le compte rendu, incluse dans le même chargement périodique (3s) que le reste de la page — pas de code de rafraîchissement supplémentaire à écrire, le polling déjà en place suffit.</p>
+      <p class="lead"><code>types.ts</code>/<code>api.ts</code> suivent le principe déjà établi : DTO recopiés à la main depuis les réponses Java.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">surCompteRenduGenere_cree_un_engagement_en_attente_par_action</td><td>cas nominal — une entrée par action, statut EN_ATTENTE, champs corrects</td></tr>
+            <tr><td class="mono">surCompteRenduGenere_ignore_les_actions_a_description_vide</td><td>pas d'engagement creux créé</td></tr>
+            <tr><td class="mono">surCompteRenduGenere_ne_fait_rien_si_deja_traite</td><td>garde d'idempotence</td></tr>
+            <tr><td class="mono">surCompteRenduGenere_ne_fait_rien_si_le_compte_rendu_a_echoue</td><td>ECHEC ne déclenche aucune création</td></tr>
+            <tr><td class="mono">confirmer_fait_passer_un_engagement_en_attente_a_confirme</td><td>transition valide</td></tr>
+            <tr><td class="mono">rejeter_fait_passer_un_engagement_en_attente_a_rejete</td><td>transition valide</td></tr>
+            <tr><td class="mono">terminer_leve_une_exception_si_lengagement_nest_pas_confirme</td><td>transition invalide bloquée</td></tr>
+            <tr><td class="mono">confirmer_leve_une_exception_si_lengagement_est_introuvable</td><td>404 propre</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>CompteRenduServiceTest</code> complété avec 3 vérifications sur la publication d'événement (publié sur REUSSI créé, jamais sur ECHEC, jamais republié depuis le cache). <code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">72/72 tests</strong> passent au total.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Via l'API, avec un vrai appel Azure OpenAI</h4>
+          <p>Transcription insérée avec deux actions concrètes ("Marie doit envoyer le rapport financier avant vendredi", "Julien doit contacter le fournisseur avant la fin du mois") : Azure OpenAI extrait bien 2 actions distinctes, responsable et échéance corrects.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Création automatique confirmée</h4>
+          <p><code>GET /sessions/{id}/engagements</code> → 2 engagements créés, tous deux <code>EN_ATTENTE</code>, titre de session résolu.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Transitions valides et invalides testées explicitement</h4>
+          <p>confirmer → CONFIRME, rejeter → REJETE, terminer sur le CONFIRME → TERMINE. Puis : terminer sur le REJETE → <strong style="color:var(--warn)">409</strong>, re-confirmer sur le TERMINE → <strong style="color:var(--warn)">409</strong>, confirmer sur un id inexistant → <strong style="color:var(--warn)">404</strong>. Dashboard et filtres (<code>?statut=</code>) vérifiés. Aucune erreur en log.</p>
+        </div>
+        <div class="step">
+          <span class="n">4</span>
+          <h4>Via une vraie session enregistrée à la voix</h4>
+          <p>Test final effectué par l'utilisateur lui-même : phrase lue à voix haute contenant deux engagements du même type, enregistrée normalement, compte rendu généré depuis l'UI — engagements apparus sur la session et sur le dashboard. Confirmé fonctionnel de bout en bout, affichage inclus.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de vraie date absolue pour l'échéance</strong> — texte libre, même choix que <code>ActionCompteRendu</code> en Phase 2.</li>
+        <li><strong>Pas de vrai nom pour le responsable</strong> — "Intervenant N" tant que la reconnaissance de voix récurrente (Phase 3, en attente d'une décision Blob Storage) n'existe pas.</li>
+        <li><strong>Création uniquement à la génération du compte rendu</strong>, pas automatique en fin de session — cohérent avec le choix déjà fait pour le compte rendu lui-même.</li>
+        <li><strong>Fenêtre de course non éliminée à 100%</strong> entre deux appels concurrents de génération — même compromis déjà accepté ailleurs dans le projet.</li>
+        <li><strong>Pas de retour en arrière</strong> — un REJETE ou un TERMINE reste définitif.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Nouveau statut ou nouvelle transition : tout se passe dans <code>Engagement.java</code> — service et contrôleur n'ont rien à connaître des règles.</li>
+          <li>Changer le déclencheur de création (par ex. aussi en fin de session) : publier <code>CompteRenduGenereEvent</code> depuis un autre point d'entrée, <code>EngagementService</code> n'a rien à changer.</li>
+          <li>Chemin de bout en bout : bouton "Générer le compte rendu complet" → <code>CompteRenduController</code> → <code>CompteRenduService</code> (génère + publie l'événement) → <code>EngagementService</code> (async) → <code>EngagementRepository</code> → <code>EngagementController</code> → <code>EngagementsPage.tsx</code> / section Engagements de <code>SessionDetailPage.tsx</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-4-suivi-engagements</code> — vérifiée end-to-end avec Azure OpenAI et une vraie session vocale.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 4 (suivi des engagements, première brique Entreprise de la phase Plateforme).
+    </footer>
+  </main>
+</div>
