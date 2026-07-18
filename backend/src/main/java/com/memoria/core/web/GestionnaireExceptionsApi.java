@@ -70,4 +70,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererAucuneTranscriptionDisponibleResumeCours() {
     }
+
+    @ExceptionHandler(com.memoria.core.couloir.CouloirNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererCouloirIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.core.couloir.PasMembreDuCouloirException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererPasMembreDuCouloir() {
+    }
 }

@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
-import { creerSession, envoyerChunk, terminerSession } from '../api'
+import { useEffect, useRef, useState } from 'react'
+import { creerSession, envoyerChunk, listerCouloirs, terminerSession } from '../api'
+import type { Couloir } from '../types'
 
 const DUREE_SEGMENT_MS = 30_000
 const TYPE_MIME_PREFERE = 'audio/webm;codecs=opus'
@@ -63,6 +64,12 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   const [enregistrement, setEnregistrement] = useState(false)
   const [titre, setTitre] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
+  const [couloirs, setCouloirs] = useState<Couloir[]>([])
+  const [couloirId, setCouloirId] = useState('')
+
+  useEffect(() => {
+    listerCouloirs().then(setCouloirs).catch(() => {})
+  }, [])
 
   const sessionIdRef = useRef<string | null>(null)
   const numeroChunkRef = useRef(0)
@@ -137,7 +144,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const { id } = await creerSession(titre.trim())
+      const { id } = await creerSession(titre.trim(), couloirId || undefined)
       sessionIdRef.current = id
       numeroChunkRef.current = 0
       streamRef.current = stream
@@ -166,6 +173,21 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
           onChange={(e) => setTitre(e.target.value)}
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
         />
+        {couloirs.length > 0 && (
+          <select
+            value={couloirId}
+            disabled={enregistrement}
+            onChange={(e) => setCouloirId(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
+          >
+            <option value="">Aucun (personnel)</option>
+            {couloirs.map((couloir) => (
+              <option key={couloir.id} value={couloir.id}>
+                {couloir.nom}
+              </option>
+            ))}
+          </select>
+        )}
         {!enregistrement ? (
           <button
             onClick={demarrer}

@@ -1,5 +1,7 @@
 package com.memoria.core.session;
 
+import com.memoria.core.couloir.MembreCouloirRepository;
+import com.memoria.core.couloir.PasMembreDuCouloirException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,11 +29,14 @@ class SessionServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private MembreCouloirRepository membreCouloirRepository;
+
     private SessionService sessionService;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        sessionService = new SessionService(sessionRepository, eventPublisher);
+        sessionService = new SessionService(sessionRepository, eventPublisher, membreCouloirRepository);
     }
 
     @Test
@@ -112,5 +117,28 @@ class SessionServiceTest {
         List<Session> resultat = sessionService.listerSessions();
 
         assertThat(resultat).isEqualTo(sessions);
+    }
+
+    @Test
+    void creerSession_avec_couloir_rattache_la_session_si_lutilisateur_en_est_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(true);
+        when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Session session = sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId);
+
+        assertThat(session.getCouloirId()).isEqualTo(couloirId);
+    }
+
+    @Test
+    void creerSession_avec_couloir_leve_une_exception_si_lutilisateur_nest_pas_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(false);
+
+        assertThatThrownBy(() -> sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId))
+                .isInstanceOf(PasMembreDuCouloirException.class);
+        verify(sessionRepository, never()).save(any());
     }
 }

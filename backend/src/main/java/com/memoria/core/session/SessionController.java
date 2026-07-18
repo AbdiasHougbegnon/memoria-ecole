@@ -2,6 +2,7 @@ package com.memoria.core.session;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,8 +26,13 @@ public class SessionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateSessionResponse creerSession(@Valid @RequestBody CreateSessionRequest requete) {
-        Session session = sessionService.creerSession(requete.titre());
+    public CreateSessionResponse creerSession(
+            @Valid @RequestBody CreateSessionRequest requete,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        Session session = requete.couloirId() != null
+                ? sessionService.creerSession(requete.titre(), requete.couloirId(), utilisateurId)
+                : sessionService.creerSession(requete.titre());
         return new CreateSessionResponse(session.getId());
     }
 

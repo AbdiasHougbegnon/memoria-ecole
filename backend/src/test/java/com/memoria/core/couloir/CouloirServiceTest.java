@@ -1,0 +1,110 @@
+package com.memoria.core.couloir;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class CouloirServiceTest {
+
+    @Mock
+    private CouloirRepository couloirRepository;
+
+    @Mock
+    private MembreCouloirRepository membreCouloirRepository;
+
+    private CouloirService couloirService;
+
+    @BeforeEach
+    void setUp() {
+        couloirService = new CouloirService(couloirRepository, membreCouloirRepository);
+    }
+
+    @Test
+    void creerCouloir_sauvegarde_le_couloir_et_ajoute_le_proprietaire_comme_membre() {
+        UUID proprietaireId = UUID.randomUUID();
+        when(couloirRepository.save(any(Couloir.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Couloir couloir = couloirService.creerCouloir("Ing1-SI EPISEN", proprietaireId);
+
+        assertThat(couloir.getNom()).isEqualTo("Ing1-SI EPISEN");
+        assertThat(couloir.getProprietaireId()).isEqualTo(proprietaireId);
+
+        ArgumentCaptor<MembreCouloir> captor = ArgumentCaptor.forClass(MembreCouloir.class);
+        verify(membreCouloirRepository).save(captor.capture());
+        assertThat(captor.getValue().getCouloirId()).isEqualTo(couloir.getId());
+        assertThat(captor.getValue().getUtilisateurId()).isEqualTo(proprietaireId);
+    }
+
+    @Test
+    void rejoindreCouloir_ajoute_un_nouveau_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", UUID.randomUUID());
+        when(couloirRepository.findById(couloirId)).thenReturn(Optional.of(couloir));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(false);
+
+        Couloir resultat = couloirService.rejoindreCouloir(couloirId, utilisateurId);
+
+        assertThat(resultat).isSameAs(couloir);
+        verify(membreCouloirRepository).save(any(MembreCouloir.class));
+    }
+
+    @Test
+    void rejoindreCouloir_est_idempotent_si_deja_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", UUID.randomUUID());
+        when(couloirRepository.findById(couloirId)).thenReturn(Optional.of(couloir));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(true);
+
+        couloirService.rejoindreCouloir(couloirId, utilisateurId);
+
+        verify(membreCouloirRepository, never()).save(any());
+    }
+
+    @Test
+    void rejoindreCouloir_leve_une_exception_si_le_couloir_est_introuvable() {
+        UUID couloirId = UUID.randomUUID();
+        when(couloirRepository.findById(couloirId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> couloirService.rejoindreCouloir(couloirId, UUID.randomUUID()))
+                .isInstanceOf(CouloirNotFoundException.class);
+    }
+
+    @Test
+    void listerMesCouloirs_retourne_les_couloirs_dont_lutilisateur_est_membre() {
+        UUID utilisateurId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", UUID.randomUUID());
+        MembreCouloir membre = new MembreCouloir(couloir.getId(), utilisateurId);
+        when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of(membre));
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        List<Couloir> resultat = couloirService.listerMesCouloirs(utilisateurId);
+
+        assertThat(resultat).containsExactly(couloir);
+    }
+
+    @Test
+    void obtenirCouloir_leve_une_exception_si_introuvable() {
+        UUID id = UUID.randomUUID();
+        when(couloirRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> couloirService.obtenirCouloir(id))
+                .isInstanceOf(CouloirNotFoundException.class);
+    }
+}

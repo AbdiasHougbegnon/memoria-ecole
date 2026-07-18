@@ -6,6 +6,7 @@ export interface Session {
   dateCreation: string
   statut: SessionStatus
   cheminFichierAudio: string | null
+  couloirId: string | null
 }
 
 export type TranscriptionStatut = 'REUSSIE' | 'ECHEC'
@@ -128,4 +129,12 @@ export interface AuthResponse {
   token: string
   utilisateurId: string
   email: string
+}
+
+export interface Couloir {
+  id: string
+  nom: string
+  proprietaireId: string
+  dateCreation: string
+  nombreMembres: number
 }

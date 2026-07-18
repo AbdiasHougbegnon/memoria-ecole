@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface SessionRepository extends JpaRepository<Session, UUID> {
 
     List<Session> findAllByOrderByDateCreationDesc();
+
+    List<Session> findByCouloirIdOrderByDateCreationDesc(UUID couloirId);
 }

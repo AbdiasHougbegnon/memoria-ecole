@@ -30,6 +30,12 @@ public class Session {
     @Column(name = "chemin_fichier_audio")
     private String cheminFichierAudio;
 
+    // Rattachement optionnel a un couloir (com.memoria.core.couloir) --
+    // reference brute, pas de relation JPA, comme partout ailleurs dans le
+    // projet. Null = session personnelle, non rattachee a un couloir.
+    @Column(name = "couloir_id")
+    private UUID couloirId;
+
     protected Session() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -39,6 +45,11 @@ public class Session {
         this.titre = titre;
         this.dateCreation = Instant.now();
         this.statut = SessionStatus.EN_COURS;
+    }
+
+    public Session(String titre, UUID couloirId) {
+        this(titre);
+        this.couloirId = couloirId;
     }
 
     public UUID getId() {
@@ -59,6 +70,10 @@ public class Session {
 
     public String getCheminFichierAudio() {
         return cheminFichierAudio;
+    }
+
+    public UUID getCouloirId() {
+        return couloirId;
     }
 
     public void terminer() {

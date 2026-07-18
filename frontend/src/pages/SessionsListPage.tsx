@@ -40,6 +40,9 @@ export function SessionsListPage() {
           <Link to="/engagements" className="text-sm text-slate-500 hover:text-slate-700">
             Engagements
           </Link>
+          <Link to="/couloirs" className="text-sm text-slate-500 hover:text-slate-700">
+            Couloirs
+          </Link>
           <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
             Rechercher
           </Link>

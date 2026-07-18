@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -64,12 +64,12 @@ export async function obtenirSession(id: string): Promise<Session> {
   return reponse.json()
 }
 
-export async function creerSession(titre: string): Promise<{ id: string }> {
+export async function creerSession(titre: string, couloirId?: string): Promise<{ id: string }> {
   const reponse = await verifierReponse(
     await appelApi(BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titre }),
+      body: JSON.stringify({ titre, couloirId: couloirId ?? null }),
     }),
   )
   return reponse.json()
@@ -201,4 +201,35 @@ export async function obtenirAdresseLocaleServeur(): Promise<string | null> {
   const reponse = await verifierReponse(await appelApi('/api/v1/reseau/adresse-locale'))
   const { adresseLocale } = await reponse.json()
   return adresseLocale
+}
+
+export async function creerCouloir(nom: string): Promise<Couloir> {
+  const reponse = await verifierReponse(
+    await appelApi('/api/v1/couloirs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function listerCouloirs(): Promise<Couloir[]> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/couloirs'))
+  return reponse.json()
+}
+
+export async function obtenirCouloir(id: string): Promise<Couloir> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}`))
+  return reponse.json()
+}
+
+export async function rejoindreCouloir(id: string): Promise<Couloir> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/rejoindre`, { method: 'POST' }))
+  return reponse.json()
+}
+
+export async function listerSessionsCouloir(id: string): Promise<Session[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/sessions`))
+  return reponse.json()
 }

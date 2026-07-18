@@ -6,6 +6,9 @@ import { RecherchePage } from './pages/RecherchePage'
 import { FilsMemoirePage } from './pages/FilsMemoirePage'
 import { EngagementsPage } from './pages/EngagementsPage'
 import { LoginPage } from './pages/LoginPage'
+import { CouloirsPage } from './pages/CouloirsPage'
+import { CouloirDetailPage } from './pages/CouloirDetailPage'
+import { RejoindreCouloirPage } from './pages/RejoindreCouloirPage'
 import { RouteProtegee } from './components/RouteProtegee'
 
 function App() {
@@ -22,6 +25,9 @@ function App() {
           <Route path="/recherche" element={<RouteProtegee><RecherchePage /></RouteProtegee>} />
           <Route path="/fils-memoire" element={<RouteProtegee><FilsMemoirePage /></RouteProtegee>} />
           <Route path="/engagements" element={<RouteProtegee><EngagementsPage /></RouteProtegee>} />
+          <Route path="/couloirs" element={<RouteProtegee><CouloirsPage /></RouteProtegee>} />
+          <Route path="/couloirs/:id" element={<RouteProtegee><CouloirDetailPage /></RouteProtegee>} />
+          <Route path="/couloirs/:id/rejoindre" element={<RouteProtegee><RejoindreCouloirPage /></RouteProtegee>} />
         </Routes>
       </div>
     </BrowserRouter>
