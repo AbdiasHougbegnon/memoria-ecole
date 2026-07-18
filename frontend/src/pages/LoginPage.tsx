@@ -1,7 +1,25 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { connecter, inscrire } from '../api'
+import { connecter, ErreurApi, inscrire } from '../api'
 import { enregistrerSession } from '../auth'
+
+function messageErreur(e: unknown, mode: 'connexion' | 'inscription'): string {
+  if (e instanceof TypeError) {
+    return 'Impossible de joindre le serveur. Verifie que le backend est demarre.'
+  }
+  if (e instanceof ErreurApi) {
+    if (mode === 'connexion' && e.status === 401) {
+      return 'Email ou mot de passe incorrect.'
+    }
+    if (mode === 'inscription' && e.status === 409) {
+      return 'Cet email est deja utilise.'
+    }
+    if (mode === 'inscription' && e.status === 400) {
+      return 'Email invalide ou mot de passe trop court (8 caracteres minimum).'
+    }
+  }
+  return 'Une erreur inattendue est survenue. Reessaie.'
+}
 
 export function LoginPage() {
   const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion')
@@ -21,12 +39,8 @@ export function LoginPage() {
         : await inscrire(email, motDePasse)
       enregistrerSession(auth)
       navigate('/')
-    } catch {
-      setErreur(
-        mode === 'connexion'
-          ? 'Email ou mot de passe incorrect.'
-          : "Impossible de creer le compte (email deja utilise ou mot de passe trop court).",
-      )
+    } catch (e) {
+      setErreur(messageErreur(e, mode))
     } finally {
       setEnCours(false)
     }

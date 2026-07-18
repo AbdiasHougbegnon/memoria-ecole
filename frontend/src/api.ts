@@ -3,6 +3,13 @@ import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
 
+export class ErreurApi extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+    this.name = 'ErreurApi'
+  }
+}
+
 async function appelApi(chemin: string, options: RequestInit = {}): Promise<Response> {
   const token = obtenirToken()
   const headers = new Headers(options.headers)
@@ -20,7 +27,7 @@ async function appelApi(chemin: string, options: RequestInit = {}): Promise<Resp
 
 async function verifierReponse(reponse: Response): Promise<Response> {
   if (!reponse.ok) {
-    throw new Error(`Erreur ${reponse.status} sur ${reponse.url}`)
+    throw new ErreurApi(reponse.status, `Erreur ${reponse.status} sur ${reponse.url}`)
   }
   return reponse
 }
