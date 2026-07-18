@@ -6,6 +6,7 @@ import {
   genererCompteRendu,
   genererResume,
   listerEngagementsSession,
+  obtenirAdresseLocaleServeur,
   obtenirCompteRendu,
   obtenirDocuments,
   obtenirResume,
@@ -198,12 +199,24 @@ export function SessionDetailPage() {
       setQrCodeImage(null)
       return
     }
-    await regenererQrCode()
+    let hote = adresseReseau.trim()
+    // Sur localhost, le navigateur ne peut pas connaitre l'IP reseau du PC
+    // (restriction de vie privee) : on la demande au serveur, qui peut la
+    // lire directement sur la machine. Evite a l'utilisateur de devoir
+    // aller la chercher lui-meme (ipconfig/ifconfig) et la copier.
+    if (!hote) {
+      const adresseDetectee = await obtenirAdresseLocaleServeur().catch(() => null)
+      if (adresseDetectee) {
+        hote = `${adresseDetectee}:${window.location.port}`
+        setAdresseReseau(hote)
+      }
+    }
+    await regenererQrCode(hote || undefined)
   }
 
-  async function regenererQrCode() {
+  async function regenererQrCode(hoteOverride?: string) {
     if (!id) return
-    const hote = adresseReseau.trim() || window.location.host
+    const hote = (hoteOverride ?? adresseReseau).trim() || window.location.host
     const url = `http://${hote}/mobile/sessions/${id}`
     setQrCodeUrl(url)
     setQrCodeImage(await QRCode.toDataURL(url, { width: 220, margin: 1 }))
@@ -461,7 +474,8 @@ export function SessionDetailPage() {
             type="text"
             value={adresseReseau}
             onChange={(e) => setAdresseReseau(e.target.value)}
-            placeholder="IP locale du PC:port (ex. 192.168.1.10:5173)"
+            placeholder="Detectee automatiquement (modifiable si besoin)"
+            title="Rempli automatiquement par le serveur. A ajuster seulement si plusieurs reseaux sont disponibles sur ce PC."
             className="w-64 rounded-lg border border-slate-200 px-2 py-1 text-sm"
           />
 

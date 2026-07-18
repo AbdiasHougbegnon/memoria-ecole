@@ -181,3 +181,9 @@ export async function terminerEngagement(id: string): Promise<Engagement> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/engagements/${id}/terminer`, { method: 'POST' }))
   return reponse.json()
 }
+
+export async function obtenirAdresseLocaleServeur(): Promise<string | null> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/reseau/adresse-locale'))
+  const { adresseLocale } = await reponse.json()
+  return adresseLocale
+}

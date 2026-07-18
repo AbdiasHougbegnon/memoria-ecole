@@ -197,7 +197,7 @@ Bouton "Déconnexion" ajouté à côté des liens existants.
 
 `JwtServiceTest` — 4 tests : génération + extraction de l'id utilisateur, token invalide → vide, token signé avec un autre secret → vide, token expiré → vide.
 
-`cd backend && mvn test` — **90/90 tests** passent au total (81 précédents + 9 nouveaux).
+`cd backend && mvn test` — **81/81 tests** passent au total (72 précédents + 9 nouveaux).
 
 ## 7. Comment on a vérifié en conditions réelles
 
