@@ -1,0 +1,380 @@
+<title>Memoria — Dossier technique Phase 5 : sécurité et authentification</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  .flowchart { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 4px 2px 14px; font-size: 0.85rem; }
+  .fnode { flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; box-shadow: var(--shadow); white-space: nowrap; }
+  .fnode.terminal { border-color: var(--ok); color: var(--ok); font-weight: 600; }
+  .fnode.terminal.warn { border-color: var(--warn); color: var(--warn); }
+  .farr { flex: 0 0 auto; padding: 0 10px; color: var(--text-faint); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Plateforme</span>
+    <h1 class="title">Sécurité et authentification</h1>
+    <p class="dek">Dossier de référence complet : pourquoi une API entièrement ouverte était le trou le plus critique identifié dans l'état des lieux, le choix d'un JWT local plutôt que d'attendre un tenant Entra ID, le mur Spring Security qui préserve le flux mobile QR code, un bug de double-enregistrement de filtre trouvé et corrigé, et la vérification en conditions réelles via curl.</p>
+    <div class="factrow">
+      <span class="fact"><strong>JWT</strong>&nbsp;HMAC, 24h, comptes locaux</span>
+      <span class="fact"><strong>3</strong>&nbsp;endpoints volontairement ouverts (flux mobile)</span>
+      <span class="fact"><strong>90</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-5-securite-auth</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi la securite d'abord</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <a href="#bug">Le bug trouve en route</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">Connexion et garde de route</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Un état des lieux détaillé des quatre chantiers restants de la Phase 4 (couloirs/multi-tenant, isolation des données, sécurité, passage à l'échelle) a été fait avant de choisir où continuer. Verdict sans appel : <code>pom.xml</code> ne contenait <strong style="color:var(--text)">aucune</strong> dépendance de sécurité, aucune config d'auth, et <code>GET /api/v1/sessions</code> renvoyait toutes les sessions de tout le monde à quiconque connaissait l'URL — sans compte, sans token.</p>
+      <p class="lead"><code>memoria-master-prompt.md</code> prévoyait pourtant Entra ID dès la Phase 1. C'était le trou le plus critique des quatre chantiers : le multi-tenant et le passage à l'échelle peuvent attendre de vrais utilisateurs, mais une API ouverte devient plus dure à corriger à mesure qu'on construit dessus.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Entra ID tout de suite, ou une solution locale d'abord ?</h4>
+        <p style="margin:0 0 12px; font-size:0.9rem; color:var(--text-muted)">Entra ID suppose un tenant Azure AD et une app registration déjà existants (client ID, secret, tenant ID) — rien de disponible dans cette session. Plutôt que de bloquer sur une ressource externe absente :</p>
+        <div class="flow">
+          <div class="fstep"><span class="plabel">Choix</span><span class="pname">JWT + comptes locaux</span><span class="pdesc">email + mot de passe, BCrypt, Spring Security</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">Garantie</span><span class="pname">Domaine independant</span><span class="pdesc">rien ne depend du fournisseur d'identite choisi</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">Plus tard</span><span class="pname">Bascule Entra ID</span><span class="pdesc">seule AuthController/AuthService changerait</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Quels endpoints restent ouverts ?</h4>
+        <p style="margin:0 0 12px; font-size:0.9rem; color:var(--text-muted)">Le flux mobile QR code (Phase 2) permet de prendre une photo depuis un téléphone sans jamais se connecter — une fonctionnalité "zéro setup" assumée dès sa conception, dont la sécurité repose sur la confidentialité de l'UUID de session.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Endpoint</th><th>Raison</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">GET /sessions/{id}</td><td>afficher le titre de la session sur le telephone</td></tr>
+              <tr><td class="mono">GET /sessions/{id}/documents</td><td>lister les photos deja envoyees</td></tr>
+              <tr><td class="mono">POST /sessions/{id}/documents</td><td>envoyer une nouvelle photo</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:0; font-size:0.88rem; color:var(--text-muted)">Tout le reste de <code>/api/v1/**</code> exige un token valide. <code>/api/v1/auth/**</code> reste ouvert — impossible de se connecter derriere un mur d'authentification.</p>
+      </div>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>Pas d'isolation par utilisateur</strong> — le modele de deploiement de Memoria est une instance dediee par client, pas un SaaS multi-tenant partage. Dans une meme instance, tous les employes d'une meme entreprise sont censes voir les memes reunions, comme un outil d'equipe classique. Cloisonner par utilisateur maintenant serait une fonctionnalite hypothetique non demandee.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>Utilisateur</span><span class="desc">entite <span class="pill entity">JPA</span>, nouveau package <code>core.auth</code></span></summary>
+        <div class="filebody">
+          <pre><code>@Entity @Table(name = "utilisateurs", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
+public class Utilisateur {
+    private UUID id;
+    private String email;
+    private String motDePasseHash;  // jamais le mot de passe en clair
+    private Instant dateCreation;
+}</code></pre>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>JwtService</span><span class="desc">generation et validation des tokens</span></summary>
+        <div class="filebody">
+          <pre><code>public Optional&lt;UUID&gt; validerEtExtraireUtilisateurId(String token) {
+    try {
+        Claims claims = Jwts.parser().verifyWith(cleSignature).build()
+                .parseSignedClaims(token).getPayload();
+        return Optional.of(UUID.fromString(claims.getSubject()));
+    } catch (JwtException | IllegalArgumentException e) {
+        return Optional.empty();  // invalide, expire, ou signe avec un autre secret
+    }
+}</code></pre>
+          <p>Secret HMAC configurable via <code>MEMORIA_JWT_SECRET</code> (defaut de dev inclus), expiration 24h.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>AuthService</span><span class="desc">inscrire / connecter</span></summary>
+        <div class="filebody">
+          <pre><code>public AuthResponse connecter(String email, String motDePasse) {
+    Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+            .orElseThrow(IdentifiantsInvalidesException::new);
+    if (!passwordEncoder.matches(motDePasse, utilisateur.getMotDePasseHash())) {
+        throw new IdentifiantsInvalidesException();
+    }
+    return AuthResponse.depuis(utilisateur, jwtService.genererToken(utilisateur));
+}</code></pre>
+          <p>Mot de passe hashe avec BCrypt, jamais compare ni stocke en clair.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>SecurityConfig</span><span class="desc">le mur, un seul endroit</span></summary>
+        <div class="filebody">
+          <pre><code>.authorizeHttpRequests(authorize -> authorize
+        .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*/documents").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/v1/sessions/*/documents").permitAll()
+        .anyRequest().authenticated())
+.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);</code></pre>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">AuthController</td><td><code>POST /api/v1/auth/inscription</code> (201), <code>POST /api/v1/auth/connexion</code> (200) — retournent <code>AuthResponse</code> (token, utilisateurId, email)</td></tr>
+            <tr><td class="mono">UtilisateurRepository</td><td><code>findByEmail</code>, <code>existsByEmail</code></td></tr>
+            <tr><td class="mono">EmailDejaUtiliseException / IdentifiantsInvalidesException</td><td>409 et 401 respectivement, enregistrees dans <code>GestionnaireExceptionsApi</code></td></tr>
+            <tr><td class="mono">InscriptionRequest / ConnexionRequest / AuthResponse</td><td>DTO valides (<code>@Email</code>, <code>@Size(min=8)</code> sur le mot de passe)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="bug">
+      <h2><span class="num">§</span> Un vrai bug trouvé en route</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">!</span>
+          <h4><code>JwtAuthenticationFilter</code> annoté <code>@Component</code></h4>
+          <p class="symptom"><span class="label">Symptôme —</span> <code>ResumeControllerTest</code> (un <code>@WebMvcTest</code>) échouait au chargement du contexte Spring avec <code>NoSuchBeanDefinitionException: JwtService</code>.</p>
+          <p class="why"><span class="label">Pourquoi —</span> Spring Boot enregistre automatiquement tout bean <code>Filter</code> comme filtre servlet global, en plus de son ajout explicite dans la chaîne Security via <code>addFilterBefore</code>. Le filtre aurait tourné <strong style="color:var(--text)">deux fois par requête</strong>. Et comme <code>@WebMvcTest</code> inclut les beans <code>Filter</code> mais pas les <code>@Service</code>, <code>JwtAuthenticationFilter</code> se retrouvait sans sa dépendance <code>JwtService</code>.</p>
+          <p class="fix"><span class="label">Correctif —</span> <code>JwtAuthenticationFilter</code> n'est plus un bean Spring — une classe simple instanciée à la main dans <code>SecurityConfig.filterChain()</code>. Câblage sécurité centralisé à un seul endroit, plus de double-enregistrement possible. <code>ResumeControllerTest</code> reçoit <code>@AutoConfigureMockMvc(addFilters = false)</code> : il teste le contrôleur, pas les règles de sécurité (déjà couvertes ailleurs).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Connexion et garde de route</h2>
+      <p class="lead"><code>auth.ts</code> — petit wrapper <code>localStorage</code> (<code>enregistrerSession</code>, <code>obtenirToken</code>, <code>estConnecte</code>, <code>deconnecter</code>). <code>api.ts</code> passe désormais par un point d'entrée unique <code>appelApi()</code> qui attache le header <code>Authorization</code> si un token existe, et redirige vers <code>/connexion</code> au premier 401.</p>
+      <p class="lead"><code>LoginPage.tsx</code> (route <code>/connexion</code>) — un seul formulaire, bascule connexion/inscription, message d'erreur générique (jamais de détail permettant de deviner si un compte existe). <code>RouteProtegee.tsx</code> protège toutes les routes sauf <code>/connexion</code> et <code>/mobile/sessions/:id</code> (flux QR code, volontairement sans garde).</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">inscrire_cree_un_utilisateur_avec_le_mot_de_passe_hashe_et_retourne_un_token</td><td>cas nominal inscription</td></tr>
+            <tr><td class="mono">inscrire_leve_une_exception_si_lemail_est_deja_utilise</td><td>409 propre</td></tr>
+            <tr><td class="mono">connecter_retourne_un_token_quand_les_identifiants_sont_corrects</td><td>cas nominal connexion</td></tr>
+            <tr><td class="mono">connecter_leve_une_exception_si_lemail_est_inconnu</td><td>401, pas de fuite d'info</td></tr>
+            <tr><td class="mono">connecter_leve_une_exception_si_le_mot_de_passe_est_incorrect</td><td>401</td></tr>
+            <tr><td class="mono">genererToken_produit_un_token_dont_on_peut_extraire_lid</td><td>aller-retour JWT correct</td></tr>
+            <tr><td class="mono">validerEtExtraireUtilisateurId_retourne_vide_pour_un_token_invalide</td><td>robustesse</td></tr>
+            <tr><td class="mono">...retourne_vide_pour_un_token_signe_avec_un_autre_secret</td><td>signature verifiee, pas juste le format</td></tr>
+            <tr><td class="mono">...retourne_vide_pour_un_token_expire</td><td>expiration respectee</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">90/90 tests</strong> passent au total (81 précédents + 9 nouveaux).</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Docker Desktop était arrêté, et le port 5433 (Postgres) retombé dans une plage exclue par Hyper-V — le même problème environnemental récurrent des phases précédentes, sans lien avec ce code. Contournement habituel : conteneur Postgres temporaire sur un port libre, backend pointé dessus.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Vérification</th><th>Résultat</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">GET /sessions sans token</td><td><span class="pill warn">403</span></td></tr>
+            <tr><td>2</td><td class="mono">POST /auth/inscription</td><td><span class="pill ok">201</span> token JWT</td></tr>
+            <tr><td>3</td><td class="mono">POST /auth/connexion (bons identifiants)</td><td><span class="pill ok">200</span> token JWT</td></tr>
+            <tr><td>4</td><td class="mono">POST /auth/connexion (mauvais mot de passe)</td><td><span class="pill warn">401</span></td></tr>
+            <tr><td>5</td><td class="mono">POST /auth/inscription (email deja pris)</td><td><span class="pill warn">409</span></td></tr>
+            <tr><td>6</td><td class="mono">GET /sessions avec token valide</td><td><span class="pill ok">200</span></td></tr>
+            <tr><td>7</td><td class="mono">POST /sessions avec token valide</td><td><span class="pill ok">201</span></td></tr>
+            <tr><td>8</td><td class="mono">GET /sessions/{id} sans token (mobile)</td><td><span class="pill ok">200</span> toujours ouvert</td></tr>
+            <tr><td>9</td><td class="mono">GET /sessions/{id}/documents sans token (mobile)</td><td><span class="pill ok">200</span> toujours ouvert</td></tr>
+            <tr><td>10</td><td class="mono">POST /sessions/{id}/terminer sans token</td><td><span class="pill warn">403</span> bloque</td></tr>
+            <tr><td>11</td><td class="mono">GET /sessions avec token invalide</td><td><span class="pill warn">403</span> rejete</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead">Les 11 cas se comportent exactement comme prévu. <code>tsc --noEmit</code> propre côté frontend. Le serveur Vite sert <code>/connexion</code> (200 confirmé), mais <strong style="color:var(--text)">le formulaire de connexion n'a pas été cliqué dans un vrai navigateur</strong> — aucun outil de navigateur disponible dans cet environnement pour cette vérification.</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de RBAC</strong> — un seul niveau d'accès (authentifié ou non), pas de rôles ni de permissions fines.</li>
+        <li><strong>Pas d'Entra ID branché</strong> — comptes locaux uniquement. La bascule est prévue par construction, pas faite faute de tenant Azure AD disponible.</li>
+        <li><strong>Pas d'isolation des données par utilisateur</strong> — tout utilisateur authentifié voit toutes les sessions de l'instance. Choix assumé ("outil d'équipe partagé"), pas un oubli.</li>
+        <li><strong>Formulaire de connexion non testé dans un vrai navigateur</strong> — seule la logique serveur (curl) et le typage (tsc) ont été vérifiés directement.</li>
+        <li><strong>Le flux mobile QR code reste sans authentification</strong> — c'est son modèle de sécurité d'origine (UUID non devinable), pas une régression de cette phase.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Brancher Entra ID plus tard : remplacer <code>AuthController</code>/<code>AuthService</code> par un flux OAuth2/OIDC, garder <code>JwtService</code> pour émettre les tokens de session si besoin — <code>SecurityConfig</code> et les contrôleurs n'ont rien à changer.</li>
+          <li>Ajouter des rôles/RBAC : <code>Utilisateur</code> gagnerait un champ <code>role</code>, <code>JwtAuthenticationFilter</code> mettrait les autorités correspondantes au lieu de <code>List.of()</code>, <code>SecurityConfig</code> utiliserait <code>.hasRole(...)</code> sur les routes concernées.</li>
+          <li>Chemin de bout en bout : <code>LoginPage.tsx</code> → <code>POST /api/v1/auth/connexion</code> → <code>AuthController</code> → <code>AuthService</code> (BCrypt) → <code>JwtService</code> (emet le token) → <code>localStorage</code> → <code>appelApi</code> l'attache à chaque requête → <code>JwtAuthenticationFilter</code> le valide → <code>SecurityConfig</code> autorise ou bloque.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-securite-auth</code> — vérifiée end-to-end via curl contre un vrai backend + Postgres.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (sécurité et authentification, verrouillage de l'API précédemment entièrement ouverte).
+    </footer>
+  </main>
+</div>
