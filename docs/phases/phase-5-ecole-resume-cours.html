@@ -1,0 +1,329 @@
+<title>Memoria — Dossier technique Phase 5 (École) : résumé de cours</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · École</span>
+    <h1 class="title">Résumé de cours — première brique École</h1>
+    <p class="dek">Dossier de référence complet : pourquoi cette brique mirroire fichier par fichier le compte rendu complet (Entreprise), le périmètre volontairement réduit (synthèse + notions/définitions + points à réviser, sans exercices ni QCM), chaque fichier backend et frontend, les tests, et la vérification avec un vrai appel Azure OpenAI.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Ecole</strong>&nbsp;premier package du produit, jusque-la a zero</span>
+      <span class="fact"><strong>88</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-5-ecole-resume-cours</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi cette brique, ce perimetre</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">La section de la page de session</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Après l'authentification (tag <code>phase-5-securite-auth</code>), la suite naturelle était de démarrer la <strong style="color:var(--text)">couche École</strong> — le seul étage du roadmap encore entièrement à zéro (<code>com.memoria.ecole</code> n'existait pas). Le multi-tenant/couloirs et le passage à l'échelle ont été écartés pour l'instant : leur urgence réelle est faible tant qu'il n'y a qu'une seule instance.</p>
+      <p class="lead">Le master prompt regroupe sous "résumés adaptés au cours" : notions/définitions, exercices avec corrections, annonces, points à réviser, QCM auto-générés. Choisi avec l'utilisateur : périmètre réduit à <strong style="color:var(--text)">synthèse + notions/définitions + points à réviser</strong>. Exercices, annonces et QCM sont chacun un chantier à part (les QCM demandent une UI de quiz distincte) — tout inclure d'un coup aurait été de la sur-ingénierie pour un premier jet.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Copier le pattern du compte rendu, pas en réinventer un nouveau</h4>
+        <p style="margin:0 0 12px; font-size:0.9rem; color:var(--text-muted)">Le projet a déjà un pattern éprouvé pour "extraction structurée par IA à la demande, avec traçabilité et mise en cache" : <code>entreprise.compterendu</code>. Cette brique le mirroire fichier par fichier.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nouveau (ecole.resumecours)</th><th>Mirroir de (entreprise.compterendu)</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">StatutResumeCours</td><td class="mono">StatutCompteRendu</td></tr>
+              <tr><td class="mono">NotionCours (@Embeddable)</td><td class="mono">ActionCompteRendu</td></tr>
+              <tr><td class="mono">ResumeCours (entite)</td><td class="mono">CompteRendu</td></tr>
+              <tr><td class="mono">GenerateurResumeCoursPort / AzureOpenAI</td><td class="mono">GenerateurCompteRenduPort / AzureOpenAI</td></tr>
+              <tr><td class="mono">ResumeCoursService</td><td class="mono">CompteRenduService</td></tr>
+              <tr><td class="mono">ResumeCoursController</td><td class="mono">CompteRenduController</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:0; font-size:0.88rem; color:var(--text-muted)">Décisions reprises telles quelles : génération <strong style="color:var(--text)">à la demande</strong> (discipline de coûts), garde d'idempotence revérifiée avant sauvegarde, échec persisté (<code>ECHEC</code>) plutôt que relancé, traçabilité au niveau du document via <code>segmentsSources</code>.</p>
+      </div>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>Pas d'événement publié</strong> — contrairement à <code>CompteRenduGenereEvent</code> (consommé par <code>EngagementService</code>), aucun consommateur n'existe côté École pour l'instant. Ne pas ajouter de mécanisme sans écouteur (YAGNI) ; le même patron pourra être reproduit le jour où une fonctionnalité (score de maîtrise, tuteur vocal) en a besoin.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>ResumeCours</span><span class="desc">entite <span class="pill entity">JPA</span> — un seul resume par session</span></summary>
+        <div class="filebody">
+          <pre><code>@Entity @Table(name = "resumes_cours")
+public class ResumeCours {
+    private UUID sessionId;                    // unique
+    private String synthese;
+    private List&lt;NotionCours&gt; notions;         // resume_cours_notions
+    private List&lt;String&gt; pointsARevoir;        // resume_cours_points_a_revoir
+    private List&lt;Integer&gt; segmentsSources;
+    private StatutResumeCours statut;
+}</code></pre>
+          <p>Tables auto-creees par Hibernate (<code>ddl-auto=update</code>), pas de migration a ecrire.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>ResumeCoursService</span><span class="desc">copie quasi ligne a ligne de CompteRenduService</span></summary>
+        <div class="filebody">
+          <pre><code>public ResumeCours obtenirOuGenererResumeCours(UUID sessionId) {
+    sessionService.obtenirSession(sessionId);
+    Optional&lt;ResumeCours&gt; existant = resumeCoursRepository.findBySessionId(sessionId);
+    if (existant.isPresent()) return existant.get();
+    List&lt;Transcription&gt; reussies = transcriptionsReussies(sessionId);
+    if (reussies.isEmpty()) throw new AucuneTranscriptionDisponibleException(sessionId);
+    try {
+        ResumeCoursGenere genere = generateurResumeCours.genererResumeCours(transcriptComplet);
+        return enregistrerSiAbsent(sessionId, genere.synthese(), notions, genere.pointsARevoir(), segmentsSources, REUSSI);
+    } catch (Exception e) {
+        return enregistrerSiAbsent(sessionId, null, List.of(), List.of(), segmentsSources, ECHEC);
+    }
+}</code></pre>
+          <p>Pas de <code>ApplicationEventPublisher</code> dans le constructeur (contrairement a <code>CompteRenduService</code>) — inutile ici.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>GenerateurResumeCoursAzureOpenAI</span><span class="desc">meme squelette HTTP, nouveau prompt</span></summary>
+        <div class="filebody">
+          <pre><code>Tu es un assistant pedagogique qui aide des etudiants a reviser un cours a partir de sa
+transcription, en francais. Ignore les reperes "Intervenant N".
+Reponds UNIQUEMENT avec un objet JSON valide :
+{
+  "synthese": "un paragraphe qui resume fidelement le contenu du cours",
+  "notions": [{"terme": "...", "definition": "..."}],
+  "points_a_revoir": ["..."]
+}
+Ne liste que des notions reellement expliquees, n'invente rien.</code></pre>
+          <p>Meme ressource Azure OpenAI (Responses API), memes proprietes <code>azure.openai.*</code>, meme timeout 120s que le compte rendu.</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ResumeCoursController</td><td><code>GET /api/v1/sessions/{id}/resume-cours</code> (200 ou 204), <code>POST</code> get-or-generate</td></tr>
+            <tr><td class="mono">ResumeCoursRepository</td><td><code>findBySessionId</code></td></tr>
+            <tr><td class="mono">ResumeCoursNotFoundException / AucuneTranscriptionDisponibleException</td><td>404 et 409, enregistrees dans <code>GestionnaireExceptionsApi</code> (exception propre au package Ecole, pas partagee avec celle de compterendu)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> La section de la page de session</h2>
+      <p class="lead"><code>types.ts</code>/<code>api.ts</code> suivent le principe deja etabli : <code>NotionCours</code>/<code>ResumeCours</code> recopies a la main, <code>obtenirResumeCours</code>/<code>genererResumeCours</code> avec le meme traitement 204/404 → <code>null</code>.</p>
+      <p class="lead"><code>SessionDetailPage.tsx</code> gagne une section "Resume de cours (Ecole)" juste apres "Compte rendu complet (Entreprise)", incluse dans le meme <code>Promise.all</code> de chargement initial — pas de code de rafraichissement supplementaire. Bouton "Generer" si absent, message si <code>ECHEC</code>, sinon carte avec synthese, notions (terme en gras + definition), points a reviser.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">genere_et_sauvegarde_a_partir_des_transcriptions_reussies</td><td>cas nominal — champs corrects</td></tr>
+            <tr><td class="mono">marque_echec_quand_le_generateur_echoue</td><td>ECHEC persiste, pas d'exception propagee</td></tr>
+            <tr><td class="mono">renvoie_le_resume_deja_en_cache_sans_regenerer</td><td>garde d'idempotence</td></tr>
+            <tr><td class="mono">leve_une_exception_si_aucune_transcription_na_reussi</td><td>AucuneTranscriptionDisponibleException</td></tr>
+            <tr><td class="mono">leve_une_exception_si_la_session_est_introuvable</td><td>propage SessionNotFoundException</td></tr>
+            <tr><td class="mono">obtenirResumeCours_retourne_le_resume_existant</td><td>lecture simple</td></tr>
+            <tr><td class="mono">obtenirResumeCours_leve_une_exception_si_aucun_resume_nexiste</td><td>ResumeCoursNotFoundException</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">88/88 tests</strong> passent au total (81 précédents + 7 nouveaux).</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Vrai appel Azure OpenAI</h4>
+          <p>Transcription de test sur la photosynthèse (définition, chlorophylle, cycle de Calvin à réviser) : <code>POST /resume-cours</code> → 3 notions distinctes extraites (Photosynthèse, Chlorophylle, Chloroplastes) avec définitions fidèles, 2 points à réviser correctement identifiés.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Mise en cache confirmée</h4>
+          <p><code>GET /resume-cours</code> → renvoie exactement le même résultat, pas de second appel Azure OpenAI. <code>GET</code> sur une session sans résumé → <strong style="color:var(--warn)">204</strong>.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Vérifié dans un vrai navigateur</h4>
+          <p>Playwright : la section "Résumé de cours (École)" s'affiche correctement — synthèse, notions en gras avec définition, liste des points à réviser — aucune erreur console. Données de test nettoyées ensuite.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Périmètre volontairement réduit</strong> — pas d'exercices avec corrections, pas d'annonces, pas de QCM auto-générés. Chacun est un chantier séparé.</li>
+        <li><strong>Pas d'événement publié</strong> — aucun consommateur n'existe encore côté École.</li>
+        <li><strong>Pas de couloirs/promotions</strong> — la notion de classe partagée n'existe pas encore ; ce résumé reste attaché à une session individuelle.</li>
+        <li><strong>Traçabilité au niveau du document</strong>, pas par notion — même compromis déjà accepté pour le compte rendu.</li>
+        <li><strong>Fenêtre de course non éliminée à 100%</strong> — même garde d'idempotence déjà acceptée ailleurs dans le projet.</li>
+        <li><strong>Affichée sans condition de produit</strong> — pas de mécanisme pour n'afficher cette section qu'aux instances École.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Ajouter exercices/corrections ou QCM : nouveau champ/collection sur <code>ResumeCours</code> (ou entité dédiée si la complexité le justifie — les QCM ont besoin d'un état de réponse par utilisateur), nouveau prompt, même squelette <code>GenerateurResumeCoursAzureOpenAI</code>.</li>
+          <li>Chemin de bout en bout : bouton "Générer le résumé de cours" → <code>ResumeCoursController</code> → <code>ResumeCoursService</code> → <code>GenerateurResumeCoursAzureOpenAI</code> → <code>ResumeCoursRepository</code> → section "Résumé de cours (École)" de <code>SessionDetailPage.tsx</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-ecole-resume-cours</code> — vérifiée end-to-end avec un vrai appel Azure OpenAI.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (résumé de cours, première brique du produit École).
+    </footer>
+  </main>
+</div>
