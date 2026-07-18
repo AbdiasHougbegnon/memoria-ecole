@@ -141,4 +141,43 @@ class SessionServiceTest {
                 .isInstanceOf(PasMembreDuCouloirException.class);
         verify(sessionRepository, never()).save(any());
     }
+
+    @Test
+    void creerSession_avec_createur_enregistre_le_createur() {
+        UUID utilisateurId = UUID.randomUUID();
+        when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Session session = sessionService.creerSession("Cours de reseaux", utilisateurId);
+
+        assertThat(session.getCreateurId()).isEqualTo(utilisateurId);
+        assertThat(session.getCouloirId()).isNull();
+    }
+
+    @Test
+    void listerSessionsVisibles_utilise_findVisiblesPour_si_lutilisateur_a_des_couloirs() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        com.memoria.core.couloir.MembreCouloir membre = new com.memoria.core.couloir.MembreCouloir(couloirId, utilisateurId);
+        when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of(membre));
+        List<Session> visibles = List.of(new Session("Visible"));
+        when(sessionRepository.findVisiblesPour(utilisateurId, List.of(couloirId))).thenReturn(visibles);
+
+        List<Session> resultat = sessionService.listerSessionsVisibles(utilisateurId);
+
+        assertThat(resultat).isEqualTo(visibles);
+        verify(sessionRepository, never()).findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc(any());
+    }
+
+    @Test
+    void listerSessionsVisibles_utilise_la_requete_sans_couloir_si_lutilisateur_nen_a_aucun() {
+        UUID utilisateurId = UUID.randomUUID();
+        when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
+        List<Session> visibles = List.of(new Session("Visible"));
+        when(sessionRepository.findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc(utilisateurId)).thenReturn(visibles);
+
+        List<Session> resultat = sessionService.listerSessionsVisibles(utilisateurId);
+
+        assertThat(resultat).isEqualTo(visibles);
+        verify(sessionRepository, never()).findVisiblesPour(any(), any());
+    }
 }

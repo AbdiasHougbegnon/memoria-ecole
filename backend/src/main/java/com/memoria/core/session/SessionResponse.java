@@ -9,7 +9,8 @@ public record SessionResponse(
         Instant dateCreation,
         SessionStatus statut,
         String cheminFichierAudio,
-        UUID couloirId
+        UUID couloirId,
+        UUID createurId
 ) {
 
     public static SessionResponse depuis(Session session) {
@@ -19,7 +20,8 @@ public record SessionResponse(
                 session.getDateCreation(),
                 session.getStatut(),
                 session.getCheminFichierAudio(),
-                session.getCouloirId()
+                session.getCouloirId(),
+                session.getCreateurId()
         );
     }
 }

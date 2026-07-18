@@ -36,6 +36,13 @@ public class Session {
     @Column(name = "couloir_id")
     private UUID couloirId;
 
+    // Createur de la session -- null pour les sessions creees avant
+    // l'introduction de ce champ (elles restent visibles a tout le monde,
+    // voir SessionService.listerSessionsVisibles) et pour les sessions
+    // creees via l'ancien constructeur a 1 argument, conserve pour les tests.
+    @Column(name = "createur_id")
+    private UUID createurId;
+
     protected Session() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -47,8 +54,9 @@ public class Session {
         this.statut = SessionStatus.EN_COURS;
     }
 
-    public Session(String titre, UUID couloirId) {
+    public Session(String titre, UUID createurId, UUID couloirId) {
         this(titre);
+        this.createurId = createurId;
         this.couloirId = couloirId;
     }
 
@@ -74,6 +82,10 @@ public class Session {
 
     public UUID getCouloirId() {
         return couloirId;
+    }
+
+    public UUID getCreateurId() {
+        return createurId;
     }
 
     public void terminer() {

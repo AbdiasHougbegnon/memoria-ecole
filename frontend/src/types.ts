@@ -7,6 +7,7 @@ export interface Session {
   statut: SessionStatus
   cheminFichierAudio: string | null
   couloirId: string | null
+  createurId: string | null
 }
 
 export type TranscriptionStatut = 'REUSSIE' | 'ECHEC'

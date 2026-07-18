@@ -32,13 +32,13 @@ public class SessionController {
     ) {
         Session session = requete.couloirId() != null
                 ? sessionService.creerSession(requete.titre(), requete.couloirId(), utilisateurId)
-                : sessionService.creerSession(requete.titre());
+                : sessionService.creerSession(requete.titre(), utilisateurId);
         return new CreateSessionResponse(session.getId());
     }
 
     @GetMapping
-    public List<SessionResponse> listerSessions() {
-        return sessionService.listerSessions().stream()
+    public List<SessionResponse> listerSessions(@AuthenticationPrincipal UUID utilisateurId) {
+        return sessionService.listerSessionsVisibles(utilisateurId).stream()
                 .map(SessionResponse::depuis)
                 .toList();
     }

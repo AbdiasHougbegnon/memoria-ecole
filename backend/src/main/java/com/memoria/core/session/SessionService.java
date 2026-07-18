@@ -1,5 +1,6 @@
 package com.memoria.core.session;
 
+import com.memoria.core.couloir.MembreCouloir;
 import com.memoria.core.couloir.MembreCouloirRepository;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,16 +31,21 @@ public class SessionService {
         return sessionRepository.save(session);
     }
 
+    // Sans couloir, mais avec un createur enregistre -- utilise par le
+    // controleur des que la requete precise un utilisateur authentifie
+    // (donc systematiquement depuis la Phase 5 securite).
+    public Session creerSession(String titre, UUID createurId) {
+        return sessionRepository.save(new Session(titre, createurId, null));
+    }
+
     // Rattache la session a un couloir seulement si le createur en est
-    // membre -- pas de restriction de visibilite ajoutee (toute session
-    // reste visible a tout utilisateur connecte comme avant), juste un
-    // regroupement.
+    // membre. Le rattachement ne change rien a la visibilite par lui-meme :
+    // c'est listerSessionsVisibles() qui l'exploite.
     public Session creerSession(String titre, UUID couloirId, UUID createurId) {
         if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, createurId)) {
             throw new PasMembreDuCouloirException(couloirId, createurId);
         }
-        Session session = new Session(titre, couloirId);
-        return sessionRepository.save(session);
+        return sessionRepository.save(new Session(titre, createurId, couloirId));
     }
 
     public List<Session> listerSessionsParCouloir(UUID couloirId) {
@@ -51,6 +57,23 @@ public class SessionService {
                 .orElseThrow(() -> new SessionNotFoundException(id));
     }
 
+    // Utilisee par le controleur de la liste principale : ne renvoie que ce
+    // qui est visible pour cet utilisateur (ses propres sessions, celles de
+    // ses couloirs, et les sessions anciennes sans createur enregistre).
+    public List<Session> listerSessionsVisibles(UUID utilisateurId) {
+        List<UUID> mesCouloirIds = membreCouloirRepository.findByUtilisateurId(utilisateurId).stream()
+                .map(MembreCouloir::getCouloirId)
+                .toList();
+        if (mesCouloirIds.isEmpty()) {
+            return sessionRepository.findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc(utilisateurId);
+        }
+        return sessionRepository.findVisiblesPour(utilisateurId, mesCouloirIds);
+    }
+
+    // Non filtree, volontairement -- utilisee par RechercheService.reindexerHistorique()
+    // pour le rattrapage d'indexation, qui doit voir tout l'historique
+    // independamment de qui declenche l'operation. Ne pas la faire evoluer
+    // vers une version filtree.
     public List<Session> listerSessions() {
         return sessionRepository.findAllByOrderByDateCreationDesc();
     }
