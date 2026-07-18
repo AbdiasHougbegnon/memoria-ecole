@@ -60,4 +60,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public void gererIdentifiantsInvalides() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.resumecours.ResumeCoursNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererResumeCoursIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.resumecours.AucuneTranscriptionDisponibleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererAucuneTranscriptionDisponibleResumeCours() {
+    }
 }

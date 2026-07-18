@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -137,6 +137,21 @@ export async function obtenirCompteRendu(id: string): Promise<CompteRendu | null
 export async function genererCompteRendu(id: string): Promise<CompteRendu> {
   const reponse = await verifierReponse(
     await appelApi(`${BASE}/${id}/compte-rendu`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirResumeCours(id: string): Promise<ResumeCours | null> {
+  const reponse = await appelApi(`${BASE}/${id}/resume-cours`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function genererResumeCours(id: string): Promise<ResumeCours> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE}/${id}/resume-cours`, { method: 'POST' }),
   )
   return reponse.json()
 }

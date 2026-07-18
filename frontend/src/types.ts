@@ -108,6 +108,22 @@ export interface Engagement {
   dateDerniereMaj: string
 }
 
+export type StatutResumeCours = 'REUSSI' | 'ECHEC'
+
+export interface NotionCours {
+  terme: string
+  definition: string
+}
+
+export interface ResumeCours {
+  synthese: string | null
+  notions: NotionCours[]
+  pointsARevoir: string[]
+  segmentsSources: number[]
+  statut: StatutResumeCours
+  dateCreation: string
+}
+
 export interface AuthResponse {
   token: string
   utilisateurId: string
