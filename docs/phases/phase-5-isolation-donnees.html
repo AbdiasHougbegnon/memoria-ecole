@@ -1,0 +1,319 @@
+<title>Memoria — Dossier technique Phase 5 : isolation des données</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Moteur</span>
+    <h1 class="title">Isolation des données — filtrage de la liste principale</h1>
+    <p class="dek">Dossier de référence complet : pourquoi ce chantier avait été reporté deux fois, la règle de visibilité retenue (créateur, ou membre du couloir rattaché, ou session antérieure conservée visible), le choix de ne toucher que la liste principale, le premier usage de <code>@Query</code> du projet, et la vérification avec deux comptes réels.</p>
+    <div class="factrow">
+      <span class="fact"><strong>createurId</strong>&nbsp;+ grandfathering des sessions anciennes</span>
+      <span class="fact"><strong>99</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-5-isolation-donnees</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">Zero changement fonctionnel</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Ce chantier avait été reporté deux fois : dans l'état des lieux Phase 4 (sécurité plus urgente), puis explicitement lors des couloirs de classe. Après les couloirs (tag <code>phase-5-couloirs-classe</code>), c'était le moment logique de le fermer : les couloirs donnent enfin une vraie notion d'appartenance à vérifier.</p>
+      <p class="lead">Avant cette brique, <code>GET /api/v1/sessions</code> renvoyait <strong style="color:var(--text)">toutes</strong> les sessions de l'instance à <strong style="color:var(--text)">tout</strong> utilisateur authentifié — personne ne pouvait avoir une session réellement privée.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <h4 style="margin-bottom:10px">Périmètre : la liste principale seulement</h4>
+        <p style="margin:0; font-size:0.9rem">"Isolation des données" pourrait toucher recherche, fils de mémoire, dashboard des engagements — tout faire d'un coup aurait été trop risqué. <strong style="color:var(--text)">Choix validé : seule la liste principale filtre désormais.</strong> Le reste continue d'opérer sur tout l'historique, limite assumée.</p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">La règle de visibilité</h4>
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">Createur</span><span class="pdesc">l'utilisateur qui a cree la session</span></div>
+          <div class="farrow">ou</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">Membre du couloir</span><span class="pdesc">session rattachee a un couloir dont l'utilisateur est membre</span></div>
+          <div class="farrow">ou</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Sans createur (legacy)</span><span class="pdesc">creee avant cette brique -- reste visible a tous</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Grandfathering : ne pas faire disparaître l'historique</h4>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Les sessions déjà en base n'ont pas de créateur enregistré. Sans précaution, elles seraient devenues invisibles à tout le monde — l'équivalent de perdre tout l'historique du jour au lendemain. Règle retenue : <code>createurId IS NULL</code> reste visible à tous, comme avant.</p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Ne pas casser la réindexation</h4>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)"><code>RechercheService.reindexerHistorique()</code> appelle <code>SessionService.listerSessions()</code> et doit voir <strong style="color:var(--text)">tout</strong> l'historique, indépendamment de qui déclenche l'opération. Confirmé par grep : seul autre appelant de cette méthode. Décision : <code>listerSessions()</code> reste intacte et non filtrée ; une nouvelle méthode <code>listerSessionsVisibles(utilisateurId)</code> est ajoutée à côté, réservée au contrôleur de la liste principale.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>Session</span><span class="desc">nouveau champ createurId</span></summary>
+        <div class="filebody">
+          <pre><code>@Column(name = "createur_id")
+private UUID createurId;
+
+public Session(String titre, UUID createurId, UUID couloirId) {
+    this(titre);
+    this.createurId = createurId;
+    this.couloirId = couloirId;
+}</code></pre>
+          <p>Le constructeur <code>Session(String titre)</code>, utilisé par une trentaine de tests dans tout le projet, n'a pas été touché.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>SessionRepository</span><span class="desc">premier <span class="pill entity">@Query</span> du projet</span></summary>
+        <div class="filebody">
+          <pre><code>List&lt;Session&gt; findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc(UUID createurId);
+
+@Query("SELECT s FROM Session s WHERE s.createurId = :utilisateurId OR s.createurId IS NULL OR s.couloirId IN :couloirIds ORDER BY s.dateCreation DESC")
+List&lt;Session&gt; findVisiblesPour(@Param("utilisateurId") UUID utilisateurId, @Param("couloirIds") List&lt;UUID&gt; couloirIds);</code></pre>
+          <p>Deux méthodes plutôt qu'une seule : un <code>IN ()</code> avec une liste vide n'est pas valide en JPQL/SQL standard. Toutes les requêtes précédentes du projet s'exprimaient avec des méthodes dérivées Spring Data ; celle-ci (trois conditions <code>OR</code> dont un <code>IN</code> dynamique) dépasse ce qu'elles peuvent exprimer proprement.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>SessionService</span><span class="desc">listerSessionsVisibles, listerSessions preservee</span></summary>
+        <div class="filebody">
+          <pre><code>public List&lt;Session&gt; listerSessionsVisibles(UUID utilisateurId) {
+    List&lt;UUID&gt; mesCouloirIds = membreCouloirRepository.findByUtilisateurId(utilisateurId).stream()
+            .map(MembreCouloir::getCouloirId).toList();
+    if (mesCouloirIds.isEmpty()) {
+        return sessionRepository.findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc(utilisateurId);
+    }
+    return sessionRepository.findVisiblesPour(utilisateurId, mesCouloirIds);
+}
+
+// Non filtree, volontairement -- utilisee par RechercheService.reindexerHistorique()
+public List&lt;Session&gt; listerSessions() {
+    return sessionRepository.findAllByOrderByDateCreationDesc();
+}</code></pre>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Changement</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SessionController</td><td><code>listerSessions()</code> gagne <code>@AuthenticationPrincipal</code>, appelle <code>listerSessionsVisibles</code>. <code>creerSession</code> (sans couloir) enregistre desormais le createur.</td></tr>
+            <tr><td class="mono">SessionResponse</td><td>ajout de <code>createurId</code>, mirroir de l'ajout <code>couloirId</code> fait pour les couloirs</td></tr>
+            <tr><td class="mono">GET /sessions/{id}</td><td><strong>non touche</strong> — reste public pour le flux mobile QR code</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Zéro changement fonctionnel</h2>
+      <p class="lead"><code>SessionsListPage.tsx</code> appelait déjà <code>listerSessions()</code> — le filtrage étant entièrement côté serveur, elle reçoit directement le sous-ensemble visible. Seul <code>types.ts</code> gagne <code>createurId: string | null</code> sur <code>Session</code>, par cohérence.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">creerSession_avec_createur_enregistre_le_createur</td><td>createurId persiste, couloirId reste null</td></tr>
+            <tr><td class="mono">listerSessionsVisibles_utilise_findVisiblesPour_si_couloirs</td><td>bonne requete choisie quand l'utilisateur a des couloirs</td></tr>
+            <tr><td class="mono">listerSessionsVisibles_utilise_la_requete_sans_couloir_sinon</td><td>evite le IN() vide</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">99/99 tests</strong> passent au total (96 précédents + 3 nouveaux). Aucun test existant modifié.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Isolation confirmee entre deux comptes</h4>
+          <p>A crée un couloir + une session privée + une session de couloir. B crée sa propre session privée. Liste de A → ses 2 sessions, pas celle de B. Liste de B avant adhésion → sa session, ni celle privée de A ni celle du couloir.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Visibilite du couloir apres adhesion</h4>
+          <p>B rejoint le couloir de A → sa liste fait apparaître la session de couloir de A, mais <strong style="color:var(--warn)">toujours pas</strong> la session privée de A.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Grandfathering confirme en reel</h4>
+          <p>La longue liste de sessions historiques (créées avant cette brique) reste visible pour les deux comptes — pas seulement en théorie. Vérifié aussi dans un vrai navigateur (Playwright) : comptage de "Session privée de A" dans la page de B → <strong style="color:var(--ok)">0</strong>. Aucune erreur console.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Recherche, fils de mémoire, dashboard des engagements restent non filtrés</strong> — choix de périmètre assumé.</li>
+        <li><strong><code>GET /sessions/{id}</code> reste public</strong> — nécessaire pour le flux mobile QR code ; une session reste consultable par quiconque connaît son UUID.</li>
+        <li><strong>Aucune indication visuelle</strong> de ce qui est privé vs partagé via un couloir — la liste affiche juste moins de sessions.</li>
+        <li><strong>Pas de changement de visibilité après coup</strong> — fixée à la création.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Étendre le filtrage à la recherche/fils de mémoire : même principe que <code>listerSessionsVisibles</code>, en faisant attention à ne pas casser <code>reindexerHistorique()</code>.</li>
+          <li>Migrer les anciennes sessions vers un vrai créateur : script de migration ponctuel, <code>ddl-auto=update</code> ne fait pas de backfill de données.</li>
+          <li>Chemin de bout en bout : <code>SessionController.listerSessions()</code> (<code>@AuthenticationPrincipal</code>) → <code>SessionService.listerSessionsVisibles()</code> → <code>MembreCouloirRepository.findByUtilisateurId()</code> → <code>SessionRepository.findVisiblesPour()</code> ou <code>findByCreateurIdOrCreateurIdIsNullOrderByDateCreationDesc()</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-isolation-donnees</code> — vérifiée end-to-end avec deux comptes réels.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (isolation des données, filtrage de la liste principale des sessions).
+    </footer>
+  </main>
+</div>
