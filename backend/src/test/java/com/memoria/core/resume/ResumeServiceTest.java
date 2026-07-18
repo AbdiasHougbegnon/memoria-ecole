@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 import java.util.Optional;
@@ -197,6 +198,32 @@ class ResumeServiceTest {
 
         assertThatThrownBy(() -> resumeService.obtenirOuGenererResume(idInconnu, ResumeType.COURT))
                 .isInstanceOf(SessionNotFoundException.class);
+    }
+
+    @Test
+    void obtenirOuGenererResume_renvoie_le_resume_du_gagnant_si_une_execution_concurrente_sauvegarde_en_premier() {
+        // Fenetre de course : deux executions passent toutes les deux la
+        // verification "findBySessionIdAndType absent", mais la contrainte
+        // unique (session_id, type) ne laisse qu'une seule sauvegarde
+        // reussir. Celle-ci simule le "perdant" : son save() echoue, il doit
+        // renvoyer le resultat du "gagnant" au lieu de laisser
+        // l'exception se propager.
+        UUID sessionId = UUID.randomUUID();
+        List<Transcription> transcriptions = List.of(
+                new Transcription(sessionId, 0, "Bonjour a tous.", TranscriptionStatut.REUSSIE)
+        );
+        Resume resumeDuGagnant = new Resume(sessionId, ResumeType.DETAILLE, "Deja sauvegarde par l'autre execution.", List.of(), List.of(0), ResumeStatut.REUSSI);
+        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
+        when(resumeRepository.findBySessionIdAndType(sessionId, ResumeType.DETAILLE))
+                .thenReturn(Optional.empty(), Optional.empty(), Optional.of(resumeDuGagnant));
+        when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
+        when(generateurResume.genererResume(ResumeType.DETAILLE, "Bonjour a tous."))
+                .thenReturn(new ResumeGenere("Synthese.", List.of()));
+        when(resumeRepository.save(any())).thenThrow(new DataIntegrityViolationException("contrainte unique violee"));
+
+        Resume resultat = resumeService.obtenirOuGenererResume(sessionId, ResumeType.DETAILLE);
+
+        assertThat(resultat).isSameAs(resumeDuGagnant);
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.memoria.core.transcription.TranscriptionStatut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -132,7 +133,19 @@ public class ResumeService {
             return existant.get();
         }
         Resume resume = new Resume(sessionId, type, texteResume, pointsCles, segmentsSources, statut);
-        return resumeRepository.save(resume);
+        try {
+            return resumeRepository.save(resume);
+        } catch (DataIntegrityViolationException e) {
+            // Fenetre de course non couverte par la verification ci-dessus :
+            // une execution concurrente a sauvegarde entre notre lecture et
+            // notre ecriture (contrainte unique session_id+type). Le
+            // "perdant" ne doit pas planter -- il renvoie le resultat du
+            // "gagnant" au lieu de laisser l'exception se propager (elle
+            // remontait jusqu'aux appelants de obtenirOuGenererResume, par
+            // exemple FilMemoireService, en abandonnant silencieusement leur
+            // propre traitement).
+            return resumeRepository.findBySessionIdAndType(sessionId, type).orElseThrow(() -> e);
+        }
     }
 
     public Resume obtenirResume(UUID sessionId, ResumeType type) {

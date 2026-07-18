@@ -74,6 +74,14 @@ public class FilMemoireService {
             resume = resumeService.obtenirOuGenererResume(sessionId, ResumeType.DETAILLE);
         } catch (AucuneTranscriptionDisponibleException e) {
             return;
+        } catch (Exception e) {
+            // Filet de securite : ResumeService gere deja sa propre course de
+            // sauvegarde concurrente (voir ResumeService.enregistrerSiAbsent),
+            // mais un imprevu ici ne doit pas faire planter silencieusement
+            // cet ecouteur async -- juste abandonner cette tentative comme
+            // pour les autres cas de "pas encore possible".
+            LOG.warn("Echec de l'obtention du resume pour le regroupement en fil de memoire, session {}", sessionId, e);
+            return;
         }
         if (resume.getStatut() != ResumeStatut.REUSSI || resume.getTexteResume() == null) {
             return;

@@ -123,6 +123,24 @@ class FilMemoireServiceTest {
     }
 
     @Test
+    void surSessionTerminee_nechoue_pas_si_lobtention_du_resume_leve_une_exception_inattendue() {
+        // Reproduit la course concurrente autrefois observee en production :
+        // ResumeService peut lever une exception inattendue (ex.
+        // DataIntegrityViolationException non couverte) -- l'ecouteur async
+        // ne doit pas se terminer en erreur silencieuse, juste abandonner
+        // cette tentative comme pour les autres cas de "pas encore possible".
+        UUID sessionId = UUID.randomUUID();
+        when(filMemoireRepository.existsBySessionId(sessionId)).thenReturn(false);
+        when(resumeService.obtenirOuGenererResume(sessionId, ResumeType.DETAILLE))
+                .thenThrow(new RuntimeException("Echec inattendu"));
+
+        filMemoireService.surSessionTerminee(new SessionTermineeEvent(sessionId));
+
+        verify(generateurEmbedding, never()).genererEmbeddings(anyList());
+        verify(filMemoireRepository, never()).save(any());
+    }
+
+    @Test
     void surSessionTerminee_ne_fait_rien_si_le_resume_a_echoue() {
         UUID sessionId = UUID.randomUUID();
         when(filMemoireRepository.existsBySessionId(sessionId)).thenReturn(false);
