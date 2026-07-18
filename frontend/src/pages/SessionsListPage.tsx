@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listerSessions } from '../api'
 import type { Session } from '../types'
 import { Recorder } from '../components/Recorder'
+import { deconnecter } from '../auth'
 
 const LIBELLE_STATUT: Record<Session['statut'], string> = {
   EN_COURS: 'En cours',
@@ -42,6 +43,16 @@ export function SessionsListPage() {
           <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
             Rechercher
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              deconnecter()
+              navigate('/connexion')
+            }}
+            className="text-sm text-slate-500 hover:text-slate-700"
+          >
+            Deconnexion
+          </button>
         </div>
       </div>
 

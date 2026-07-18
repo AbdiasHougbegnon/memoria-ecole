@@ -1,6 +1,22 @@
-import type { CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
+
+async function appelApi(chemin: string, options: RequestInit = {}): Promise<Response> {
+  const token = obtenirToken()
+  const headers = new Headers(options.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  const reponse = await fetch(chemin, { ...options, headers })
+  if (reponse.status === 401) {
+    deconnecter()
+    window.location.href = '/connexion'
+    throw new Error('Session expiree, reconnexion necessaire')
+  }
+  return reponse
+}
 
 async function verifierReponse(reponse: Response): Promise<Response> {
   if (!reponse.ok) {
@@ -9,19 +25,41 @@ async function verifierReponse(reponse: Response): Promise<Response> {
   return reponse
 }
 
+export async function inscrire(email: string, motDePasse: string): Promise<AuthResponse> {
+  const reponse = await verifierReponse(
+    await fetch('/api/v1/auth/inscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, motDePasse }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function connecter(email: string, motDePasse: string): Promise<AuthResponse> {
+  const reponse = await verifierReponse(
+    await fetch('/api/v1/auth/connexion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, motDePasse }),
+    }),
+  )
+  return reponse.json()
+}
+
 export async function listerSessions(): Promise<Session[]> {
-  const reponse = await verifierReponse(await fetch(BASE))
+  const reponse = await verifierReponse(await appelApi(BASE))
   return reponse.json()
 }
 
 export async function obtenirSession(id: string): Promise<Session> {
-  const reponse = await verifierReponse(await fetch(`${BASE}/${id}`))
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}`))
   return reponse.json()
 }
 
 export async function creerSession(titre: string): Promise<{ id: string }> {
   const reponse = await verifierReponse(
-    await fetch(BASE, {
+    await appelApi(BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titre }),
@@ -32,14 +70,14 @@ export async function creerSession(titre: string): Promise<{ id: string }> {
 
 export async function terminerSession(id: string): Promise<Session> {
   const reponse = await verifierReponse(
-    await fetch(`${BASE}/${id}/terminer`, { method: 'POST' }),
+    await appelApi(`${BASE}/${id}/terminer`, { method: 'POST' }),
   )
   return reponse.json()
 }
 
 export async function envoyerChunk(id: string, numeroSequence: number, audio: Blob): Promise<void> {
   await verifierReponse(
-    await fetch(`${BASE}/${id}/chunks/${numeroSequence}`, {
+    await appelApi(`${BASE}/${id}/chunks/${numeroSequence}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/octet-stream' },
       body: audio,
@@ -48,12 +86,12 @@ export async function envoyerChunk(id: string, numeroSequence: number, audio: Bl
 }
 
 export async function obtenirTranscriptions(id: string): Promise<TranscriptionSegment[]> {
-  const reponse = await verifierReponse(await fetch(`${BASE}/${id}/transcriptions`))
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/transcriptions`))
   return reponse.json()
 }
 
 export async function obtenirResume(id: string, type: ResumeType): Promise<Resume | null> {
-  const reponse = await fetch(`${BASE}/${id}/resumes/${type}`)
+  const reponse = await appelApi(`${BASE}/${id}/resumes/${type}`)
   if (reponse.status === 404 || reponse.status === 204) {
     return null
   }
@@ -62,13 +100,13 @@ export async function obtenirResume(id: string, type: ResumeType): Promise<Resum
 
 export async function genererResume(id: string, type: ResumeType): Promise<Resume> {
   const reponse = await verifierReponse(
-    await fetch(`${BASE}/${id}/resumes/${type}`, { method: 'POST' }),
+    await appelApi(`${BASE}/${id}/resumes/${type}`, { method: 'POST' }),
   )
   return reponse.json()
 }
 
 export async function obtenirDocuments(id: string): Promise<DocumentItem[]> {
-  const reponse = await verifierReponse(await fetch(`${BASE}/${id}/documents`))
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/documents`))
   return reponse.json()
 }
 
@@ -76,13 +114,13 @@ export async function televerserDocument(id: string, fichier: File): Promise<Doc
   const corps = new FormData()
   corps.append('fichier', fichier)
   const reponse = await verifierReponse(
-    await fetch(`${BASE}/${id}/documents`, { method: 'POST', body: corps }),
+    await appelApi(`${BASE}/${id}/documents`, { method: 'POST', body: corps }),
   )
   return reponse.json()
 }
 
 export async function obtenirCompteRendu(id: string): Promise<CompteRendu | null> {
-  const reponse = await fetch(`${BASE}/${id}/compte-rendu`)
+  const reponse = await appelApi(`${BASE}/${id}/compte-rendu`)
   if (reponse.status === 404 || reponse.status === 204) {
     return null
   }
@@ -91,48 +129,48 @@ export async function obtenirCompteRendu(id: string): Promise<CompteRendu | null
 
 export async function genererCompteRendu(id: string): Promise<CompteRendu> {
   const reponse = await verifierReponse(
-    await fetch(`${BASE}/${id}/compte-rendu`, { method: 'POST' }),
+    await appelApi(`${BASE}/${id}/compte-rendu`, { method: 'POST' }),
   )
   return reponse.json()
 }
 
 export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {
   const parametres = new URLSearchParams({ q: requete, limite: String(limite) })
-  const reponse = await verifierReponse(await fetch(`/api/v1/recherche?${parametres}`))
+  const reponse = await verifierReponse(await appelApi(`/api/v1/recherche?${parametres}`))
   return reponse.json()
 }
 
 export async function reindexerHistorique(): Promise<void> {
-  await verifierReponse(await fetch('/api/v1/recherche/reindexation', { method: 'POST' }))
+  await verifierReponse(await appelApi('/api/v1/recherche/reindexation', { method: 'POST' }))
 }
 
 export async function listerFilsMemoire(): Promise<FilMemoire[]> {
-  const reponse = await verifierReponse(await fetch('/api/v1/fils-memoire'))
+  const reponse = await verifierReponse(await appelApi('/api/v1/fils-memoire'))
   return reponse.json()
 }
 
 export async function listerEngagements(statut?: StatutEngagement): Promise<Engagement[]> {
   const chemin = statut ? `/api/v1/engagements?statut=${statut}` : '/api/v1/engagements'
-  const reponse = await verifierReponse(await fetch(chemin))
+  const reponse = await verifierReponse(await appelApi(chemin))
   return reponse.json()
 }
 
 export async function listerEngagementsSession(id: string): Promise<Engagement[]> {
-  const reponse = await verifierReponse(await fetch(`${BASE}/${id}/engagements`))
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/engagements`))
   return reponse.json()
 }
 
 export async function confirmerEngagement(id: string): Promise<Engagement> {
-  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/confirmer`, { method: 'POST' }))
+  const reponse = await verifierReponse(await appelApi(`/api/v1/engagements/${id}/confirmer`, { method: 'POST' }))
   return reponse.json()
 }
 
 export async function rejeterEngagement(id: string): Promise<Engagement> {
-  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/rejeter`, { method: 'POST' }))
+  const reponse = await verifierReponse(await appelApi(`/api/v1/engagements/${id}/rejeter`, { method: 'POST' }))
   return reponse.json()
 }
 
 export async function terminerEngagement(id: string): Promise<Engagement> {
-  const reponse = await verifierReponse(await fetch(`/api/v1/engagements/${id}/terminer`, { method: 'POST' }))
+  const reponse = await verifierReponse(await appelApi(`/api/v1/engagements/${id}/terminer`, { method: 'POST' }))
   return reponse.json()
 }

@@ -107,3 +107,9 @@ export interface Engagement {
   dateCreation: string
   dateDerniereMaj: string
 }
+
+export interface AuthResponse {
+  token: string
+  utilisateurId: string
+  email: string
+}

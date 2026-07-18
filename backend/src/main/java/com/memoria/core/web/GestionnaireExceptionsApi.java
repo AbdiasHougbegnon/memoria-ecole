@@ -50,4 +50,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererTransitionEngagementInvalide() {
     }
+
+    @ExceptionHandler(com.memoria.core.auth.EmailDejaUtiliseException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererEmailDejaUtilise() {
+    }
+
+    @ExceptionHandler(com.memoria.core.auth.IdentifiantsInvalidesException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public void gererIdentifiantsInvalides() {
+    }
 }

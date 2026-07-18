@@ -2,6 +2,7 @@ package com.memoria.core.resume;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,7 +16,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// addFilters = false : ce test verifie le comportement du controleur, pas
+// l'application des regles Spring Security (couvertes par les tests dedies
+// a JwtService/AuthService et par la verification manuelle end-to-end).
 @WebMvcTest(ResumeController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class ResumeControllerTest {
 
     @Autowired
