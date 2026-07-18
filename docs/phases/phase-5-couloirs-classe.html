@@ -1,0 +1,329 @@
+<title>Memoria — Dossier technique Phase 5 : couloirs de classe</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Moteur</span>
+    <h1 class="title">Couloirs de classe — première brique</h1>
+    <p class="dek">Dossier de référence complet : pourquoi le "couloir collectif" du master prompt était déjà acquis gratuitement par le comportement actuel de l'API, le choix de ne construire que le regroupement (pas de restriction de visibilité), pourquoi le couloir vit dans le moteur générique et non dans École, chaque fichier backend et frontend, les tests, et la vérification avec deux comptes réels.</p>
+    <div class="factrow">
+      <span class="fact"><strong>core.couloir</strong>&nbsp;concept moteur, pas Ecole</span>
+      <span class="fact"><strong>96</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-5-couloirs-classe</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi les couloirs, quel constat</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">Les pages et le selecteur</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Après le résumé de cours, la suite choisie était <strong style="color:var(--text)">les couloirs de classe</strong> — décrits dans le master prompt comme "la fonctionnalité la plus différenciante" après le tuteur vocal : des espaces partagés par promotion qui permettent à un élève absent de retrouver le cours manqué.</p>
+      <p class="lead">L'exploration du code a révélé un fait déterminant pour la conception : <code>Session</code> n'a <strong style="color:var(--text)">aucun concept de propriétaire</strong>, et <code>GET /api/v1/sessions</code> renvoie déjà toutes les sessions à tout utilisateur authentifié. Conséquence : le "couloir collectif" du master prompt est <strong style="color:var(--text)">déjà acquis gratuitement</strong>. Ce qui manque réellement : (a) regrouper des séances par classe, (b) rejoindre un couloir par lien.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <h4 style="margin-bottom:10px">Périmètre : regroupement seulement, pas de restriction de visibilité</h4>
+        <p style="margin:0; font-size:0.9rem">Question posée explicitement avant de coder : construit-on la vraie distinction privé/collectif dès cette brique (nécessite d'ajouter un propriétaire à <code>Session</code> et de filtrer les listes), ou seulement le regroupement ? <strong style="color:var(--text)">Choix validé : regroupement seulement</strong> — la restriction de visibilité rejoint le chantier "isolation des données" déjà identifié comme moins urgent.</p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Où ça vit : moteur générique, pas École</h4>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Le master prompt liste "Propriétaire de couloir" comme un rôle applicable à "un espace de classe <strong style="color:var(--text)">ou d'équipe</strong>" — le couloir est un concept de moteur générique, comme <code>Session</code>/<code>Utilisateur</code>. D'où le package <code>com.memoria.core.couloir</code>, pas <code>com.memoria.ecole.*</code>.</p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Ne rien casser : deux surcharges plutôt que deux signatures changées</h4>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)"><code>Session(String titre)</code> et <code>SessionService.creerSession(String titre)</code> sont utilisés par de nombreux tests existants. Plutôt que de changer leur signature, la brique ajoute des <strong style="color:var(--text)">surcharges</strong> — le comportement par défaut reste identique à l'octet près.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>Couloir / MembreCouloir</span><span class="desc">entites <span class="pill entity">JPA</span></span></summary>
+        <div class="filebody">
+          <pre><code>@Entity @Table(name = "couloirs")
+public class Couloir {
+    private String nom;
+    private UUID proprietaireId;  // reference brute, pas de relation JPA
+}
+
+@Entity @Table(name = "membres_couloir", uniqueConstraints = @UniqueConstraint(columnNames = {"couloir_id", "utilisateur_id"}))
+public class MembreCouloir {
+    private UUID couloirId;
+    private UUID utilisateurId;
+    private Instant dateAdhesion;
+}</code></pre>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>CouloirService</span><span class="desc">creation, adhesion idempotente</span></summary>
+        <div class="filebody">
+          <pre><code>public Couloir creerCouloir(String nom, UUID proprietaireId) {
+    Couloir couloir = couloirRepository.save(new Couloir(nom, proprietaireId));
+    membreCouloirRepository.save(new MembreCouloir(couloir.getId(), proprietaireId));
+    return couloir;
+}
+
+public Couloir rejoindreCouloir(UUID couloirId, UUID utilisateurId) {
+    Couloir couloir = obtenirCouloir(couloirId);
+    if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)) {
+        membreCouloirRepository.save(new MembreCouloir(couloirId, utilisateurId));
+    }
+    return couloir;  // idempotent
+}</code></pre>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>Integration avec Session</span><span class="desc">surcharges, pas de rupture</span></summary>
+        <div class="filebody">
+          <pre><code>// Session.java — nouvelle surcharge, l'ancien constructeur est intact
+public Session(String titre, UUID couloirId) {
+    this(titre);
+    this.couloirId = couloirId;
+}
+
+// SessionService.java — nouvelle surcharge, l'ancienne methode est intacte
+public Session creerSession(String titre, UUID couloirId, UUID createurId) {
+    if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, createurId)) {
+        throw new PasMembreDuCouloirException(couloirId, createurId);
+    }
+    return sessionRepository.save(new Session(titre, couloirId));
+}</code></pre>
+          <p><code>SessionController.creerSession</code> gagne <code>@AuthenticationPrincipal UUID utilisateurId</code> — <strong style="color:var(--text)">premier usage de ce pattern dans le projet</strong>, bien que le principal JWT soit un UUID brut disponible depuis la Phase 5 sécurité.</p>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">POST /api/v1/couloirs</td><td>cree + rend le createur membre automatiquement</td></tr>
+            <tr><td class="mono">GET /api/v1/couloirs</td><td>mes couloirs (utilisateur courant)</td></tr>
+            <tr><td class="mono">GET /api/v1/couloirs/{id}</td><td>info publique — pas besoin d'etre membre (necessaire pour l'apercu avant adhesion)</td></tr>
+            <tr><td class="mono">POST /api/v1/couloirs/{id}/rejoindre</td><td>idempotent</td></tr>
+            <tr><td class="mono">GET /api/v1/couloirs/{id}/sessions</td><td>sessions rattachees, delegue a SessionService</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Les pages et le sélecteur</h2>
+      <p class="lead"><code>CouloirsPage.tsx</code> (route <code>/couloirs</code>) — liste "mes couloirs" avec nombre de membres, formulaire de création, bouton "copier le lien d'invitation". <code>CouloirDetailPage.tsx</code> (route <code>/couloirs/:id</code>) — sessions rattachées. <code>RejoindreCouloirPage.tsx</code> (route <code>/couloirs/:id/rejoindre</code>) — aperçu accessible sans être membre, bouton "Rejoindre".</p>
+      <p class="lead"><code>Recorder.tsx</code> gagne un <code>&lt;select&gt;</code> optionnel "Couloir" (visible seulement si l'utilisateur a au moins un couloir), option par défaut "Aucun (personnel)".</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">creerCouloir_...ajoute_le_proprietaire_comme_membre</td><td>adhesion automatique a la creation</td></tr>
+            <tr><td class="mono">rejoindreCouloir_ajoute_un_nouveau_membre</td><td>cas nominal</td></tr>
+            <tr><td class="mono">rejoindreCouloir_est_idempotent_si_deja_membre</td><td>pas de doublon, pas d'erreur</td></tr>
+            <tr><td class="mono">rejoindreCouloir_leve_une_exception_si_introuvable</td><td>404 propre</td></tr>
+            <tr><td class="mono">listerMesCouloirs_retourne_les_couloirs_dont_lutilisateur_est_membre</td><td>lecture correcte</td></tr>
+            <tr><td class="mono">obtenirCouloir_leve_une_exception_si_introuvable</td><td>404 propre</td></tr>
+            <tr><td class="mono">creerSession_avec_couloir_...si_membre</td><td>rattachement reussi</td></tr>
+            <tr><td class="mono">creerSession_avec_couloir_...si_non_membre</td><td>PasMembreDuCouloirException</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">96/96 tests</strong> passent au total (88 précédents + 8 nouveaux). Les 7 tests existants de <code>SessionServiceTest</code> n'ont pas eu besoin d'être modifiés.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Deux comptes, création et adhésion</h4>
+          <p>Compte A crée "Ing1-SI EPISEN" (1 membre, lui-même). Compte B tente de créer une session rattachée <strong>sans être membre</strong> → <strong style="color:var(--warn)">403</strong>. B rejoint (2 membres), rejoint à nouveau (toujours 2 — idempotence confirmée).</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Session rattachée et visible par les deux</h4>
+          <p>B crée "Cours de biologie" rattachée au couloir → réussit. A liste les sessions du couloir → voit bien la session de B. Un troisième compte, non membre, consulte l'aperçu du couloir → <strong style="color:var(--ok)">200</strong> (prévisualisation sans adhésion).</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Vérifié dans un vrai navigateur</h4>
+          <p>Playwright : <code>/couloirs</code> affiche "2 membre(s)", la page de détail liste "Cours de biologie", le sélecteur du <code>Recorder</code> contient "Ing1-SI EPISEN" en plus de "Aucun (personnel)". Aucune erreur console. Données de test nettoyées ensuite.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Aucune restriction de visibilité</strong> — choix de périmètre assumé, toute session reste visible à tout utilisateur connecté.</li>
+        <li><strong>Pas de couloirs "protégés"</strong> — rejoignable par quiconque connaît l'id/lien, pas de mot de passe ni de validation manuelle.</li>
+        <li><strong>Pas de gestion du couloir par son propriétaire</strong> — pas de renommage, suppression, ou retrait de membre. <code>proprietaireId</code> existe mais ne sert encore à aucune vérification de permission.</li>
+        <li><strong>Pas de consolidation des enregistrements multiples</strong> — plusieurs personnes enregistrant la même séance obtiennent des sessions distinctes ; la fusion est une capacité avancée réservée à une phase ultérieure par le master prompt.</li>
+        <li><strong>Pas d'ingestion de fichiers de référence</strong> pour le nommage automatique des séances par classe — hors périmètre de cette brique.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Restriction de visibilité (privé/collectif) : ajouter un <code>createurId</code> persistant sur <code>Session</code>, filtrer <code>SessionService.listerSessions()</code> selon appartenance/creation — chantier "isolation des données" déjà identifié.</li>
+          <li>Gestion du couloir par son propriétaire : vérifier <code>couloir.getProprietaireId().equals(utilisateurId)</code> dans <code>CouloirService</code>, déjà disponible via <code>@AuthenticationPrincipal</code>.</li>
+          <li>Chemin de bout en bout : <code>CouloirsPage.tsx</code> (créer) → <code>CouloirController</code> → <code>CouloirService</code> → lien copié → <code>RejoindreCouloirPage.tsx</code> → <code>POST /rejoindre</code> → <code>Recorder.tsx</code> (sélecteur) → <code>POST /sessions</code> avec <code>couloirId</code> → <code>SessionService</code> (vérifie l'appartenance) → <code>CouloirDetailPage.tsx</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-couloirs-classe</code> — vérifiée end-to-end avec deux comptes réels.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (couloirs de classe, première brique de regroupement du moteur).
+    </footer>
+  </main>
+</div>
