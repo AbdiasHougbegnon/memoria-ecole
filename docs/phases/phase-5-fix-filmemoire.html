@@ -1,0 +1,242 @@
+<title>Memoria — Dossier technique Phase 5 : correctif course concurrente FilMemoireService</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Correctif</span>
+    <h1 class="title">Course concurrente ResumeService / FilMemoireService</h1>
+    <p class="dek">Dossier de référence complet : un bug diagnostiqué plusieurs fois au fil des sessions, jamais corrigé jusqu'ici — la course entre deux événements asynchrones qui abandonnait silencieusement le traitement d'un fil de mémoire, le correctif à la source, et la vérification.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Dette technique</strong>&nbsp;connue depuis plusieurs sessions, enfin fermee</span>
+      <span class="fact"><strong>101</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-5-fix-filmemoire</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Diagnostic</span>
+    <a href="#diagnostic">La course exacte</a>
+    <span class="toc-label">Correctif</span>
+    <a href="#correctif">Le correctif, fichier par fichier</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Ce bug avait été diagnostiqué plusieurs fois au fil des sessions précédentes, observé en conditions réelles sur une vraie session de production, mais jamais corrigé — signalé à chaque fois comme "connu, pas dans le périmètre demandé". Après avoir fermé plusieurs chantiers de fond (sécurité, École, couloirs, isolation des données), c'était le moment de traiter cette dette technique avant d'empiler davantage de fonctionnalités sur une base avec une fissure connue.</p>
+    </section>
+
+    <section id="diagnostic">
+      <h2><span class="num">§</span> La course exacte</h2>
+      <div class="card">
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">Deux evenements</span><span class="pdesc">SessionTermineeEvent et ToutesTranscriptionsTermineesEvent, ordre imprevisible, traites en parallele (@Async)</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">Garde incomplete</span><span class="pdesc">ResumeService verifie puis sauvegarde -- la fenetre entre les deux n'est pas fermee</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Contrainte unique violee</span><span class="pdesc">la 2e sauvegarde leve DataIntegrityViolationException, non rattrapee</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">4</span><span class="pname">Abandon silencieux</span><span class="pdesc">l'exception s'echappe de l'ecouteur async de FilMemoireService, juste loggee en ERROR</span></div>
+        </div>
+        <p style="margin:12px 0 0; font-size:0.9rem; color:var(--text-muted)"><code>FilMemoireService.traiterSiPossible</code> n'entourait l'appel à <code>resumeService.obtenirOuGenererResume(...)</code> que d'un <code>catch (AucuneTranscriptionDisponibleException)</code> — l'exception imprévue n'était couverte par rien.</p>
+      </div>
+    </section>
+
+    <section id="correctif">
+      <h2><span class="num">§</span> Le correctif, fichier par fichier</h2>
+
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>ResumeService.enregistrerSiAbsent — corriger a la source</h4>
+          <pre><code>Resume resume = new Resume(sessionId, type, texteResume, pointsCles, segmentsSources, statut);
+try {
+    return resumeRepository.save(resume);
+} catch (DataIntegrityViolationException e) {
+    // Le "perdant" de la course renvoie le resultat du "gagnant"
+    // au lieu de laisser l'exception se propager.
+    return resumeRepository.findBySessionIdAndType(sessionId, type).orElseThrow(() -> e);
+}</code></pre>
+          <p class="why"><span class="label">Pourquoi ici —</span> ce correctif profite à <strong style="color:var(--text)">tous</strong> les appelants de <code>obtenirOuGenererResume</code>, pas seulement <code>FilMemoireService</code> : <code>ResumeController</code> était exposé au même risque, moins visible car synchrone (une 500 ponctuelle plutôt qu'un abandon silencieux).</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>FilMemoireService.traiterSiPossible — filet de securite en plus</h4>
+          <pre><code>try {
+    resume = resumeService.obtenirOuGenererResume(sessionId, ResumeType.DETAILLE);
+} catch (AucuneTranscriptionDisponibleException e) {
+    return;
+} catch (Exception e) {
+    LOG.warn("Echec de l'obtention du resume pour le regroupement en fil de memoire, session {}", sessionId, e);
+    return;
+}</code></pre>
+          <p class="why"><span class="label">Pourquoi en plus —</span> cohérent avec le reste de la méthode (<code>regrouper(...)</code>, juste en dessous, a déjà son propre <code>catch (Exception e)</code>) : tout imprévu futur dégrade proprement plutôt que de planter silencieusement l'écouteur asynchrone.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">obtenirOuGenererResume_renvoie_le_resume_du_gagnant_...</td><td>simule la course (mock a reponses successives), verifie le resultat du "gagnant"</td></tr>
+            <tr><td class="mono">surSessionTerminee_nechoue_pas_si_lobtention_du_resume_leve_une_exception_inattendue</td><td>l'ecouteur async ne plante pas sur un imprevu</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">101/101 tests</strong> passent au total (99 précédents + 2 nouveaux).</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Reproduire la course exacte de façon déterministe via une requête manuelle n'est pas praticable (timing d'exécution asynchrone serré) — la vérification principale repose sur les tests unitaires, qui exercent directement le chemin de code corrigé.</p>
+      <p class="lead">En complément : backend relancé avec le correctif, démarrage sans erreur, test de fumée réel (<code>/sessions</code>, <code>/fils-memoire</code>, <code>/couloirs</code> → <strong style="color:var(--ok)">200</strong> partout avec un vrai token). L'utilisateur a ensuite testé lui-même dans le navigateur (enregistrement réel, fil de mémoire apparu normalement) et confirmé que tout fonctionne.</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Le même patron de course existe potentiellement ailleurs</strong> — <code>CompteRenduService</code>, <code>EngagementService</code>, <code>ResumeCoursService</code> ont une structure "vérifier puis sauvegarder" similaire, mais seul le cas <code>ResumeService</code> a été réellement observé en production. Périmètre volontairement limité au bug diagnostiqué, pas une passe générale de robustesse.</li>
+        <li><strong>Pas de mécanisme de retry</strong> — un échec ponctuel (autre que la course désormais gérée) reste journalisé et abandonné, cohérent avec le reste du projet.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Si le même patron de course doit être corrigé ailleurs : entourer le <code>save()</code> final d'un <code>try/catch (DataIntegrityViolationException)</code> qui relit et renvoie la ligne existante plutôt que de laisser l'exception se propager.</li>
+          <li>Chemin de la course : <code>SessionTermineeEvent</code>/<code>ToutesTranscriptionsTermineesEvent</code> → <code>ResumeService</code> (async) <strong>en parallèle avec</strong> <code>FilMemoireService</code> (async, qui appelle <code>ResumeService.obtenirOuGenererResume</code> en synchrone) → <code>ResumeService.enregistrerSiAbsent</code> (désormais résiliente).</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-fix-filmemoire</code> — vérifiée par tests + test réel effectué par l'utilisateur.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (correctif de la course concurrente ResumeService / FilMemoireService).
+    </footer>
+  </main>
+</div>
