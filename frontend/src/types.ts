@@ -139,3 +139,9 @@ export interface Couloir {
   dateCreation: string
   nombreMembres: number
 }
+
+export interface MembreCouloir {
+  utilisateurId: string
+  email: string
+  dateAdhesion: string
+}

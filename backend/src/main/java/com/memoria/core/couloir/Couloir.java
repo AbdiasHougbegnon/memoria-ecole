@@ -53,4 +53,8 @@ public class Couloir {
     public Instant getDateCreation() {
         return dateCreation;
     }
+
+    public void renommer(String nouveauNom) {
+        this.nom = nouveauNom;
+    }
 }

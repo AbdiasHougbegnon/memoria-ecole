@@ -80,4 +80,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public void gererPasMembreDuCouloir() {
     }
+
+    @ExceptionHandler(com.memoria.core.couloir.PasProprietaireDuCouloirException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererPasProprietaireDuCouloir() {
+    }
+
+    @ExceptionHandler(com.memoria.core.couloir.ProprietaireNePeutPasSeRetirerException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererProprietaireNePeutPasSeRetirer() {
+    }
 }

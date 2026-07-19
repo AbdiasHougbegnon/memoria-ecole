@@ -107,4 +107,94 @@ class CouloirServiceTest {
         assertThatThrownBy(() -> couloirService.obtenirCouloir(id))
                 .isInstanceOf(CouloirNotFoundException.class);
     }
+
+    @Test
+    void renommerCouloir_change_le_nom_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Ancien nom", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+        when(couloirRepository.save(any(Couloir.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Couloir resultat = couloirService.renommerCouloir(couloir.getId(), "Nouveau nom", proprietaireId);
+
+        assertThat(resultat.getNom()).isEqualTo("Nouveau nom");
+    }
+
+    @Test
+    void renommerCouloir_leve_une_exception_si_pas_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.renommerCouloir(couloir.getId(), "Nouveau nom", UUID.randomUUID()))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+    }
+
+    @Test
+    void supprimerCouloir_supprime_le_couloir_et_ses_membres_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        couloirService.supprimerCouloir(couloir.getId(), proprietaireId);
+
+        verify(membreCouloirRepository).deleteByCouloirId(couloir.getId());
+        verify(couloirRepository).deleteById(couloir.getId());
+    }
+
+    @Test
+    void supprimerCouloir_leve_une_exception_si_pas_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.supprimerCouloir(couloir.getId(), UUID.randomUUID()))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+        verify(couloirRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void retirerMembre_supprime_ladhesion_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        couloirService.retirerMembre(couloir.getId(), membreId, proprietaireId);
+
+        verify(membreCouloirRepository).deleteByCouloirIdAndUtilisateurId(couloir.getId(), membreId);
+    }
+
+    @Test
+    void retirerMembre_leve_une_exception_si_pas_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.retirerMembre(couloir.getId(), membreId, UUID.randomUUID()))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+    }
+
+    @Test
+    void retirerMembre_leve_une_exception_si_on_tente_de_retirer_le_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.retirerMembre(couloir.getId(), proprietaireId, proprietaireId))
+                .isInstanceOf(ProprietaireNePeutPasSeRetirerException.class);
+        verify(membreCouloirRepository, never()).deleteByCouloirIdAndUtilisateurId(any(), any());
+    }
+
+    @Test
+    void listerMembres_retourne_les_membres_du_couloir() {
+        UUID couloirId = UUID.randomUUID();
+        MembreCouloir membre = new MembreCouloir(couloirId, UUID.randomUUID());
+        when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(membre));
+
+        List<MembreCouloir> resultat = couloirService.listerMembres(couloirId);
+
+        assertThat(resultat).containsExactly(membre);
+    }
 }

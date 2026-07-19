@@ -1,6 +1,7 @@
 package com.memoria.core.couloir;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,5 +52,47 @@ public class CouloirService {
     public Couloir obtenirCouloir(UUID id) {
         return couloirRepository.findById(id)
                 .orElseThrow(() -> new CouloirNotFoundException(id));
+    }
+
+    public Couloir renommerCouloir(UUID couloirId, String nouveauNom, UUID utilisateurId) {
+        Couloir couloir = obtenirCouloir(couloirId);
+        verifierProprietaire(couloir, utilisateurId);
+        couloir.renommer(nouveauNom);
+        return couloirRepository.save(couloir);
+    }
+
+    // Deux suppressions derivees (membres, puis couloir) : une transaction
+    // est necessaire, sinon deleteByCouloirId (requete derivee, pas heritee
+    // de JpaRepository) echoue avec TransactionRequiredException.
+    @Transactional
+    public void supprimerCouloir(UUID couloirId, UUID utilisateurId) {
+        Couloir couloir = obtenirCouloir(couloirId);
+        verifierProprietaire(couloir, utilisateurId);
+        membreCouloirRepository.deleteByCouloirId(couloirId);
+        couloirRepository.deleteById(couloirId);
+        // Les sessions deja rattachees (session.couloirId) ne sont pas modifiees :
+        // reference brute sans contrainte FK, comme partout ailleurs dans le
+        // projet. Elles redeviennent visibles uniquement pour leur createur
+        // (plus personne n'est membre du couloir supprime).
+    }
+
+    @Transactional
+    public void retirerMembre(UUID couloirId, UUID membreARetirerId, UUID utilisateurId) {
+        Couloir couloir = obtenirCouloir(couloirId);
+        verifierProprietaire(couloir, utilisateurId);
+        if (membreARetirerId.equals(couloir.getProprietaireId())) {
+            throw new ProprietaireNePeutPasSeRetirerException(couloirId);
+        }
+        membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, membreARetirerId);
+    }
+
+    public List<MembreCouloir> listerMembres(UUID couloirId) {
+        return membreCouloirRepository.findByCouloirId(couloirId);
+    }
+
+    private void verifierProprietaire(Couloir couloir, UUID utilisateurId) {
+        if (!couloir.getProprietaireId().equals(utilisateurId)) {
+            throw new PasProprietaireDuCouloirException(couloir.getId(), utilisateurId);
+        }
     }
 }

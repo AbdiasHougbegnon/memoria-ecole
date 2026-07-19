@@ -11,5 +11,11 @@ public interface MembreCouloirRepository extends JpaRepository<MembreCouloir, UU
 
     List<MembreCouloir> findByUtilisateurId(UUID utilisateurId);
 
+    List<MembreCouloir> findByCouloirId(UUID couloirId);
+
     long countByCouloirId(UUID couloirId);
+
+    void deleteByCouloirId(UUID couloirId);
+
+    void deleteByCouloirIdAndUtilisateurId(UUID couloirId, UUID utilisateurId);
 }

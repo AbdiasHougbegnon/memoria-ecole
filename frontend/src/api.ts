@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, FilMemoire, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -232,4 +232,30 @@ export async function rejoindreCouloir(id: string): Promise<Couloir> {
 export async function listerSessionsCouloir(id: string): Promise<Session[]> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/sessions`))
   return reponse.json()
+}
+
+export async function renommerCouloir(id: string, nom: string): Promise<Couloir> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/couloirs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function supprimerCouloir(id: string): Promise<void> {
+  await verifierReponse(await appelApi(`/api/v1/couloirs/${id}`, { method: 'DELETE' }))
+}
+
+export async function listerMembresCouloir(id: string): Promise<MembreCouloir[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/membres`))
+  return reponse.json()
+}
+
+export async function retirerMembreCouloir(couloirId: string, utilisateurId: string): Promise<void> {
+  await verifierReponse(
+    await appelApi(`/api/v1/couloirs/${couloirId}/membres/${utilisateurId}`, { method: 'DELETE' }),
+  )
 }
