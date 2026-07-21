@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
@@ -20,23 +18,19 @@ import java.util.List;
 // NON FONCTIONNEL, CONFIRME : Azure Speaker Recognition a ete retire par
 // Microsoft le 30 septembre 2025 -- ce n'est pas une question d'acces
 // (Limited Access) mais un service qui n'existe plus du tout. Ce client
-// ne repondra jamais, quels que soient les credentials. Garde dans le code
-// comme reference de forme (meme reflexe que TranscripteurAzureSpeech :
-// cle/region vides -> log + degradation, jamais de crash au demarrage) en
-// attendant un choix de fournisseur de remplacement (Microsoft suggere des
-// alternatives auto-hebergees comme pyannote/SpeechBrain/WeSpeaker, ou un
-// autre cloud comme AWS Connect Voice ID / Google SpeakerID). Le port
-// IdentificateurLocuteurPort isole cette decision du reste du systeme :
-// remplacer cette seule classe suffira. En attendant, IdentificateurLocuteurFactice
-// (profil "verification-locuteur") permet de verifier tout le reste du
-// chemin (consentement, decoupage audio, ecriture, affichage).
+// ne repondra jamais, quels que soient les credentials.
+//
+// PLUS UN BEAN SPRING (pas de @Component) : remplace par
+// IdentificateurLocuteurSpeechBrain (auto-heberge, gratuit, voir ce fichier)
+// suite a la decision de ne pas payer un fournisseur cloud pour cette
+// fonctionnalite. Garde dans le code comme reference de forme (meme reflexe
+// que TranscripteurAzureSpeech : cle/region vides -> log + degradation,
+// jamais de crash au demarrage) et comme trace de la decouverte du retrait
+// du service -- pas pour etre reactive telle quelle.
 //
 // Les chemins et formats de requete/reponse ci-dessous restent tels
 // qu'ecrits a partir de la forme generale de l'ancienne API (avant son
-// retrait) -- desormais purement documentaires, a ignorer lors du choix
-// d'un nouveau fournisseur.
-@Component
-@Profile("!verification-locuteur")
+// retrait) -- desormais purement documentaires.
 public class IdentificateurLocuteurAzureSpeech implements IdentificateurLocuteurPort {
 
     private static final Logger LOG = LoggerFactory.getLogger(IdentificateurLocuteurAzureSpeech.class);
