@@ -57,4 +57,8 @@ public class Couloir {
     public void renommer(String nouveauNom) {
         this.nom = nouveauNom;
     }
+
+    public void transfererPropriete(UUID nouveauProprietaireId) {
+        this.proprietaireId = nouveauProprietaireId;
+    }
 }

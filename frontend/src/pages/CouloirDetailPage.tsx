@@ -8,6 +8,7 @@ import {
   renommerCouloir,
   retirerMembreCouloir,
   supprimerCouloir,
+  transfererProprieteCouloir,
 } from '../api'
 import { obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, MembreCouloir, Session } from '../types'
@@ -78,6 +79,13 @@ export function CouloirDetailPage() {
     navigate('/couloirs')
   }
 
+  async function gererTransfert(membreId: string, membreEmail: string) {
+    if (!id) return
+    if (!window.confirm(`Rendre ${membreEmail} proprietaire de ce couloir ? Tu perdras les droits de gestion.`)) return
+    const c = await transfererProprieteCouloir(id, membreId)
+    setCouloir(c)
+  }
+
   if (introuvable) {
     return <p className="p-6 text-center text-sm text-red-600">Couloir introuvable.</p>
   }
@@ -127,12 +135,20 @@ export function CouloirDetailPage() {
                 >
                   <span>{membre.email}</span>
                   {membre.utilisateurId !== couloir.proprietaireId && (
-                    <button
-                      onClick={() => gererRetraitMembre(membre.utilisateurId)}
-                      className="text-xs font-medium text-red-600 hover:text-red-800"
-                    >
-                      Retirer
-                    </button>
+                    <span className="flex gap-3">
+                      <button
+                        onClick={() => gererTransfert(membre.utilisateurId, membre.email)}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                      >
+                        Rendre proprietaire
+                      </button>
+                      <button
+                        onClick={() => gererRetraitMembre(membre.utilisateurId)}
+                        className="text-xs font-medium text-red-600 hover:text-red-800"
+                      >
+                        Retirer
+                      </button>
+                    </span>
                   )}
                 </li>
               ))}

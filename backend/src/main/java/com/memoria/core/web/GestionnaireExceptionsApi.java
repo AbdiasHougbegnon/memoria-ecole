@@ -90,4 +90,9 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererProprietaireNePeutPasSeRetirer() {
     }
+
+    @ExceptionHandler(com.memoria.core.couloir.NouveauProprietaireDoitEtreMembreException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererNouveauProprietaireDoitEtreMembre() {
+    }
 }

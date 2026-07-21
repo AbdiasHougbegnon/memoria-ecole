@@ -263,3 +263,14 @@ export async function retirerMembreCouloir(couloirId: string, utilisateurId: str
 export async function quitterCouloir(id: string): Promise<void> {
   await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/quitter`, { method: 'POST' }))
 }
+
+export async function transfererProprieteCouloir(id: string, nouveauProprietaireId: string): Promise<Couloir> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/couloirs/${id}/transferer-propriete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nouveauProprietaireId }),
+    }),
+  )
+  return reponse.json()
+}

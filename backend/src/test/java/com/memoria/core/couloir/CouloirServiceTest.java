@@ -211,6 +211,44 @@ class CouloirServiceTest {
     }
 
     @Test
+    void transfererPropriete_change_le_proprietaire_si_le_nouveau_est_deja_membre() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID nouveauProprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloir.getId(), nouveauProprietaireId)).thenReturn(true);
+        when(couloirRepository.save(any(Couloir.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Couloir resultat = couloirService.transfererPropriete(couloir.getId(), nouveauProprietaireId, proprietaireId);
+
+        assertThat(resultat.getProprietaireId()).isEqualTo(nouveauProprietaireId);
+    }
+
+    @Test
+    void transfererPropriete_leve_une_exception_si_pas_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.transfererPropriete(couloir.getId(), UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+        verify(couloirRepository, never()).save(any());
+    }
+
+    @Test
+    void transfererPropriete_leve_une_exception_si_le_nouveau_proprietaire_nest_pas_membre() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID nouveauProprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloir.getId(), nouveauProprietaireId)).thenReturn(false);
+
+        assertThatThrownBy(() -> couloirService.transfererPropriete(couloir.getId(), nouveauProprietaireId, proprietaireId))
+                .isInstanceOf(NouveauProprietaireDoitEtreMembreException.class);
+        verify(couloirRepository, never()).save(any());
+    }
+
+    @Test
     void listerMembres_retourne_les_membres_du_couloir() {
         UUID couloirId = UUID.randomUUID();
         MembreCouloir membre = new MembreCouloir(couloirId, UUID.randomUUID());

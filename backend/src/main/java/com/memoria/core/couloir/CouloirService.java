@@ -102,6 +102,16 @@ public class CouloirService {
         membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, utilisateurId);
     }
 
+    public Couloir transfererPropriete(UUID couloirId, UUID nouveauProprietaireId, UUID utilisateurId) {
+        Couloir couloir = obtenirCouloir(couloirId);
+        verifierProprietaire(couloir, utilisateurId);
+        if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, nouveauProprietaireId)) {
+            throw new NouveauProprietaireDoitEtreMembreException(couloirId, nouveauProprietaireId);
+        }
+        couloir.transfererPropriete(nouveauProprietaireId);
+        return couloirRepository.save(couloir);
+    }
+
     private void verifierProprietaire(Couloir couloir, UUID utilisateurId) {
         if (!couloir.getProprietaireId().equals(utilisateurId)) {
             throw new PasProprietaireDuCouloirException(couloir.getId(), utilisateurId);
