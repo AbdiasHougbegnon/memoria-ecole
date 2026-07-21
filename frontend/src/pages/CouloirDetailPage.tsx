@@ -4,6 +4,7 @@ import {
   listerMembresCouloir,
   listerSessionsCouloir,
   obtenirCouloir,
+  quitterCouloir,
   renommerCouloir,
   retirerMembreCouloir,
   supprimerCouloir,
@@ -30,6 +31,8 @@ export function CouloirDetailPage() {
 
   const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
   const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
+  const estMembreNonProprietaire =
+    !estProprietaire && membres.some((m) => m.utilisateurId === utilisateurIdConnecte)
 
   useEffect(() => {
     if (!id) return
@@ -66,6 +69,13 @@ export function CouloirDetailPage() {
     if (!id) return
     await retirerMembreCouloir(id, membreId)
     setMembres((precedent) => precedent.filter((m) => m.utilisateurId !== membreId))
+  }
+
+  async function gererQuitter() {
+    if (!id) return
+    if (!window.confirm('Quitter ce couloir ?')) return
+    await quitterCouloir(id)
+    navigate('/couloirs')
   }
 
   if (introuvable) {
@@ -137,6 +147,17 @@ export function CouloirDetailPage() {
               Supprimer le couloir
             </button>
           </div>
+        </div>
+      )}
+
+      {estMembreNonProprietaire && (
+        <div className="mb-8">
+          <button
+            onClick={gererQuitter}
+            className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            Quitter le couloir
+          </button>
         </div>
       )}
 

@@ -259,3 +259,7 @@ export async function retirerMembreCouloir(couloirId: string, utilisateurId: str
     await appelApi(`/api/v1/couloirs/${couloirId}/membres/${utilisateurId}`, { method: 'DELETE' }),
   )
 }
+
+export async function quitterCouloir(id: string): Promise<void> {
+  await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/quitter`, { method: 'POST' }))
+}

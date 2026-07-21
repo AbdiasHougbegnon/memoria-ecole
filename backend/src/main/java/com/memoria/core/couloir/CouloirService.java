@@ -90,6 +90,18 @@ public class CouloirService {
         return membreCouloirRepository.findByCouloirId(couloirId);
     }
 
+    // Idempotent comme rejoindreCouloir : quitter un couloir dont on n'est
+    // pas (ou plus) membre ne fait rien, pas d'erreur -- deleteByCouloirIdAndUtilisateurId
+    // ne supprime alors simplement aucune ligne.
+    @Transactional
+    public void quitterCouloir(UUID couloirId, UUID utilisateurId) {
+        Couloir couloir = obtenirCouloir(couloirId);
+        if (utilisateurId.equals(couloir.getProprietaireId())) {
+            throw new ProprietaireNePeutPasSeRetirerException(couloirId);
+        }
+        membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, utilisateurId);
+    }
+
     private void verifierProprietaire(Couloir couloir, UUID utilisateurId) {
         if (!couloir.getProprietaireId().equals(utilisateurId)) {
             throw new PasProprietaireDuCouloirException(couloir.getId(), utilisateurId);

@@ -60,6 +60,12 @@ public class CouloirController {
         return versReponse(couloirService.rejoindreCouloir(id, utilisateurId));
     }
 
+    @PostMapping("/{id}/quitter")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void quitterCouloir(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
+        couloirService.quitterCouloir(id, utilisateurId);
+    }
+
     @GetMapping("/{id}/sessions")
     public List<SessionResponse> listerSessionsDuCouloir(@PathVariable UUID id) {
         List<Session> sessions = sessionService.listerSessionsParCouloir(id);

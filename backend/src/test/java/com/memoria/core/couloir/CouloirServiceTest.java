@@ -188,6 +188,29 @@ class CouloirServiceTest {
     }
 
     @Test
+    void quitterCouloir_supprime_ladhesion_si_membre_non_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        couloirService.quitterCouloir(couloir.getId(), membreId);
+
+        verify(membreCouloirRepository).deleteByCouloirIdAndUtilisateurId(couloir.getId(), membreId);
+    }
+
+    @Test
+    void quitterCouloir_leve_une_exception_si_le_proprietaire_tente_de_quitter() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.quitterCouloir(couloir.getId(), proprietaireId))
+                .isInstanceOf(ProprietaireNePeutPasSeRetirerException.class);
+        verify(membreCouloirRepository, never()).deleteByCouloirIdAndUtilisateurId(any(), any());
+    }
+
+    @Test
     void listerMembres_retourne_les_membres_du_couloir() {
         UUID couloirId = UUID.randomUUID();
         MembreCouloir membre = new MembreCouloir(couloirId, UUID.randomUUID());
