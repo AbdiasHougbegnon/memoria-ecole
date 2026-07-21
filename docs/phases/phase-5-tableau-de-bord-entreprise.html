@@ -1,0 +1,240 @@
+<title>Memoria — Dossier technique Phase 5 : tableau de bord Entreprise</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-tile { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat-tile .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
+  .stat-tile .value { font-size: 1.8rem; font-weight: 600; color: var(--text); margin-top: 2px; }
+
+  .stackbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; gap: 2px; }
+  .stackbar .seg { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; font-size: 0.85rem; color: var(--text-muted); }
+  .legend .item { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 11px; height: 11px; border-radius: 2px; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Entreprise</span>
+    <h1 class="title">Tableau de bord Entreprise</h1>
+    <p class="dek">Vue agrégée du suivi des engagements — jamais nominative, par design. Une seule règle du master prompt a cadré toute la conception : le manager voit l'avancement global, jamais le détail des retards individuels.</p>
+    <div class="factrow">
+      <span class="fact"><strong>154</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">DTO <strong>100% agrege</strong>, zero champ nominatif</span>
+      <span class="fact">tag <code>phase-5-tableau-de-bord-entreprise</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <a href="#regle">La regle qui cadre tout</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Tests et verification</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Point du roadmap Phase 5 : "suivi fin et tableaux de bord (entreprise)". Choisi comme suite du chantier engagements, sans dépendance externe non résolue — contrairement à la reconnaissance de voix récurrente, bloquée sur un choix de fournisseur (Azure Speaker Recognition retiré).</p>
+    </section>
+
+    <section id="regle">
+      <h2><span class="num">§</span> La règle qui cadre tout le reste</h2>
+      <div class="card">
+        <p style="margin:0; font-style:italic; color:var(--text-muted)">"Outil d'aide, pas de surveillance. Les rappels vont d'abord à la personne concernée. <strong style="color:var(--text); font-style:normal">Le manager voit l'avancement global, pas le détail permanent des retards individuels.</strong> L'employé garde le contrôle de ses engagements." — master prompt</p>
+      </div>
+      <p class="lead"><code>TableauDeBordEntrepriseResponse</code> n'expose que des nombres agrégés — aucun champ ne permet de remonter à un <code>Engagement</code> ou un <code>Utilisateur</code> précis. Ce n'est pas une omission à combler : c'est la contrainte structurante de la brique. Note : aucun rôle "manager" ni structure d'équipe n'existe dans le modèle Entreprise actuel — le tableau agrège donc sur tous les engagements du système.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Agrégation en mémoire</strong> — <code>findAll()</code> + streams Java plutôt que du JPQL <code>GROUP BY</code>. Simplicité assumée, volume actuel ne justifie pas l'optimisation.</li>
+          <li><strong>Taux de complétion excluant les rejetés</strong> — <code>termines / (total - rejetes)</code>. Un engagement rejeté n'a jamais eu vocation à être terminé ; l'inclure fausserait le taux à la baisse.</li>
+          <li><strong>Couleurs reprises de l'existant, pas inventées</strong> — skill dataviz invoqué avant d'écrire le graphique. Les quatre statuts reprennent les teintes déjà utilisées sur les badges d'<code>EngagementsPage</code> (ambre/bleu/vert/gris), en <code>-500</code>/<code>-400</code> pour rester dans la bande de luminosité OKLCH validée. Sous le seuil de contraste 3:1 pour certaines teintes (attendu pour des couleurs de statut) — mitigé par une légende texte <strong style="color:var(--text)">toujours visible</strong>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend</h2>
+      <pre><code>public record TableauDeBordEntrepriseResponse(
+        long total,
+        Map&lt;StatutEngagement, Long&gt; parStatut,
+        double tauxCompletion,
+        long enRetard
+) {}</code></pre>
+      <p class="lead"><code>GET /api/v1/entreprise/tableau-de-bord</code> — pas de paramètre, pas de restriction d'accès particulière (même périmètre de visibilité que <code>EngagementController.listerTous()</code>).</p>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <p class="lead"><code>TableauDeBordPage.tsx</code> (route <code>/tableau-de-bord</code>) : trois tuiles statistiques, une barre empilée par statut avec légende toujours visible, et un rappel explicite sous le graphique — "Vue d'ensemble uniquement, pour le détail par personne, chacun gère ses propres engagements" — rendre la contrainte du §2 visible, pas seulement respectée en silence côté API.</p>
+      <div class="card">
+        <div class="stat-row" style="margin-bottom:16px">
+          <div class="stat-tile"><div class="label">Engagements</div><div class="value">6</div></div>
+          <div class="stat-tile"><div class="label">Taux de completion</div><div class="value">40%</div></div>
+          <div class="stat-tile"><div class="label">En retard</div><div class="value">1</div></div>
+        </div>
+        <div class="stackbar">
+          <div class="seg" style="width:16.6%; background:#f59e0b"></div>
+          <div class="seg" style="width:33.3%; background:#3b82f6"></div>
+          <div class="seg" style="width:33.3%; background:#22c55e"></div>
+          <div class="seg" style="width:16.6%; background:#94a3b8"></div>
+        </div>
+        <div class="legend">
+          <span class="item"><span class="swatch" style="background:#f59e0b"></span>A confirmer (1)</span>
+          <span class="item"><span class="swatch" style="background:#3b82f6"></span>Confirme (2)</span>
+          <span class="item"><span class="swatch" style="background:#22c55e"></span>Termine (2)</span>
+          <span class="item"><span class="swatch" style="background:#94a3b8"></span>Rejete (1)</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Tests et vérification en conditions réelles</h2>
+      <p class="lead"><code>TableauDeBordEntrepriseServiceTest.java</code> — 5 tests : zéro partout sans engagement, comptage par statut, exclusion des rejetés du taux, détection d'un retard, un engagement terminé avec échéance passée n'est <strong style="color:var(--text)">pas</strong> compté en retard (le statut prime sur la date). <code>mvn test</code> — <strong style="color:var(--text)">154/154 tests</strong> passent. <code>tsc --noEmit</code> propre.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Vérification réelle</th><th>Résultat</th></tr></thead>
+          <tbody>
+            <tr><td>4 engagements de test insérés (statuts variés) + 2 <code>TERMINE</code> déjà en base</td><td style="color:var(--ok)">total=6, repartition 1/2/2/1</td></tr>
+            <tr><td>Taux de complétion (2 termines sur 5, rejeté exclu)</td><td style="color:var(--ok)">40% conforme</td></tr>
+            <tr><td>Un des deux <code>CONFIRME</code> a une échéance passée</td><td style="color:var(--ok)">enRetard=1 conforme</td></tr>
+            <tr><td>Vérification visuelle (Playwright)</td><td style="color:var(--ok)">tuiles + barre + légende correctes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de scope par équipe/manager</strong> — aucune notion de ce type n'existe dans le modèle Entreprise actuel.</li>
+        <li><strong>Pas de tendance temporelle</strong> — aucun historique des transitions de statut n'est conservé ; ajouter cela demanderait une nouvelle table d'historique.</li>
+        <li><strong>Agrégation en mémoire</strong> — choix de simplicité, pas optimisé pour un grand volume.</li>
+        <li><strong>Aucun filtre</strong> (période, type de session) — une seule vue globale dans cette première brique.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Pour une tendance temporelle : journaliser d'abord les transitions de statut (nouvelle table d'historique), puis agréger par période.</li>
+          <li>Pour un scope par équipe : dépend d'abord de l'introduction d'une notion d'équipe/projet dans le modèle Entreprise — ne pas anticiper la forme avant que le besoin soit confirmé.</li>
+          <li>Chemin de bout en bout : <code>TableauDeBordPage.tsx</code> → <code>obtenirTableauDeBordEntreprise</code> (<code>api.ts</code>) → <code>TableauDeBordEntrepriseController</code> → <code>TableauDeBordEntrepriseService</code> → <code>EngagementRepository.findAll()</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-tableau-de-bord-entreprise</code> — vérifiée avec des données réelles insérées/retirées, capture d'écran à l'appui.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (tableau de bord Entreprise).
+    </footer>
+  </main>
+</div>
