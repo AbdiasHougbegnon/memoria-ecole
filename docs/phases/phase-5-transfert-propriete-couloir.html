@@ -1,0 +1,247 @@
+<title>Memoria — Dossier technique Phase 5 : transfert de propriété d'un couloir</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Couloirs de classe</span>
+    <h1 class="title">Transfert de propriété d'un couloir</h1>
+    <p class="dek">Le propriétaire peut désormais désigner un nouveau propriétaire parmi les membres existants du couloir. Clôt la série "gestion du couloir" (renommer/supprimer/retirer, quitter soi-même, transférer).</p>
+    <div class="factrow">
+      <span class="fact"><strong>114</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">nouveau propriétaire = déjà membre, obligatoire</span>
+      <span class="fact">tag <code>phase-5-transfert-propriete-couloir</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi cette brique</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Dernière des trois limites notées dans la doc de la gestion du couloir (tag <code>phase-5-gestion-couloir</code>) : un couloir restait éternellement propriété de son créateur, sans moyen de désigner un nouveau propriétaire — problématique si le créateur d'origine quitte la classe/l'équipe, ou veut simplement passer la main.</p>
+      <p class="lead">Complète la série "gestion du couloir" avant le prochain chantier, plus gros : les rappels/notifications côté Entreprise.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Le nouveau propriétaire doit déjà être membre</strong> — pas de transfert vers un inconnu du couloir. Nouvelle exception dédiée <code>NouveauProprietaireDoitEtreMembreException</code> → 409, même famille que <code>ProprietaireNePeutPasSeRetirerException</code> (conflit d'état sur une contrainte métier, pas un problème d'autorisation de l'appelant).</li>
+          <li><strong>L'ancien propriétaire redevient un membre ordinaire</strong> — pas de suppression, pas de rôle intermédiaire ; son adhésion <code>MembreCouloir</code> n'est pas touchée. Côté frontend, <code>estProprietaire</code> est recalculé à chaque rendu depuis <code>couloir.proprietaireId</code> : dès que le nouveau couloir est reçu après le transfert, l'UI de gestion disparaît automatiquement pour l'ancien propriétaire.</li>
+          <li><strong>Pas de garde sur le transfert vers soi-même</strong> — inoffensif (le champ prend la même valeur), pas de vérification pour un cas qui ne casse rien.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend, fichier par fichier</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>Couloir.java — nouvelle méthode métier</h4>
+          <pre><code>public void transfererPropriete(UUID nouveauProprietaireId) {
+    this.proprietaireId = nouveauProprietaireId;
+}</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>CouloirService.transfererPropriete</h4>
+          <pre><code>public Couloir transfererPropriete(UUID couloirId, UUID nouveauProprietaireId, UUID utilisateurId) {
+    Couloir couloir = obtenirCouloir(couloirId);
+    verifierProprietaire(couloir, utilisateurId);
+    if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, nouveauProprietaireId)) {
+        throw new NouveauProprietaireDoitEtreMembreException(couloirId, nouveauProprietaireId);
+    }
+    couloir.transfererPropriete(nouveauProprietaireId);
+    return couloirRepository.save(couloir);
+}</code></pre>
+          <p class="why"><span class="label">Pourquoi pas <code>@Transactional</code> ici —</span> une seule écriture (<code>couloirRepository.save</code>, méthode héritée de <code>JpaRepository</code>, transactionnelle par appel par défaut) — contrairement à <code>supprimerCouloir</code>/<code>retirerMembre</code>/<code>quitterCouloir</code> qui enchaînent des requêtes dérivées.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>CouloirController — une route de plus</h4>
+          <pre><code>POST /api/v1/couloirs/{id}/transferer-propriete   body {nouveauProprietaireId}   -&gt; 200</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <p class="lead"><code>CouloirDetailPage.tsx</code> — dans la liste des membres déjà affichée au propriétaire, un bouton "Rendre propriétaire" apparaît à côté de "Retirer" pour chaque membre autre que le propriétaire actuel. Confirmation avant l'appel ; le couloir retourné par l'API remplace l'état local, ce qui masque automatiquement l'UI de gestion pour l'ancien propriétaire.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">transfererPropriete_change_le_proprietaire_si_le_nouveau_est_deja_membre</td><td>chemin nominal</td></tr>
+            <tr><td class="mono">transfererPropriete_leve_une_exception_si_pas_proprietaire</td><td>403 pour un non-propriétaire</td></tr>
+            <tr><td class="mono">transfererPropriete_leve_une_exception_si_le_nouveau_proprietaire_nest_pas_membre</td><td>409, garde d'état</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">114/114 tests</strong> passent (111 précédents + 3 nouveaux). <code>cd frontend &amp;&amp; npx tsc --noEmit</code> — aucune erreur.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cas (A=propriétaire, B=membre, C=étranger)</th><th>Attendu</th><th>Obtenu</th></tr></thead>
+          <tbody>
+            <tr><td>A tente de transférer à C (étranger, pas membre)</td><td class="mono">409</td><td class="mono" style="color:var(--ok)">409</td></tr>
+            <tr><td>C (étranger) tente lui-même de transférer</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>A transfère à B (membre)</td><td class="mono">200</td><td class="mono" style="color:var(--ok)">200, proprietaireId = B</td></tr>
+            <tr><td>A (ancien propriétaire) tente de renommer</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>B (nouveau propriétaire) renomme</td><td class="mono">200</td><td class="mono" style="color:var(--ok)">200</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><strong style="color:var(--text)">Vérification visuelle (Playwright)</strong> — sur un second couloir : le bouton "Rendre propriétaire" s'affiche correctement à côté de "Retirer" pour un membre non-propriétaire.</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de transfert vers un inconnu</strong> — choix assumé ; pour transférer à quelqu'un d'extérieur, il faut d'abord qu'il rejoigne le couloir.</li>
+        <li><strong>Pas de notification</strong> à l'ancien ou au nouveau propriétaire — cohérent avec l'absence générale de système de notification à ce stade du projet.</li>
+        <li><strong>Aucun historique des transferts</strong> — le champ <code>proprietaireId</code> est simplement écrasé, pas de journal des propriétaires successifs.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Chemin de bout en bout : <code>CouloirDetailPage.tsx</code> (bouton "Rendre proprietaire" par membre) → <code>transfererProprieteCouloir</code> (<code>api.ts</code>) → <code>CouloirController</code> → <code>CouloirService.transfererPropriete</code> (garde propriétaire + garde membre) → <code>Couloir.transfererPropriete</code> → <code>CouloirRepository.save</code>.</li>
+          <li>Ceci clôt la série "gestion du couloir". Prochain chantier proposé côté Entreprise : rappels/notifications sur les engagements — nécessite de choisir une infrastructure de notification avant de coder.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-transfert-propriete-couloir</code> — vérifiée par curl (5 cas, 3 comptes) et capture d'écran réelle.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (transfert de propriété d'un couloir).
+    </footer>
+  </main>
+</div>
