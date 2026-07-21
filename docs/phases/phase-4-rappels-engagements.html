@@ -1,0 +1,285 @@
+<title>Memoria — Dossier technique Phase 4 : rappels par email sur les engagements</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 4 · Entreprise · Engagements</span>
+    <h1 class="title">Rappels par email sur les échéances d'engagements</h1>
+    <p class="dek">Un bloqueur réel a été trouvé avant d'écrire une ligne de code : ni l'échéance ni le responsable d'un engagement n'étaient exploitables pour programmer un rappel. Ce dossier couvre les deux décisions posées à l'utilisateur, l'architecture retenue, et une vérification avec un vrai envoi SMTP.</p>
+    <div class="factrow">
+      <span class="fact"><strong>121</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">verifie via un <strong>vrai serveur SMTP</strong> local, pas un mock</span>
+      <span class="fact">tag <code>phase-4-rappels-engagements</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <a href="#blocage">Le blocage decouvert</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Après avoir clos la série "gestion du couloir" (École), le chantier suivant côté Entreprise : le master prompt décrit "Rappels contextualisés adressés d'abord à la personne concernée" et une "boucle de responsabilité fermée" comme cœur de la valeur Entreprise. <code>Engagement</code> avait déjà un cycle de vie complet, mais aucun rappel automatique n'existait.</p>
+    </section>
+
+    <section id="blocage">
+      <h2><span class="num">§</span> Le blocage découvert avant de coder</h2>
+      <div class="card">
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">echeance = texte libre</span><span class="pdesc">"vendredi prochain" -- aucune base pour programmer un rappel</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">responsable = label diarization</span><span class="pdesc">"Intervenant 2" -- pas de compte utilisateur reel a notifier</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Aucune infra email</span><span class="pdesc">pas de dependance mail, pas de config SMTP dans le projet</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">4</span><span class="pname">Deux decisions posees</span><span class="pdesc">avant tout code, voir la section decisions ci-dessous</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Échéance</strong> — champ <code>dateEcheance</code> structuré, optionnel, saisi manuellement. Rejeté : parser automatiquement le texte libre (contraire à la doctrine "l'IA n'est jamais source de vérité") ; reporter le chantier.</li>
+          <li><strong>Destinataire</strong> — rappel envoyé aux participants de la session (créateur + membres du couloir si rattachée). Rejeté pour démarrer : champ "assigné à" dédié (plus juste, plus de friction) ; attendre la reconnaissance de locuteur récurrente (fonctionnalité future).</li>
+          <li><strong>Le port email vit dans le moteur</strong> — <code>com.memoria.core.email</code>, pas <code>com.memoria.entreprise</code> : capacité générique, potentiellement utile à l'École aussi (rappel de séance). La logique métier (qui/quand/contenu) reste dans <code>com.memoria.entreprise.engagement</code>.</li>
+          <li><strong>Dégradation gracieuse si SMTP non configuré</strong> — même réflexe que <code>TranscripteurAzureSpeech</code> pour Azure : host vide → avertissement au démarrage, aucun crash, envoi silencieusement no-op.</li>
+          <li><strong>Idempotence via deux flags booléens</strong> — <code>rappelEcheanceProcheEnvoye</code>/<code>rappelRetardEnvoye</code>, réinitialisés si la date change.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend, fichier par fichier</h2>
+
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>com.memoria.core.email — nouveau port generique</h4>
+          <pre><code>public interface EnvoyeurEmail {
+    void envoyer(String destinataire, String sujet, String corps);
+}</code></pre>
+          <p class="why"><span class="label">Implementation —</span> <code>EnvoyeurEmailSmtp</code> construit un <code>JavaMailSenderImpl</code> seulement si <code>memoria.email.host</code> est renseigne ; sinon chaque appel se contente de logger.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>RappelEngagementService — la piece centrale</h4>
+          <pre><code>@Scheduled(cron = "${memoria.rappel.cron}")
+public void verifierEcheances() {
+    Instant maintenant = Instant.now();
+    for (Engagement e : engagementRepository.findByStatutAndDateEcheanceNotNull(StatutEngagement.CONFIRME)) {
+        traiterEngagement(e, maintenant);
+    }
+}</code></pre>
+          <p class="why"><span class="label">Detail —</span> fenetre "echeance proche" : 24h. Frequence par defaut : toutes les heures, externalisee via <code>memoria.rappel.cron</code> (a permis une verification reelle sans attendre une heure pleine, voir §7). Si aucun destinataire n'est resolu, le rappel n'est <strong style="color:var(--text)">pas</strong> marque comme envoye -- il pourra se declencher plus tard.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>EngagementController — une route de plus</h4>
+          <pre><code>POST /api/v1/engagements/{id}/echeance   body {dateEcheance}   -&gt; 200</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <p class="lead"><code>EngagementsPage.tsx</code> — pour tout engagement <code>CONFIRME</code>, un champ <code>datetime-local</code> + bouton "Programmer un rappel". Si <code>dateEcheance</code> est renseignée, elle s'affiche ("Rappel programmé : ..."), en rouge si dépassée.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">planifierEcheance_enregistre_la_date_et_reinitialise_les_rappels_deja_envoyes</td><td>EngagementService</td></tr>
+            <tr><td class="mono">verifierEcheances_envoie_un_rappel_pour_une_echeance_proche_...</td><td>chemin nominal, fenetre 24h</td></tr>
+            <tr><td class="mono">verifierEcheances_envoie_un_rappel_pour_une_echeance_depassee_...</td><td>chemin nominal, retard</td></tr>
+            <tr><td class="mono">verifierEcheances_nenvoie_rien_si_deja_envoye</td><td>idempotence</td></tr>
+            <tr><td class="mono">verifierEcheances_nenvoie_rien_si_lecheance_est_hors_fenetre</td><td>garde temporelle</td></tr>
+            <tr><td class="mono">verifierEcheances_resout_les_destinataires_via_le_couloir_de_la_session</td><td>resolution des destinataires</td></tr>
+            <tr><td class="mono" style="color:var(--warn)">verifierEcheances_ne_fait_rien_si_aucun_destinataire_resolu</td><td>a echoue au 1er essai -- a revele le bug du flag pose a tort, voir conception</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">121/121 tests</strong> passent (114 précédents + 7 nouveaux). <code>cd frontend &amp;&amp; npx tsc --noEmit</code> — aucune erreur.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Un serveur SMTP factice local (<code>smtp-server</code>, npm, port 2525) a été monté pour cette vérification, et <code>memoria.rappel.cron</code> temporairement réglé sur <code>*/10 * * * * *</code> au lieu d'attendre une heure pleine — uniquement pour cette session ; la config de production reste horaire et sans hôte SMTP par défaut.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cas</th><th>Méthode</th><th>Résultat</th></tr></thead>
+          <tbody>
+            <tr><td>Échéance dépassée (insérée en base)</td><td>attente d'un cycle cron</td><td style="color:var(--ok)">email reçu, flag persisté</td></tr>
+            <tr><td>Pas de nouvel envoi au cycle suivant</td><td>attente d'un second cycle</td><td style="color:var(--ok)">1 seul email au total (idempotence)</td></tr>
+            <tr><td>Confirmé + échéance programmée via les vraies routes API</td><td>attente d'un cycle cron</td><td style="color:var(--ok)">email reçu, bon contenu</td></tr>
+            <tr><td>SMTP non configuré (config normale)</td><td>redémarrage du backend</td><td style="color:var(--ok)">démarre, log WARN, pas de crash</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead">Vérification visuelle (Playwright) : champ date, bouton "Programmer un rappel" et affichage "Rappel programmé : ..." corrects pour un engagement confirmé.</p>
+
+      <div class="card">
+        <p style="margin:0 0 12px; font-weight:600; color:var(--warn)">Incident de migration de schéma, trouvé et corrigé pendant la vérification</p>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Au premier redémarrage, <code>ddl-auto=update</code> a échoué : Postgres a refusé la colonne <code>rappel_retard_envoye</code> en <code>NOT NULL</code> sur une table <code>engagements</code> déjà peuplée (<code>ERROR: ... contains null values</code>). Hibernate n'a pas fourni de valeur par défaut pour les lignes existantes. Corrigé manuellement en base (<code>ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT false</code>), puis redémarrage réussi. Pas un bug de code — un rappel que <code>ddl-auto=update</code> n'est pas un outil de migration complet dès qu'une contrainte <code>NOT NULL</code> touche une table déjà peuplée.</p>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Le destinataire n'est pas la bonne personne au sens strict</strong> — tous les participants reçoivent le rappel, pas spécifiquement le <code>responsable</code> (juste un label de diarization aujourd'hui). Décision assumée, à revisiter avec la reconnaissance de locuteur récurrente.</li>
+        <li><strong>Pas de "boucle fermée" à la complétion</strong> — le master prompt décrit aussi une notification à la terminaison ; non construite ici, scope limité aux rappels d'échéance.</li>
+        <li><strong><code>dateEcheance</code> saisie manuellement</strong> — aucun pré-remplissage depuis le texte libre <code>echeance</code>, cohérent avec le refus du parsing automatique.</li>
+        <li><strong>Un seul rappel par type</strong> (proche, retard) — pas de rappels répétés en cas de retard prolongé.</li>
+        <li><strong><code>ddl-auto=update</code> n'est pas une vraie migration</strong> — toute future colonne <code>NOT NULL</code> sur une table peuplée demandera la même correction manuelle (pas de Flyway/Liquibase à ce stade).</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Configuration SMTP réelle : <code>MEMORIA_EMAIL_HOST</code>, <code>MEMORIA_EMAIL_PORT</code>, <code>MEMORIA_EMAIL_USERNAME</code>, <code>MEMORIA_EMAIL_PASSWORD</code>, <code>MEMORIA_EMAIL_EXPEDITEUR</code>. Fréquence : <code>MEMORIA_RAPPEL_CRON</code>.</li>
+          <li>Chemin de bout en bout : <code>EngagementsPage.tsx</code> → <code>planifierEcheanceEngagement</code> (<code>api.ts</code>) → <code>EngagementController</code> → <code>EngagementService.planifierEcheance</code> → <code>Engagement.planifierEcheance</code> → <code>RappelEngagementService.verifierEcheances</code> (cron) → <code>EnvoyeurEmail.envoyer</code> → <code>EnvoyeurEmailSmtp</code> (ou log si non configuré).</li>
+          <li>Pour la "boucle fermée" (non construite) : appeler <code>envoyeurEmail.envoyer(...)</code> depuis <code>EngagementService.terminer</code>, même résolution de destinataires que <code>RappelEngagementService.resoudreDestinataires</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-4-rappels-engagements</code> — vérifiée par un vrai envoi SMTP local, pas un mock.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 4 (rappels par email sur les engagements).
+    </footer>
+  </main>
+</div>
