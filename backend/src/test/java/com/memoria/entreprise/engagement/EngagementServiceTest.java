@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.email.EnvoyeurEmail;
+import com.memoria.core.session.SessionService;
 import com.memoria.entreprise.compterendu.ActionCompteRendu;
 import com.memoria.entreprise.compterendu.CompteRendu;
 import com.memoria.entreprise.compterendu.CompteRenduGenereEvent;
@@ -20,6 +22,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,11 +37,17 @@ class EngagementServiceTest {
     @Mock
     private CompteRenduRepository compteRenduRepository;
 
+    @Mock
+    private SessionService sessionService;
+
+    @Mock
+    private EnvoyeurEmail envoyeurEmail;
+
     private EngagementService engagementService;
 
     @BeforeEach
     void setUp() {
-        engagementService = new EngagementService(engagementRepository, compteRenduRepository);
+        engagementService = new EngagementService(engagementRepository, compteRenduRepository, sessionService, envoyeurEmail);
     }
 
     @Test
@@ -131,6 +141,37 @@ class EngagementServiceTest {
         Engagement resultat = engagementService.rejeter(id);
 
         assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.REJETE);
+    }
+
+    @Test
+    void terminer_fait_passer_un_engagement_confirme_a_termine_et_notifie_les_participants() {
+        UUID sessionId = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", null, null);
+        engagement.confirmer();
+        when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
+        when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionService.resoudreEmailsParticipants(sessionId)).thenReturn(List.of("createur@test.fr"));
+
+        Engagement resultat = engagementService.terminer(id);
+
+        assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.TERMINE);
+        verify(envoyeurEmail).envoyer(eq("createur@test.fr"), anyString(), anyString());
+    }
+
+    @Test
+    void terminer_nenvoie_rien_si_aucun_destinataire_resolu() {
+        UUID sessionId = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", null, null);
+        engagement.confirmer();
+        when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
+        when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sessionService.resoudreEmailsParticipants(sessionId)).thenReturn(List.of());
+
+        engagementService.terminer(id);
+
+        verify(envoyeurEmail, never()).envoyer(anyString(), anyString(), anyString());
     }
 
     @Test

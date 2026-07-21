@@ -1,5 +1,8 @@
 package com.memoria.core.session;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
+import com.memoria.core.couloir.MembreCouloir;
 import com.memoria.core.couloir.MembreCouloirRepository;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import org.junit.jupiter.api.Test;
@@ -32,11 +35,41 @@ class SessionServiceTest {
     @Mock
     private MembreCouloirRepository membreCouloirRepository;
 
+    @Mock
+    private UtilisateurRepository utilisateurRepository;
+
     private SessionService sessionService;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        sessionService = new SessionService(sessionRepository, eventPublisher, membreCouloirRepository);
+        sessionService = new SessionService(sessionRepository, eventPublisher, membreCouloirRepository, utilisateurRepository);
+    }
+
+    @Test
+    void resoudreEmailsParticipants_combine_le_createur_et_les_membres_du_couloir() {
+        UUID sessionId = UUID.randomUUID();
+        UUID createurId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Session session = new Session("Cours", createurId, couloirId);
+        Utilisateur createur = new Utilisateur("createur@test.fr", "hash");
+        Utilisateur membre = new Utilisateur("membre@test.fr", "hash");
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+        when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(new MembreCouloir(couloirId, membreId)));
+        when(utilisateurRepository.findById(createurId)).thenReturn(Optional.of(createur));
+        when(utilisateurRepository.findById(membreId)).thenReturn(Optional.of(membre));
+
+        List<String> resultat = sessionService.resoudreEmailsParticipants(sessionId);
+
+        assertThat(resultat).containsExactlyInAnyOrder("createur@test.fr", "membre@test.fr");
+    }
+
+    @Test
+    void resoudreEmailsParticipants_renvoie_une_liste_vide_si_la_session_est_introuvable() {
+        UUID sessionId = UUID.randomUUID();
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+
+        assertThat(sessionService.resoudreEmailsParticipants(sessionId)).isEmpty();
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.email.EnvoyeurEmail;
+import com.memoria.core.session.SessionService;
 import com.memoria.entreprise.compterendu.ActionCompteRendu;
 import com.memoria.entreprise.compterendu.CompteRendu;
 import com.memoria.entreprise.compterendu.CompteRenduGenereEvent;
@@ -22,10 +24,18 @@ public class EngagementService {
 
     private final EngagementRepository engagementRepository;
     private final CompteRenduRepository compteRenduRepository;
+    private final SessionService sessionService;
+    private final EnvoyeurEmail envoyeurEmail;
 
-    public EngagementService(EngagementRepository engagementRepository, CompteRenduRepository compteRenduRepository) {
+    public EngagementService(
+            EngagementRepository engagementRepository,
+            CompteRenduRepository compteRenduRepository,
+            SessionService sessionService,
+            EnvoyeurEmail envoyeurEmail) {
         this.engagementRepository = engagementRepository;
         this.compteRenduRepository = compteRenduRepository;
+        this.sessionService = sessionService;
+        this.envoyeurEmail = envoyeurEmail;
     }
 
     // Un compte rendu complet est genere a la demande (pas automatiquement a
@@ -95,7 +105,31 @@ public class EngagementService {
     public Engagement terminer(UUID id) {
         Engagement engagement = obtenirEngagement(id);
         engagement.terminer();
-        return engagementRepository.save(engagement);
+        Engagement engagementTermine = engagementRepository.save(engagement);
+        notifierCompletion(engagementTermine);
+        return engagementTermine;
+    }
+
+    // "Boucle de responsabilite fermee automatiquement" (master prompt) :
+    // notifie les participants de la session qu'un engagement est termine.
+    // Ne doit jamais faire echouer terminer() lui-meme -- un email non
+    // envoye ne doit pas empecher de marquer un engagement comme fait.
+    private void notifierCompletion(Engagement engagement) {
+        try {
+            List<String> destinataires = sessionService.resoudreEmailsParticipants(engagement.getSessionId());
+            if (destinataires.isEmpty()) {
+                return;
+            }
+            String sujet = "Engagement termine : " + engagement.getDescription();
+            String corps = "Cet engagement a ete marque comme termine.\n\n"
+                    + "Description : " + engagement.getDescription() + "\n"
+                    + (engagement.getResponsable() != null ? "Responsable : " + engagement.getResponsable() : "");
+            for (String destinataire : destinataires) {
+                envoyeurEmail.envoyer(destinataire, sujet, corps);
+            }
+        } catch (Exception e) {
+            LOG.warn("Echec de la notification de completion pour l'engagement {}", engagement.getId(), e);
+        }
     }
 
     public Engagement planifierEcheance(UUID id, Instant dateEcheance) {

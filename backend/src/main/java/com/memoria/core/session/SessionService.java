@@ -1,12 +1,17 @@
 package com.memoria.core.session;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.couloir.MembreCouloir;
 import com.memoria.core.couloir.MembreCouloirRepository;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -15,15 +20,18 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final MembreCouloirRepository membreCouloirRepository;
+    private final UtilisateurRepository utilisateurRepository;
 
     public SessionService(
             SessionRepository sessionRepository,
             ApplicationEventPublisher eventPublisher,
-            MembreCouloirRepository membreCouloirRepository
+            MembreCouloirRepository membreCouloirRepository,
+            UtilisateurRepository utilisateurRepository
     ) {
         this.sessionRepository = sessionRepository;
         this.eventPublisher = eventPublisher;
         this.membreCouloirRepository = membreCouloirRepository;
+        this.utilisateurRepository = utilisateurRepository;
     }
 
     public Session creerSession(String titre) {
@@ -76,6 +84,33 @@ public class SessionService {
     // vers une version filtree.
     public List<Session> listerSessions() {
         return sessionRepository.findAllByOrderByDateCreationDesc();
+    }
+
+    // Le createur de la session + les membres de son couloir (si rattachee),
+    // dedupliques, resolus en emails. Utilise pour toute notification liee a
+    // une session (rappels d'engagements, notification de completion) --
+    // partage plutot que duplique, voir RappelEngagementService et
+    // EngagementService.terminer.
+    public List<String> resoudreEmailsParticipants(UUID sessionId) {
+        Optional<Session> session = sessionRepository.findById(sessionId);
+        if (session.isEmpty()) {
+            return List.of();
+        }
+
+        Set<UUID> utilisateurIds = new HashSet<>();
+        if (session.get().getCreateurId() != null) {
+            utilisateurIds.add(session.get().getCreateurId());
+        }
+        if (session.get().getCouloirId() != null) {
+            membreCouloirRepository.findByCouloirId(session.get().getCouloirId())
+                    .forEach(membre -> utilisateurIds.add(membre.getUtilisateurId()));
+        }
+
+        return utilisateurIds.stream()
+                .map(utilisateurRepository::findById)
+                .flatMap(Optional::stream)
+                .map(Utilisateur::getEmail)
+                .toList();
     }
 
     public Session terminerSession(UUID id) {

@@ -1,11 +1,7 @@
 package com.memoria.entreprise.engagement;
 
-import com.memoria.core.auth.Utilisateur;
-import com.memoria.core.auth.UtilisateurRepository;
-import com.memoria.core.couloir.MembreCouloirRepository;
 import com.memoria.core.email.EnvoyeurEmail;
-import com.memoria.core.session.Session;
-import com.memoria.core.session.SessionRepository;
+import com.memoria.core.session.SessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,11 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 
 // "Rappels contextualises adresses d'abord a la personne concernee" (master
 // prompt) -- ici, faute de lien fiable entre le champ texte libre
@@ -32,21 +24,15 @@ public class RappelEngagementService {
     private static final Duration FENETRE_ECHEANCE_PROCHE = Duration.ofHours(24);
 
     private final EngagementRepository engagementRepository;
-    private final SessionRepository sessionRepository;
-    private final MembreCouloirRepository membreCouloirRepository;
-    private final UtilisateurRepository utilisateurRepository;
+    private final SessionService sessionService;
     private final EnvoyeurEmail envoyeurEmail;
 
     public RappelEngagementService(
             EngagementRepository engagementRepository,
-            SessionRepository sessionRepository,
-            MembreCouloirRepository membreCouloirRepository,
-            UtilisateurRepository utilisateurRepository,
+            SessionService sessionService,
             EnvoyeurEmail envoyeurEmail) {
         this.engagementRepository = engagementRepository;
-        this.sessionRepository = sessionRepository;
-        this.membreCouloirRepository = membreCouloirRepository;
-        this.utilisateurRepository = utilisateurRepository;
+        this.sessionService = sessionService;
         this.envoyeurEmail = envoyeurEmail;
     }
 
@@ -92,7 +78,7 @@ public class RappelEngagementService {
     // puisse encore se declencher plus tard (ex: un membre rejoint le
     // couloir de la session entre-temps).
     private boolean envoyerRappel(Engagement engagement, String messageContexte) {
-        List<String> destinataires = resoudreDestinataires(engagement.getSessionId());
+        List<String> destinataires = sessionService.resoudreEmailsParticipants(engagement.getSessionId());
         if (destinataires.isEmpty()) {
             LOG.info("Aucun destinataire resolu pour l'engagement {}, rappel non envoye", engagement.getId());
             return false;
@@ -108,27 +94,5 @@ public class RappelEngagementService {
             envoyeurEmail.envoyer(destinataire, sujet, corps);
         }
         return true;
-    }
-
-    private List<String> resoudreDestinataires(UUID sessionId) {
-        Optional<Session> session = sessionRepository.findById(sessionId);
-        if (session.isEmpty()) {
-            return List.of();
-        }
-
-        Set<UUID> utilisateurIds = new HashSet<>();
-        if (session.get().getCreateurId() != null) {
-            utilisateurIds.add(session.get().getCreateurId());
-        }
-        if (session.get().getCouloirId() != null) {
-            membreCouloirRepository.findByCouloirId(session.get().getCouloirId())
-                    .forEach(membre -> utilisateurIds.add(membre.getUtilisateurId()));
-        }
-
-        return utilisateurIds.stream()
-                .map(utilisateurRepository::findById)
-                .flatMap(Optional::stream)
-                .map(Utilisateur::getEmail)
-                .toList();
     }
 }
