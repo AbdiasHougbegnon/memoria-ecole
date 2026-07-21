@@ -32,4 +32,13 @@ public class StockageAudioFichierLocal implements StockageAudioPort {
             throw new StockageAudioException("Echec de l'ecriture du chunk audio sur le disque", e);
         }
     }
+
+    @Override
+    public byte[] lire(String cheminStockage) {
+        try {
+            return Files.readAllBytes(Paths.get(cheminStockage));
+        } catch (IOException e) {
+            throw new StockageAudioException("Echec de la lecture du chunk audio sur le disque", e);
+        }
+    }
 }

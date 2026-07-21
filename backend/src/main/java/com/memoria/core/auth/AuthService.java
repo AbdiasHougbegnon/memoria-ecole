@@ -3,6 +3,8 @@ package com.memoria.core.auth;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class AuthService {
 
@@ -32,5 +34,16 @@ public class AuthService {
             throw new IdentifiantsInvalidesException();
         }
         return AuthResponse.depuis(utilisateur, jwtService.genererToken(utilisateur));
+    }
+
+    public void renseignerNom(UUID utilisateurId, String nom) {
+        Utilisateur utilisateur = obtenirUtilisateur(utilisateurId);
+        utilisateur.renseignerNom(nom);
+        utilisateurRepository.save(utilisateur);
+    }
+
+    public Utilisateur obtenirUtilisateur(UUID utilisateurId) {
+        return utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new UtilisateurNotFoundException(utilisateurId));
     }
 }

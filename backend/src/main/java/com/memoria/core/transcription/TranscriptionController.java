@@ -20,8 +20,6 @@ public class TranscriptionController {
 
     @GetMapping
     public List<TranscriptionResponse> obtenirTranscriptions(@PathVariable UUID sessionId) {
-        return transcriptionService.obtenirTranscriptions(sessionId).stream()
-                .map(TranscriptionResponse::depuis)
-                .toList();
+        return transcriptionService.obtenirTranscriptionsAvecIdentification(sessionId);
     }
 }

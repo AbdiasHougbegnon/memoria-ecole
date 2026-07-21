@@ -17,6 +17,9 @@ export interface SegmentLocuteur {
   texte: string
   offsetMillisecondes: number
   dureeMillisecondes: number
+  utilisateurIdentifieId: string | null
+  nomUtilisateurIdentifie: string | null
+  confianceIdentification: number | null
 }
 
 export interface TranscriptionSegment {
@@ -145,4 +148,12 @@ export interface MembreCouloir {
   utilisateurId: string
   email: string
   dateAdhesion: string
+}
+
+export type StatutEmpreinteVocale = 'EN_ATTENTE' | 'PRETE' | 'ECHEC'
+
+export interface EmpreinteVocale {
+  id: string | null
+  statut: StatutEmpreinteVocale | null
+  dateConsentement: string | null
 }

@@ -99,4 +99,17 @@ public class Transcription {
     public List<SegmentLocuteur> getSegmentsLocuteur() {
         return segmentsLocuteur;
     }
+
+    // N'affecte que ce chunk : TranscripteurAzureSpeech fait un appel HTTP
+    // independant par chunk de 30s, et Azure renumerote les locuteurs a
+    // chaque appel -- le meme index "locuteur" dans un autre chunk de la
+    // meme session peut designer une autre personne. Pas de recollement
+    // inter-chunks dans cette brique (voir IdentificationLocuteurService).
+    public void identifierLocuteur(int locuteur, UUID utilisateurId, double confiance) {
+        this.segmentsLocuteur = segmentsLocuteur.stream()
+                .map(segment -> segment.getLocuteur() == locuteur
+                        ? segment.avecIdentification(utilisateurId, confiance)
+                        : segment)
+                .toList();
+    }
 }

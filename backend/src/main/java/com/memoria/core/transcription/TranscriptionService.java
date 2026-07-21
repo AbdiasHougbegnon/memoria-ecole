@@ -2,6 +2,8 @@ package com.memoria.core.transcription;
 
 import com.memoria.core.audio.AudioChunkRepository;
 import com.memoria.core.audio.ChunkAudioEnregistreEvent;
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.session.SessionService;
 import com.memoria.core.session.SessionStatus;
 import org.slf4j.Logger;
@@ -12,7 +14,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TranscriptionService {
@@ -24,19 +30,22 @@ public class TranscriptionService {
     private final TranscripteurPort transcripteur;
     private final SessionService sessionService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UtilisateurRepository utilisateurRepository;
 
     public TranscriptionService(
             TranscriptionRepository transcriptionRepository,
             AudioChunkRepository audioChunkRepository,
             TranscripteurPort transcripteur,
             SessionService sessionService,
-            ApplicationEventPublisher eventPublisher
+            ApplicationEventPublisher eventPublisher,
+            UtilisateurRepository utilisateurRepository
     ) {
         this.transcriptionRepository = transcriptionRepository;
         this.audioChunkRepository = audioChunkRepository;
         this.transcripteur = transcripteur;
         this.sessionService = sessionService;
         this.eventPublisher = eventPublisher;
+        this.utilisateurRepository = utilisateurRepository;
     }
 
     @Async
@@ -81,5 +90,19 @@ public class TranscriptionService {
     public List<Transcription> obtenirTranscriptions(UUID sessionId) {
         sessionService.obtenirSession(sessionId);
         return transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId);
+    }
+
+    public List<TranscriptionResponse> obtenirTranscriptionsAvecIdentification(UUID sessionId) {
+        List<Transcription> transcriptions = obtenirTranscriptions(sessionId);
+
+        Set<UUID> utilisateurIds = transcriptions.stream()
+                .flatMap(t -> t.getSegmentsLocuteur().stream())
+                .map(SegmentLocuteur::getUtilisateurIdentifieId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, String> noms = utilisateurRepository.findAllById(utilisateurIds).stream()
+                .collect(Collectors.toMap(Utilisateur::getId, Utilisateur::nomAffichage));
+
+        return transcriptions.stream().map(t -> TranscriptionResponse.depuis(t, noms)).toList();
     }
 }

@@ -95,4 +95,19 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererNouveauProprietaireDoitEtreMembre() {
     }
+
+    @ExceptionHandler(com.memoria.core.auth.UtilisateurNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererUtilisateurIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.core.locuteur.ConsentementRequisException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public void gererConsentementRequis() {
+    }
+
+    @ExceptionHandler(com.memoria.core.locuteur.AudioEnrollementInsuffisantException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public void gererAudioEnrollementInsuffisant() {
+    }
 }

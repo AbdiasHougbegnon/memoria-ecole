@@ -6,4 +6,8 @@ import java.util.UUID;
 public interface StockageAudioPort {
 
     String sauvegarder(UUID sessionId, int numeroSequence, byte[] donnees);
+
+    // Relit un chunk deja sauvegarde (ex: extraction audio pour la
+    // reconnaissance de locuteur recurrente, voir IdentificationLocuteurService).
+    byte[] lire(String cheminStockage);
 }

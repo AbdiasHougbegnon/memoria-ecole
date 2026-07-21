@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -269,6 +269,40 @@ export async function retirerMembreCouloir(couloirId: string, utilisateurId: str
   await verifierReponse(
     await appelApi(`/api/v1/couloirs/${couloirId}/membres/${utilisateurId}`, { method: 'DELETE' }),
   )
+}
+
+export async function obtenirMonCompte(): Promise<{ id: string; email: string; nom: string | null }> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/utilisateurs/moi'))
+  return reponse.json()
+}
+
+export async function renseignerNom(nom: string): Promise<void> {
+  await verifierReponse(
+    await appelApi('/api/v1/utilisateurs/moi', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom }),
+    }),
+  )
+}
+
+export async function enregistrerEmpreinteVocale(audio: Blob, consentement: boolean): Promise<EmpreinteVocale> {
+  const corps = new FormData()
+  corps.append('audio', audio, 'empreinte.wav')
+  corps.append('consentement', String(consentement))
+  const reponse = await verifierReponse(
+    await appelApi('/api/v1/utilisateurs/moi/empreinte-vocale', { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirEmpreinteVocale(): Promise<EmpreinteVocale> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/utilisateurs/moi/empreinte-vocale'))
+  return reponse.json()
+}
+
+export async function revoquerEmpreinteVocale(): Promise<void> {
+  await verifierReponse(await appelApi('/api/v1/utilisateurs/moi/empreinte-vocale', { method: 'DELETE' }))
 }
 
 export async function quitterCouloir(id: string): Promise<void> {

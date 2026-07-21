@@ -25,6 +25,12 @@ public class Utilisateur {
     @Column(name = "date_creation", nullable = false)
     private Instant dateCreation;
 
+    // Optionnel : aucune inscription ne le demande aujourd'hui. Utilise pour
+    // l'affichage d'un nom reel (ex: reconnaissance de locuteur recurrente) ;
+    // repli sur l'email tant qu'il n'est pas renseigne (voir nomAffichage()).
+    @Column
+    private String nom;
+
     protected Utilisateur() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -50,5 +56,17 @@ public class Utilisateur {
 
     public Instant getDateCreation() {
         return dateCreation;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void renseignerNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String nomAffichage() {
+        return (nom != null && !nom.isBlank()) ? nom : email;
     }
 }

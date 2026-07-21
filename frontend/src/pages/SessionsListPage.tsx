@@ -46,6 +46,9 @@ export function SessionsListPage() {
           <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
             Rechercher
           </Link>
+          <Link to="/parametres" className="text-sm text-slate-500 hover:text-slate-700">
+            Parametres
+          </Link>
           <button
             type="button"
             onClick={() => {

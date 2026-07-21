@@ -515,6 +515,7 @@ export function SessionDetailPage() {
                     <p key={index}>
                       <span className="mr-2 font-medium text-slate-500">
                         Intervenant {locuteur.locuteur}
+                        {locuteur.nomUtilisateurIdentifie && ` (${locuteur.nomUtilisateurIdentifie})`}
                       </span>
                       <span className="text-slate-800">{locuteur.texte}</span>
                     </p>
