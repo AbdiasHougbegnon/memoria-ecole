@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { confirmerEngagement, listerEngagements, rejeterEngagement, terminerEngagement } from '../api'
+import {
+  confirmerEngagement,
+  listerEngagements,
+  planifierEcheanceEngagement,
+  rejeterEngagement,
+  terminerEngagement,
+} from '../api'
 import type { Engagement, StatutEngagement } from '../types'
+
+function versValeurInputDatetime(dateEcheance: string | null): string {
+  if (!dateEcheance) return ''
+  return dateEcheance.slice(0, 16)
+}
 
 const LIBELLE_STATUT: Record<StatutEngagement, string> = {
   EN_ATTENTE: 'A confirmer',
@@ -30,11 +41,14 @@ export function EngagementsPage() {
   const [chargement, setChargement] = useState(true)
   const [filtre, setFiltre] = useState<StatutEngagement | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
+  const [echeances, setEcheances] = useState<Record<string, string>>({})
 
   async function rafraichir() {
     setChargement(true)
     try {
-      setEngagements(await listerEngagements(filtre ?? undefined))
+      const resultat = await listerEngagements(filtre ?? undefined)
+      setEngagements(resultat)
+      setEcheances(Object.fromEntries(resultat.map((e) => [e.id, versValeurInputDatetime(e.dateEcheance)])))
     } finally {
       setChargement(false)
     }
@@ -49,6 +63,18 @@ export function EngagementsPage() {
     setEnCours(id)
     try {
       const misAJour = await action(id)
+      setEngagements((precedent) => precedent.map((e) => (e.id === id ? misAJour : e)))
+    } finally {
+      setEnCours(null)
+    }
+  }
+
+  async function gererPlanificationEcheance(id: string) {
+    const valeur = echeances[id]
+    if (!valeur) return
+    setEnCours(id)
+    try {
+      const misAJour = await planifierEcheanceEngagement(id, new Date(valeur).toISOString())
       setEngagements((precedent) => precedent.map((e) => (e.id === id ? misAJour : e)))
     } finally {
       setEnCours(null)
@@ -101,7 +127,30 @@ export function EngagementsPage() {
               </Link>
               {engagement.responsable && <span>Responsable : {engagement.responsable}</span>}
               {engagement.echeance && <span>Echeance : {engagement.echeance}</span>}
+              {engagement.dateEcheance && (
+                <span className={new Date(engagement.dateEcheance) < new Date() && engagement.statut === 'CONFIRME' ? 'font-medium text-red-600' : ''}>
+                  Rappel programme : {new Date(engagement.dateEcheance).toLocaleString('fr-FR')}
+                </span>
+              )}
             </div>
+
+            {engagement.statut === 'CONFIRME' && (
+              <div className="mb-2 flex items-center gap-2">
+                <input
+                  type="datetime-local"
+                  value={echeances[engagement.id] ?? ''}
+                  onChange={(e) => setEcheances((precedent) => ({ ...precedent, [engagement.id]: e.target.value }))}
+                  className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                />
+                <button
+                  disabled={enCours === engagement.id || !echeances[engagement.id]}
+                  onClick={() => void gererPlanificationEcheance(engagement.id)}
+                  className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                >
+                  Programmer un rappel
+                </button>
+              </div>
+            )}
 
             <div className="flex gap-2">
               {engagement.statut === 'EN_ATTENTE' && (

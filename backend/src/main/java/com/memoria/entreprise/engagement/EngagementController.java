@@ -1,13 +1,17 @@
 package com.memoria.entreprise.engagement;
 
 import com.memoria.core.session.SessionService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,8 +54,16 @@ public class EngagementController {
         return versReponse(engagementService.terminer(id));
     }
 
+    @PostMapping("/api/v1/engagements/{id}/echeance")
+    public EngagementResponse planifierEcheance(@PathVariable UUID id, @Valid @RequestBody PlanifierEcheanceRequest requete) {
+        return versReponse(engagementService.planifierEcheance(id, requete.dateEcheance()));
+    }
+
     private EngagementResponse versReponse(Engagement engagement) {
         String titre = sessionService.obtenirSession(engagement.getSessionId()).getTitre();
         return EngagementResponse.depuis(engagement, titre);
+    }
+
+    public record PlanifierEcheanceRequest(@NotNull(message = "la date d'echeance est obligatoire") Instant dateEcheance) {
     }
 }

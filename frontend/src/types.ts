@@ -105,6 +105,7 @@ export interface Engagement {
   description: string
   responsable: string | null
   echeance: string | null
+  dateEcheance: string | null
   statut: StatutEngagement
   dateCreation: string
   dateDerniereMaj: string

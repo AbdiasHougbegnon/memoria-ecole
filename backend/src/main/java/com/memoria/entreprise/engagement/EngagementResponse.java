@@ -10,6 +10,7 @@ public record EngagementResponse(
         String description,
         String responsable,
         String echeance,
+        Instant dateEcheance,
         StatutEngagement statut,
         Instant dateCreation,
         Instant dateDerniereMaj
@@ -23,6 +24,7 @@ public record EngagementResponse(
                 engagement.getDescription(),
                 engagement.getResponsable(),
                 engagement.getEcheance(),
+                engagement.getDateEcheance(),
                 engagement.getStatut(),
                 engagement.getDateCreation(),
                 engagement.getDateDerniereMaj()

@@ -14,4 +14,6 @@ public interface EngagementRepository extends JpaRepository<Engagement, UUID> {
     List<Engagement> findAllByOrderByDateCreationDesc();
 
     List<Engagement> findByStatutOrderByDateCreationDesc(StatutEngagement statut);
+
+    List<Engagement> findByStatutAndDateEcheanceNotNull(StatutEngagement statut);
 }

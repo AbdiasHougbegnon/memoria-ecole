@@ -32,8 +32,22 @@ public class Engagement {
     private String responsable;
 
     // Texte libre ("vendredi prochain") : voir ActionCompteRendu pour la
-    // meme decision de ne pas convertir en date absolue.
+    // meme decision de ne pas convertir en date absolue. dateEcheance
+    // (ci-dessous) est la version structuree, saisie manuellement -- aucun
+    // parsing automatique du texte libre (l'IA n'est jamais source de
+    // verite pour du business-critical).
     private String echeance;
+
+    // Optionnelle : tant qu'elle n'est pas renseignee, aucun rappel n'est
+    // programme pour cet engagement (voir RappelEngagementService).
+    @Column(name = "date_echeance")
+    private Instant dateEcheance;
+
+    @Column(name = "rappel_echeance_proche_envoye", nullable = false)
+    private boolean rappelEcheanceProcheEnvoye = false;
+
+    @Column(name = "rappel_retard_envoye", nullable = false)
+    private boolean rappelRetardEnvoye = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -86,6 +100,23 @@ public class Engagement {
         this.dateDerniereMaj = Instant.now();
     }
 
+    // Changer la date reinitialise les rappels deja envoyes : une nouvelle
+    // echeance doit pouvoir redeclencher un rappel "proche" ou "en retard"
+    // le moment venu, meme si l'ancienne date avait deja ete notifiee.
+    public void planifierEcheance(Instant dateEcheance) {
+        this.dateEcheance = dateEcheance;
+        this.rappelEcheanceProcheEnvoye = false;
+        this.rappelRetardEnvoye = false;
+    }
+
+    public void marquerRappelEcheanceProcheEnvoye() {
+        this.rappelEcheanceProcheEnvoye = true;
+    }
+
+    public void marquerRappelRetardEnvoye() {
+        this.rappelRetardEnvoye = true;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -104,6 +135,18 @@ public class Engagement {
 
     public String getEcheance() {
         return echeance;
+    }
+
+    public Instant getDateEcheance() {
+        return dateEcheance;
+    }
+
+    public boolean isRappelEcheanceProcheEnvoye() {
+        return rappelEcheanceProcheEnvoye;
+    }
+
+    public boolean isRappelRetardEnvoye() {
+        return rappelRetardEnvoye;
     }
 
     public StatutEngagement getStatut() {

@@ -197,6 +197,17 @@ export async function terminerEngagement(id: string): Promise<Engagement> {
   return reponse.json()
 }
 
+export async function planifierEcheanceEngagement(id: string, dateEcheance: string): Promise<Engagement> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/engagements/${id}/echeance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dateEcheance }),
+    }),
+  )
+  return reponse.json()
+}
+
 export async function obtenirAdresseLocaleServeur(): Promise<string | null> {
   const reponse = await verifierReponse(await appelApi('/api/v1/reseau/adresse-locale'))
   const { adresseLocale } = await reponse.json()

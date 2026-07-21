@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -149,5 +150,23 @@ class EngagementServiceTest {
 
         assertThatThrownBy(() -> engagementService.confirmer(id))
                 .isInstanceOf(EngagementNotFoundException.class);
+    }
+
+    @Test
+    void planifierEcheance_enregistre_la_date_et_reinitialise_les_rappels_deja_envoyes() {
+        UUID id = UUID.randomUUID();
+        Engagement engagement = new Engagement(UUID.randomUUID(), "Envoyer le mail", null, null);
+        engagement.planifierEcheance(Instant.parse("2026-01-01T00:00:00Z"));
+        engagement.marquerRappelEcheanceProcheEnvoye();
+        engagement.marquerRappelRetardEnvoye();
+        when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
+        when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Instant nouvelleEcheance = Instant.parse("2026-02-01T00:00:00Z");
+
+        Engagement resultat = engagementService.planifierEcheance(id, nouvelleEcheance);
+
+        assertThat(resultat.getDateEcheance()).isEqualTo(nouvelleEcheance);
+        assertThat(resultat.isRappelEcheanceProcheEnvoye()).isFalse();
+        assertThat(resultat.isRappelRetardEnvoye()).isFalse();
     }
 }

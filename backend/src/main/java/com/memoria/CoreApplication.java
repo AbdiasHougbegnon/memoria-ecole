@@ -3,6 +3,7 @@ package com.memoria;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 // Place volontairement un niveau au-dessus de com.memoria.core : le scan par
 // defaut de Spring Boot (composants, entites JPA, repositories) part du
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 // l'infrastructure JPA complete dans un contexte qui n'en a pas).
 @SpringBootApplication
 @EnableAsync
+@EnableScheduling
 public class CoreApplication {
 
     public static void main(String[] args) {

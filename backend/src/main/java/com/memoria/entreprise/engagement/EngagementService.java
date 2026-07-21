@@ -11,6 +11,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -94,6 +95,12 @@ public class EngagementService {
     public Engagement terminer(UUID id) {
         Engagement engagement = obtenirEngagement(id);
         engagement.terminer();
+        return engagementRepository.save(engagement);
+    }
+
+    public Engagement planifierEcheance(UUID id, Instant dateEcheance) {
+        Engagement engagement = obtenirEngagement(id);
+        engagement.planifierEcheance(dateEcheance);
         return engagementRepository.save(engagement);
     }
 
