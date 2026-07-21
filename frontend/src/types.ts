@@ -157,3 +157,10 @@ export interface EmpreinteVocale {
   statut: StatutEmpreinteVocale | null
   dateConsentement: string | null
 }
+
+export interface TableauDeBordEntreprise {
+  total: number
+  parStatut: Partial<Record<StatutEngagement, number>>
+  tauxCompletion: number
+  enRetard: number
+}

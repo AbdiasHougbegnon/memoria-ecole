@@ -10,6 +10,7 @@ import { CouloirsPage } from './pages/CouloirsPage'
 import { CouloirDetailPage } from './pages/CouloirDetailPage'
 import { RejoindreCouloirPage } from './pages/RejoindreCouloirPage'
 import { ParametresCompteePage } from './pages/ParametresCompteePage'
+import { TableauDeBordPage } from './pages/TableauDeBordPage'
 import { RouteProtegee } from './components/RouteProtegee'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/couloirs/:id" element={<RouteProtegee><CouloirDetailPage /></RouteProtegee>} />
           <Route path="/couloirs/:id/rejoindre" element={<RouteProtegee><RejoindreCouloirPage /></RouteProtegee>} />
           <Route path="/parametres" element={<RouteProtegee><ParametresCompteePage /></RouteProtegee>} />
+          <Route path="/tableau-de-bord" element={<RouteProtegee><TableauDeBordPage /></RouteProtegee>} />
         </Routes>
       </div>
     </BrowserRouter>

@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -269,6 +269,11 @@ export async function retirerMembreCouloir(couloirId: string, utilisateurId: str
   await verifierReponse(
     await appelApi(`/api/v1/couloirs/${couloirId}/membres/${utilisateurId}`, { method: 'DELETE' }),
   )
+}
+
+export async function obtenirTableauDeBordEntreprise(): Promise<TableauDeBordEntreprise> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/entreprise/tableau-de-bord'))
+  return reponse.json()
 }
 
 export async function obtenirMonCompte(): Promise<{ id: string; email: string; nom: string | null }> {
