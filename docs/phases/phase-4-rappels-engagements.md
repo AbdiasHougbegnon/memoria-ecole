@@ -129,13 +129,23 @@ Vérification visuelle (Playwright) : le champ date, le bouton "Programmer un ra
 
 Au premier redémarrage après le changement de modèle, `ddl-auto=update` a échoué : Postgres a refusé d'ajouter la colonne `rappel_retard_envoye` en `NOT NULL` sur la table `engagements`, qui contient déjà des lignes issues des sessions précédentes (`ERROR: column "rappel_retard_envoye" of relation "engagements" contains null values`). Contrairement à un `ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT` explicite, Hibernate n'a pas fourni de valeur par défaut pour les lignes existantes. **Corrigé manuellement** en base (`ALTER TABLE engagements ADD COLUMN ... NOT NULL DEFAULT false` directement en SQL, backfill implicite via `DEFAULT`), puis redémarrage réussi. Pas un bug de code — un rappel que `ddl-auto=update` n'est pas un outil de migration complet dès qu'une contrainte `NOT NULL` est ajoutée sur une table déjà peuplée.
 
+### Audit : ce même risque ailleurs dans le projet
+
+Suite à cet incident, un audit dédié a été fait sur tout l'historique du projet : pour chaque colonne `NOT NULL` déclarée dans une entité, identifier le commit qui l'a ajoutée et vérifier si la table existait déjà à ce moment-là (donc à risque si des lignes étaient déjà présentes au moment du déploiement de ce commit).
+
+**Un deuxième cas historique trouvé, sans conséquence aujourd'hui.** La colonne `resumes.type` a été ajoutée par le commit `81fbf4a` ("plusieurs types de resume"), après que la table `resumes` existait déjà (créée par `b62fa8a`) — même schéma de risque que `rappel_retard_envoye`. Mais ce commit date du tout début du projet (05/07, Phase 2, table quasi vide ou base recréée à l'époque) : la table contient aujourd'hui 43 lignes, toutes avec `type` renseigné, `0` valeur `NULL`. Vérification complète : `SELECT count(*), count(*) FILTER (WHERE type IS NULL) FROM resumes;` → `43 | 0`.
+
+Toutes les autres colonnes `NOT NULL` du projet (`sessions`, `couloirs`, `documents`, `fils_memoire`, `index_recherche`, `resumes_cours`, `comptes_rendus`, `utilisateurs`, `transcriptions`) ont été ajoutées **dans le commit de création de leur table**, jamais après coup — aucun risque de ce type pour elles. Vérification finale : comparaison complète du schéma réel de la base (110 colonnes, toutes tables confondues, `information_schema.columns`) avec les déclarations `@Column(nullable = false)`/primitifs de toutes les entités Java — cohérence totale, aucune incohérence silencieuse active à ce jour.
+
+**Conclusion pratique de l'audit** : ce risque ne se matérialise que pour une base de données déjà peuplée et durable (comme l'environnement de dev de ce projet, qui persiste depuis de nombreuses sessions de travail) au moment précis où une nouvelle colonne `NOT NULL` est ajoutée à une table existante — jamais pour un clone frais avec une base vide, qui reçoit toutes les colonnes actuelles en une seule fois à la création de la table. C'est le scénario à surveiller pour un futur déploiement en production, une fois de vraies données accumulées.
+
 ## 8. Limites connues, assumées, pas corrigées ici
 
 - **Le destinataire n'est pas la bonne personne au sens strict** — tous les participants de la session reçoivent le rappel, pas spécifiquement celui désigné par `responsable` (juste un label de diarization aujourd'hui). Décision assumée (voir §2), à revisiter quand la reconnaissance de locuteur récurrente existera.
-- **Pas de "boucle fermée" à la complétion** — le master prompt décrit aussi une notification quand l'engagement est marqué terminé ; non construite dans cette brique, scope volontairement limité aux rappels d'échéance (proche/dépassée).
+- ~~Pas de "boucle fermée" à la complétion~~ — **construite dans une brique suivante**, voir tag `phase-4-boucle-fermee-engagements`.
 - **`dateEcheance` doit être saisie manuellement** — aucune suggestion ni pré-remplissage à partir du texte libre `echeance`, cohérent avec le refus du parsing automatique (§2).
 - **Un seul rappel par type d'événement** (proche, retard) — pas de rappels répétés en cas de retard prolongé.
-- **`ddl-auto=update` n'est pas une vraie migration** — comme observé en §7, toute future colonne `NOT NULL` ajoutée à une table déjà peuplée demandera la même correction manuelle. Pas un outil de migration dédié (Flyway/Liquibase) dans ce projet à ce stade.
+- **`ddl-auto=update` n'est pas une vraie migration** — audité (voir ci-dessus) : un seul autre cas historique trouvé, sans conséquence sur l'état actuel de la base. Toute future colonne `NOT NULL` ajoutée à une table déjà peuplée demandera la même vigilance et, si besoin, la même correction manuelle. Pas d'outil de migration dédié (Flyway/Liquibase) dans ce projet à ce stade.
 
 ## 9. Pour reprendre seul
 

@@ -250,16 +250,22 @@ public void verifierEcheances() {
         <p style="margin:0 0 12px; font-weight:600; color:var(--warn)">Incident de migration de schéma, trouvé et corrigé pendant la vérification</p>
         <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Au premier redémarrage, <code>ddl-auto=update</code> a échoué : Postgres a refusé la colonne <code>rappel_retard_envoye</code> en <code>NOT NULL</code> sur une table <code>engagements</code> déjà peuplée (<code>ERROR: ... contains null values</code>). Hibernate n'a pas fourni de valeur par défaut pour les lignes existantes. Corrigé manuellement en base (<code>ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT false</code>), puis redémarrage réussi. Pas un bug de code — un rappel que <code>ddl-auto=update</code> n'est pas un outil de migration complet dès qu'une contrainte <code>NOT NULL</code> touche une table déjà peuplée.</p>
       </div>
+
+      <div class="card">
+        <p style="margin:0 0 12px; font-weight:600">Audit : ce même risque ailleurs dans le projet</p>
+        <p style="margin:0 0 10px; font-size:0.9rem; color:var(--text-muted)">Suite à cet incident, audit dédié sur tout l'historique : pour chaque colonne <code>NOT NULL</code> déclarée, identifier le commit qui l'a ajoutée et vérifier si la table existait déjà à ce moment (donc à risque). <strong style="color:var(--text)">Un deuxième cas historique trouvé, sans conséquence aujourd'hui</strong> : <code>resumes.type</code>, ajoutée par <code>81fbf4a</code> après que la table existait déjà — mais très tôt dans le projet (table quasi vide à l'époque). État actuel vérifié : 43 lignes, 0 valeur <code>NULL</code>.</p>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Toutes les autres colonnes <code>NOT NULL</code> du projet ont été ajoutées <strong style="color:var(--text)">dans le commit de création de leur table</strong>, jamais après coup. Vérification finale : comparaison complète du schéma réel (110 colonnes, toutes tables) avec les déclarations de toutes les entités Java — cohérence totale, aucune incohérence active aujourd'hui. <strong style="color:var(--ok)">Conclusion</strong> : ce risque ne touche qu'une base déjà peuplée et durable au moment où une nouvelle colonne <code>NOT NULL</code> est ajoutée — jamais un clone frais avec une base vide. À surveiller pour un futur déploiement en production.</p>
+      </div>
     </section>
 
     <section id="limites">
       <h2><span class="num">§</span> Limites connues, assumées</h2>
       <ul class="plain">
         <li><strong>Le destinataire n'est pas la bonne personne au sens strict</strong> — tous les participants reçoivent le rappel, pas spécifiquement le <code>responsable</code> (juste un label de diarization aujourd'hui). Décision assumée, à revisiter avec la reconnaissance de locuteur récurrente.</li>
-        <li><strong>Pas de "boucle fermée" à la complétion</strong> — le master prompt décrit aussi une notification à la terminaison ; non construite ici, scope limité aux rappels d'échéance.</li>
+        <li><s style="color:var(--text-faint)">Pas de "boucle fermée" à la complétion</s> — <strong style="color:var(--ok)">construite dans une brique suivante</strong>, voir tag <code>phase-4-boucle-fermee-engagements</code>.</li>
         <li><strong><code>dateEcheance</code> saisie manuellement</strong> — aucun pré-remplissage depuis le texte libre <code>echeance</code>, cohérent avec le refus du parsing automatique.</li>
         <li><strong>Un seul rappel par type</strong> (proche, retard) — pas de rappels répétés en cas de retard prolongé.</li>
-        <li><strong><code>ddl-auto=update</code> n'est pas une vraie migration</strong> — toute future colonne <code>NOT NULL</code> sur une table peuplée demandera la même correction manuelle (pas de Flyway/Liquibase à ce stade).</li>
+        <li><strong><code>ddl-auto=update</code> n'est pas une vraie migration</strong> — audité (voir section vérification) : un seul autre cas historique, sans conséquence sur l'état actuel. Toute future colonne <code>NOT NULL</code> sur une table peuplée demandera la même vigilance (pas de Flyway/Liquibase à ce stade).</li>
       </ul>
     </section>
 
