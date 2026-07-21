@@ -1,0 +1,310 @@
+<title>Memoria — Dossier technique Phase 5 : gestion du couloir par son propriétaire</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .symptom, .bug .fix, .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .symptom .label { color: var(--warn); font-weight: 600; }
+  .bug .fix .label { color: var(--ok); font-weight: 600; }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 5 · Couloirs de classe</span>
+    <h1 class="title">Gestion du couloir par son propriétaire</h1>
+    <p class="dek">Renommer, supprimer, retirer un membre — trois actions jusque-là impossibles alors que <code>Couloir.proprietaireId</code> existait déjà. Cette brique les construit, et documente un bug réel de transaction trouvé pendant la vérification manuelle avec de vrais comptes.</p>
+    <div class="factrow">
+      <span class="fact"><strong>109</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact"><strong>1er</strong>&nbsp;usage de <code>@Transactional</code> dans le projet</span>
+      <span class="fact">tag <code>phase-5-gestion-couloir</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi cette brique</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend, fichier par fichier</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Depuis la première brique des couloirs de classe (tag <code>phase-5-couloirs-classe</code>), le champ <code>Couloir.proprietaireId</code> existe mais n'est utilisé pour <strong style="color:var(--text)">aucune</strong> vérification de permission — limite explicitement notée à l'époque. Concrètement : impossible de renommer un couloir mal nommé, impossible de le supprimer, impossible de retirer un membre qui n'a rien à y faire.</p>
+      <p class="lead">Choisi comme prochaine étape avec l'utilisateur, plutôt que les rappels/notifications côté Entreprise — un chantier plus gros, qui suppose de choisir une infrastructure de notification en amont.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Périmètre : trois actions, rien de plus</strong> — renommer, supprimer, retirer un membre, plus un endpoint de lecture des membres nécessaire à l'UI. Hors périmètre : transfert de propriété, "quitter le couloir soi-même" (action différente, pour un membre non propriétaire — pas demandée).</li>
+          <li><strong>Mutation via méthode métier nommée</strong> — <code>Couloir.renommer(String)</code> plutôt qu'un <code>setNom()</code> générique, cohérent avec <code>Session.terminer()</code> et <code>Engagement.confirmer()</code> déjà dans le projet.</li>
+          <li><strong>Retrait du propriétaire lui-même : 409, pas 403</strong> — la requête est autorisée (il agit dans son propre couloir), mais l'état demandé (couloir sans propriétaire) est invalide. Distinction assumée d'avec <code>PasProprietaireDuCouloirException</code> (403, question d'autorisation).</li>
+          <li><strong>Suppression d'un couloir : les sessions rattachées ne bougent pas</strong> — <code>session.couloirId</code> est une référence brute sans contrainte FK (comme partout dans le projet). Les sessions redeviennent visibles à leur seul créateur ; pas de cascade qui effacerait l'historique d'enregistrement de quelqu'un.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend, fichier par fichier</h2>
+
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>Couloir.java — nouvelle méthode métier</h4>
+          <pre><code>public void renommer(String nouveauNom) {
+    this.nom = nouveauNom;
+}</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>MembreCouloirRepository — trois requêtes dérivées de plus</h4>
+          <pre><code>List&lt;MembreCouloir&gt; findByCouloirId(UUID couloirId);
+void deleteByCouloirId(UUID couloirId);
+void deleteByCouloirIdAndUtilisateurId(UUID couloirId, UUID utilisateurId);</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>CouloirController — quatre routes de plus</h4>
+          <pre><code>PATCH  /api/v1/couloirs/{id}                    body {nom}  -&gt; renommer, 200
+DELETE /api/v1/couloirs/{id}                                -&gt; supprimer, 204
+GET    /api/v1/couloirs/{id}/membres                        -&gt; liste (email resolu)
+DELETE /api/v1/couloirs/{id}/membres/{utilisateurId}        -&gt; retirer, 204</code></pre>
+          <p class="why"><span class="label">Pourquoi ainsi —</span> <code>GET .../membres</code> résout l'email de chaque membre via <code>UtilisateurRepository</code>, même principe que <code>EngagementController</code> résolvant un titre de session via <code>SessionService</code> : pas de duplication de donnée, juste une résolution à l'affichage.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <p style="margin:0 0 12px; font-weight:600;">La découverte technique de cette brique : le bug <code>@Transactional</code></p>
+        <pre><code>@Transactional
+public void supprimerCouloir(UUID couloirId, UUID utilisateurId) {
+    Couloir couloir = obtenirCouloir(couloirId);
+    verifierProprietaire(couloir, utilisateurId);
+    membreCouloirRepository.deleteByCouloirId(couloirId);
+    couloirRepository.deleteById(couloirId);
+}
+
+@Transactional
+public void retirerMembre(UUID couloirId, UUID membreARetirerId, UUID utilisateurId) {
+    Couloir couloir = obtenirCouloir(couloirId);
+    verifierProprietaire(couloir, utilisateurId);
+    if (membreARetirerId.equals(couloir.getProprietaireId())) {
+        throw new ProprietaireNePeutPasSeRetirerException(couloirId);
+    }
+    membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, membreARetirerId);
+}</code></pre>
+        <p class="why" style="margin-top:10px"><span class="label">Pourquoi c'est nouveau —</span> premier usage de <code>@Transactional</code> dans tout le projet (confirmé par grep avant d'écrire la ligne). Les méthodes de suppression <strong style="color:var(--text)">dérivées</strong> de Spring Data (définies dans l'interface repository, pas héritées de <code>JpaRepository</code>) ne sont <strong style="color:var(--text)">pas</strong> transactionnelles par défaut — contrairement aux méthodes héritées (<code>save()</code>, <code>deleteById()</code>) qui obtiennent leur propre transaction par appel via <code>SimpleJpaRepository</code>. Détail complet du bug trouvé en conditions réelles : §6.</p>
+      </div>
+
+      <p class="lead"><code>GestionnaireExceptionsApi</code> — deux entrées ajoutées : <code>PasProprietaireDuCouloirException</code> → <span class="pill warn">403</span>, <code>ProprietaireNePeutPasSeRetirerException</code> → <span class="pill warn">409</span>.</p>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <ul class="plain">
+        <li><strong>auth.ts</strong> — <code>enregistrerSession</code> stocke désormais aussi <code>utilisateurId</code> (nouvelle clé <code>localStorage</code>), nouvelle fonction <code>obtenirUtilisateurIdConnecte()</code>. Nécessaire pour comparer l'utilisateur courant à <code>couloir.proprietaireId</code> sans appel réseau supplémentaire.</li>
+        <li><strong>CouloirDetailPage.tsx</strong> — tout le bloc de gestion (renommage, liste des membres avec bouton "Retirer", suppression) n'est rendu que si <code>couloir.proprietaireId === obtenirUtilisateurIdConnecte()</code>. Le bouton "Retirer" est lui-même absent en face du propriétaire — pas de tentative d'auto-retrait possible depuis l'UI, en plus de la garde 409 côté serveur.</li>
+      </ul>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">renommerCouloir_change_le_nom_si_proprietaire</td><td>chemin nominal</td></tr>
+            <tr><td class="mono">renommerCouloir_leve_une_exception_si_pas_proprietaire</td><td>403 pour un non-propriétaire</td></tr>
+            <tr><td class="mono">supprimerCouloir_supprime_le_couloir_et_ses_membres_si_proprietaire</td><td>chemin nominal</td></tr>
+            <tr><td class="mono">supprimerCouloir_leve_une_exception_si_pas_proprietaire</td><td>403 pour un non-propriétaire</td></tr>
+            <tr><td class="mono">retirerMembre_supprime_ladhesion_si_proprietaire</td><td>chemin nominal</td></tr>
+            <tr><td class="mono">retirerMembre_leve_une_exception_si_pas_proprietaire</td><td>403 pour un non-propriétaire</td></tr>
+            <tr><td class="mono">retirerMembre_leve_une_exception_si_on_tente_de_retirer_le_proprietaire</td><td>409, garde d'état</td></tr>
+            <tr><td class="mono">listerMembres_retourne_les_membres_du_couloir</td><td>lecture</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">109/109 tests</strong> passent. Point important : ces tests utilisent des mocks Mockito — ils ne pouvaient <strong style="color:var(--warn)">pas</strong> détecter le bug <code>@Transactional</code> ci-dessus, qui n'existe qu'avec un vrai <code>EntityManager</code>. Les 109/109 sont restés verts avant <em>et</em> après le correctif.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+
+      <div class="card">
+        <p style="margin:0 0 12px; font-weight:600; color:var(--warn)">Le bug trouvé pendant la vérification</p>
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">Test reel</span><span class="pdesc">A retire B et A supprime le couloir via curl -- 403 inattendu au lieu de 204</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">Logs backend</span><span class="pdesc">TransactionRequiredException: No EntityManager with actual transaction available</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Diagnostic</span><span class="pdesc">requetes derivees non heritees de JpaRepository, jamais transactionnelles par defaut</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">4</span><span class="pname">Correctif + rejeu</span><span class="pdesc">@Transactional ajoute, backend redemarre, sequence complete rejouee -- tout conforme</span></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cas (A=propriétaire, B=membre, C=étranger)</th><th>Attendu</th><th>Obtenu</th></tr></thead>
+          <tbody>
+            <tr><td>B rejoint le couloir</td><td class="mono">200</td><td class="mono" style="color:var(--ok)">200</td></tr>
+            <tr><td>C tente de renommer</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>B (membre) tente de renommer</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>A renomme</td><td class="mono">200</td><td class="mono" style="color:var(--ok)">200</td></tr>
+            <tr><td>A liste les membres</td><td>A + B</td><td style="color:var(--ok)">conforme</td></tr>
+            <tr><td>A tente de se retirer lui-même</td><td class="mono">409</td><td class="mono" style="color:var(--ok)">409</td></tr>
+            <tr><td>C tente de retirer B</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>A retire B</td><td class="mono">204</td><td class="mono" style="color:var(--ok)">204, B absent ensuite</td></tr>
+            <tr><td>C tente de supprimer</td><td class="mono">403</td><td class="mono" style="color:var(--ok)">403</td></tr>
+            <tr><td>A supprime le couloir</td><td class="mono">204 puis 404</td><td class="mono" style="color:var(--ok)">conforme</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lead"><strong style="color:var(--text)">Vérification visuelle (Playwright)</strong> — capture de la vue propriétaire (renommage, membres avec bouton "Retirer" absent en face de lui-même, "Supprimer le couloir") et de la vue d'un simple membre (aucun de ces éléments visible). Conforme au design.</p>
+      <p class="lead"><strong style="color:var(--text)">Vérification par l'utilisateur</strong> — testé dans son propre navigateur avec un compte réel sur un couloir préparé à l'avance. Confirmé : "ça marche, tout s'affiche bien".</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de transfert de propriété</strong> — un couloir reste éternellement propriété de son créateur. Hors périmètre, pas demandé.</li>
+        <li><strong>Pas de "quitter le couloir soi-même"</strong> pour un membre non propriétaire — seul le propriétaire peut retirer quelqu'un aujourd'hui.</li>
+        <li><strong>Décompte de membres affiché non rafraîchi après un retrait</strong> — <code>CouloirDetailPage.tsx</code> calcule "X membre(s)" une seule fois depuis l'objet initial. Défaut d'affichage pur, sans conséquence fonctionnelle ; laissé tel quel.</li>
+        <li><strong>Le même patron <code>@Transactional</code> manquant pourrait exister ailleurs</strong> dans le projet, partout où une requête dérivée de suppression/modification est appelée hors transaction explicite — seul le cas <code>MembreCouloirRepository</code> a été réellement observé et corrigé ici, pas de passe générale de vérification.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Si le même bug <code>@Transactional</code> doit être vérifié ailleurs : chercher tout appel à une méthode de repository <strong style="color:var(--text)">définie dans l'interface</strong> (pas héritée de <code>JpaRepository</code>) qui modifie des données (<code>deleteBy...</code>, <code>updateBy...</code>), et confirmer qu'elle est appelée depuis une méthode de service annotée <code>@Transactional</code>.</li>
+          <li>Pour le transfert de propriété (non construit) : <code>CouloirService.transfererPropriete(couloirId, nouveauProprietaireId, utilisateurId)</code> avec la même garde <code>verifierProprietaire</code>, plus une vérification que le nouveau propriétaire est déjà membre.</li>
+          <li>Chemin de bout en bout : <code>CouloirDetailPage.tsx</code> (rendu conditionnel) → <code>api.ts</code> (<code>renommerCouloir</code>/<code>supprimerCouloir</code>/<code>listerMembresCouloir</code>/<code>retirerMembreCouloir</code>) → <code>CouloirController</code> → <code>CouloirService</code> (<code>verifierProprietaire</code> à chaque action) → <code>MembreCouloirRepository</code>/<code>CouloirRepository</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-5-gestion-couloir</code> — vérifiée par curl (8 cas), Playwright, et par l'utilisateur dans son propre navigateur.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 5 (gestion du couloir par son propriétaire).
+    </footer>
+  </main>
+</div>
