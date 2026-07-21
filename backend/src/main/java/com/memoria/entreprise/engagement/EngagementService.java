@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
 import com.memoria.core.session.SessionService;
 import com.memoria.entreprise.compterendu.ActionCompteRendu;
@@ -25,16 +27,19 @@ public class EngagementService {
     private final EngagementRepository engagementRepository;
     private final CompteRenduRepository compteRenduRepository;
     private final SessionService sessionService;
+    private final UtilisateurRepository utilisateurRepository;
     private final EnvoyeurEmail envoyeurEmail;
 
     public EngagementService(
             EngagementRepository engagementRepository,
             CompteRenduRepository compteRenduRepository,
             SessionService sessionService,
+            UtilisateurRepository utilisateurRepository,
             EnvoyeurEmail envoyeurEmail) {
         this.engagementRepository = engagementRepository;
         this.compteRenduRepository = compteRenduRepository;
         this.sessionService = sessionService;
+        this.utilisateurRepository = utilisateurRepository;
         this.envoyeurEmail = envoyeurEmail;
     }
 
@@ -70,7 +75,9 @@ public class EngagementService {
 
         List<Engagement> engagements = actions.stream()
                 .filter(action -> action.getDescription() != null && !action.getDescription().isBlank())
-                .map(action -> new Engagement(sessionId, action.getDescription(), action.getResponsable(), action.getEcheance()))
+                .map(action -> new Engagement(
+                        sessionId, action.getDescription(), action.getResponsable(),
+                        action.getEcheance(), action.getResponsableUtilisateurId()))
                 .toList();
 
         if (!engagements.isEmpty()) {
@@ -111,12 +118,14 @@ public class EngagementService {
     }
 
     // "Boucle de responsabilite fermee automatiquement" (master prompt) :
-    // notifie les participants de la session qu'un engagement est termine.
-    // Ne doit jamais faire echouer terminer() lui-meme -- un email non
-    // envoye ne doit pas empecher de marquer un engagement comme fait.
+    // notifie le responsable identifie de l'engagement s'il est connu (voir
+    // ConstructeurTranscriptLabelise), sinon tous les participants de la
+    // session (comportement de repli historique). Ne doit jamais faire
+    // echouer terminer() lui-meme -- un email non envoye ne doit pas
+    // empecher de marquer un engagement comme fait.
     private void notifierCompletion(Engagement engagement) {
         try {
-            List<String> destinataires = sessionService.resoudreEmailsParticipants(engagement.getSessionId());
+            List<String> destinataires = resoudreDestinataires(engagement);
             if (destinataires.isEmpty()) {
                 return;
             }
@@ -130,6 +139,18 @@ public class EngagementService {
         } catch (Exception e) {
             LOG.warn("Echec de la notification de completion pour l'engagement {}", engagement.getId(), e);
         }
+    }
+
+    // Cible precisement le responsable identifie quand on le connait ; sinon
+    // replie sur tous les participants de la session (comportement historique).
+    private List<String> resoudreDestinataires(Engagement engagement) {
+        if (engagement.getResponsableUtilisateurId() != null) {
+            return utilisateurRepository.findById(engagement.getResponsableUtilisateurId())
+                    .map(Utilisateur::getEmail)
+                    .map(List::of)
+                    .orElseGet(() -> sessionService.resoudreEmailsParticipants(engagement.getSessionId()));
+        }
+        return sessionService.resoudreEmailsParticipants(engagement.getSessionId());
     }
 
     public Engagement planifierEcheance(UUID id, Instant dateEcheance) {

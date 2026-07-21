@@ -24,14 +24,17 @@ public class GenerateurCompteRenduAzureOpenAI implements GenerateurCompteRenduPo
 
     private static final String CONSIGNE = """
             Tu es un assistant qui redige un compte rendu de reunion ou de cours complet et fidele, en francais.
-            La transcription peut contenir des reperes "Intervenant N" indiquant qui parle : reprends ces
-            reperes tels quels pour designer un responsable, n'invente jamais de nom propre.
+            Chaque ligne de la transcription commence par une etiquette suivie de " : " indiquant qui parle --
+            soit un vrai nom (ex: "Claire Dubois : ..."), soit un repere generique ("Intervenant A : ...").
+            Pour designer un responsable, reprends EXACTEMENT l'etiquette telle qu'elle apparait (le nom ou le
+            repere generique), caractere pour caractere. N'invente jamais un nom qui n'apparait pas comme
+            etiquette, meme s'il est mentionne ailleurs dans le contenu de la conversation.
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
               "synthese": "un paragraphe de synthese fidele au contenu",
               "decisions": ["decision actee 1", "decision actee 2"],
               "actions": [
-                {"description": "action concrete a l'imperatif", "responsable": "Intervenant 2 ou null", "echeance": "delai mentionne ou null"}
+                {"description": "action concrete a l'imperatif", "responsable": "l'etiquette exacte ou null", "echeance": "delai mentionne ou null"}
               ]
             }
             Si aucune decision ou action concrete n'est mentionnee, renvoie un tableau vide pour le champ

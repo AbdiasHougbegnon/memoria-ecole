@@ -1,8 +1,11 @@
 package com.memoria.entreprise.compterendu;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionNotFoundException;
 import com.memoria.core.session.SessionService;
+import com.memoria.core.transcription.SegmentLocuteur;
 import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.core.transcription.TranscriptionStatut;
@@ -43,12 +46,16 @@ class CompteRenduServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private UtilisateurRepository utilisateurRepository;
+
     private CompteRenduService compteRenduService;
 
     @BeforeEach
     void setUp() {
         compteRenduService = new CompteRenduService(
-                compteRenduRepository, transcriptionRepository, generateurCompteRendu, sessionService, eventPublisher
+                compteRenduRepository, transcriptionRepository, generateurCompteRendu, sessionService,
+                eventPublisher, utilisateurRepository
         );
     }
 
@@ -63,7 +70,7 @@ class CompteRenduServiceTest {
         when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
-        when(generateurCompteRendu.genererCompteRendu("Bonjour a tous. Nous avons decide X."))
+        when(generateurCompteRendu.genererCompteRendu("Bonjour a tous.\nNous avons decide X.\n"))
                 .thenReturn(new CompteRenduGenere(
                         "Synthese de la reunion.",
                         List.of("Decision X actee"),
@@ -87,6 +94,33 @@ class CompteRenduServiceTest {
         assertThat(compteRendu.getStatut()).isEqualTo(StatutCompteRendu.REUSSI);
         assertThat(resultat).isEqualTo(compteRendu);
         verify(eventPublisher).publishEvent(new CompteRenduGenereEvent(sessionId));
+    }
+
+    @Test
+    void obtenirOuGenererCompteRendu_resout_le_responsable_identifie() {
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Utilisateur utilisateur = new Utilisateur("alice@test.fr", "hash");
+        utilisateur.renseignerNom("Alice Martin");
+        List<Transcription> transcriptions = List.of(
+                new Transcription(sessionId, 0, "Bonjour", TranscriptionStatut.REUSSIE,
+                        List.of(new SegmentLocuteur(1, "Bonjour, je m'en occupe", 0, 2000).avecIdentification(utilisateurId, 0.9)))
+        );
+        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
+        when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
+        when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
+        when(utilisateurRepository.findById(utilisateurId)).thenReturn(Optional.of(utilisateur));
+        when(generateurCompteRendu.genererCompteRendu("Alice Martin : Bonjour, je m'en occupe\n"))
+                .thenReturn(new CompteRenduGenere(
+                        "Synthese.", List.of(),
+                        List.of(new ActionExtraite("Envoyer le mail", "Alice Martin", null))
+                ));
+        when(compteRenduRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId);
+
+        assertThat(resultat.getActions().get(0).getResponsable()).isEqualTo("Alice Martin");
+        assertThat(resultat.getActions().get(0).getResponsableUtilisateurId()).isEqualTo(utilisateurId);
     }
 
     @Test

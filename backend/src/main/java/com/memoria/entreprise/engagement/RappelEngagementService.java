@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
 import com.memoria.core.session.SessionService;
 import org.slf4j.Logger;
@@ -12,11 +14,13 @@ import java.time.Instant;
 import java.util.List;
 
 // "Rappels contextualises adresses d'abord a la personne concernee" (master
-// prompt) -- ici, faute de lien fiable entre le champ texte libre
-// Engagement.responsable (un label de diarization type "Intervenant 2") et
-// un compte utilisateur reel, le rappel part aux participants de la session
-// (createur + membres du couloir si rattachee). Voir la doc de cette brique
-// pour la decision et ses limites.
+// prompt) -- cible desormais precisement engagement.responsableUtilisateurId
+// quand la reconnaissance de voix recurrente a resolu qui est concerne (voir
+// ConstructeurTranscriptLabelise). A defaut (locuteur non identifie), le
+// rappel part aux participants de la session (createur + membres du couloir
+// si rattachee) -- comportement de repli historique, toujours utile pour les
+// engagements crees avant l'identification ou dont le locuteur n'a jamais
+// ete identifie.
 @Service
 public class RappelEngagementService {
 
@@ -25,14 +29,17 @@ public class RappelEngagementService {
 
     private final EngagementRepository engagementRepository;
     private final SessionService sessionService;
+    private final UtilisateurRepository utilisateurRepository;
     private final EnvoyeurEmail envoyeurEmail;
 
     public RappelEngagementService(
             EngagementRepository engagementRepository,
             SessionService sessionService,
+            UtilisateurRepository utilisateurRepository,
             EnvoyeurEmail envoyeurEmail) {
         this.engagementRepository = engagementRepository;
         this.sessionService = sessionService;
+        this.utilisateurRepository = utilisateurRepository;
         this.envoyeurEmail = envoyeurEmail;
     }
 
@@ -78,7 +85,7 @@ public class RappelEngagementService {
     // puisse encore se declencher plus tard (ex: un membre rejoint le
     // couloir de la session entre-temps).
     private boolean envoyerRappel(Engagement engagement, String messageContexte) {
-        List<String> destinataires = sessionService.resoudreEmailsParticipants(engagement.getSessionId());
+        List<String> destinataires = resoudreDestinataires(engagement);
         if (destinataires.isEmpty()) {
             LOG.info("Aucun destinataire resolu pour l'engagement {}, rappel non envoye", engagement.getId());
             return false;
@@ -94,5 +101,17 @@ public class RappelEngagementService {
             envoyeurEmail.envoyer(destinataire, sujet, corps);
         }
         return true;
+    }
+
+    // Cible precisement le responsable identifie quand on le connait ; sinon
+    // replie sur tous les participants de la session (comportement historique).
+    private List<String> resoudreDestinataires(Engagement engagement) {
+        if (engagement.getResponsableUtilisateurId() != null) {
+            return utilisateurRepository.findById(engagement.getResponsableUtilisateurId())
+                    .map(Utilisateur::getEmail)
+                    .map(List::of)
+                    .orElseGet(() -> sessionService.resoudreEmailsParticipants(engagement.getSessionId()));
+        }
+        return sessionService.resoudreEmailsParticipants(engagement.getSessionId());
     }
 }

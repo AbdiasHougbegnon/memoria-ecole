@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
 import com.memoria.core.session.SessionService;
 import com.memoria.entreprise.compterendu.ActionCompteRendu;
@@ -41,13 +43,17 @@ class EngagementServiceTest {
     private SessionService sessionService;
 
     @Mock
+    private UtilisateurRepository utilisateurRepository;
+
+    @Mock
     private EnvoyeurEmail envoyeurEmail;
 
     private EngagementService engagementService;
 
     @BeforeEach
     void setUp() {
-        engagementService = new EngagementService(engagementRepository, compteRenduRepository, sessionService, envoyeurEmail);
+        engagementService = new EngagementService(
+                engagementRepository, compteRenduRepository, sessionService, utilisateurRepository, envoyeurEmail);
     }
 
     @Test
@@ -76,6 +82,25 @@ class EngagementServiceTest {
         assertThat(engagements.get(0).getStatut()).isEqualTo(StatutEngagement.EN_ATTENTE);
         assertThat(engagements.get(1).getDescription()).isEqualTo("Relire le contrat");
         assertThat(engagements.get(1).getResponsable()).isNull();
+    }
+
+    @Test
+    void surCompteRenduGenere_propage_le_responsable_identifie() {
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        CompteRendu compteRendu = new CompteRendu(
+                sessionId, "Synthese", List.of(),
+                List.of(new ActionCompteRendu("Envoyer le mail", "Alice Martin", null, utilisateurId)),
+                List.of(0), StatutCompteRendu.REUSSI
+        );
+        when(engagementRepository.existsBySessionId(sessionId)).thenReturn(false);
+        when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.of(compteRendu));
+
+        engagementService.surCompteRenduGenere(new CompteRenduGenereEvent(sessionId));
+
+        ArgumentCaptor<List<Engagement>> captor = ArgumentCaptor.forClass(List.class);
+        verify(engagementRepository).saveAll(captor.capture());
+        assertThat(captor.getValue().get(0).getResponsableUtilisateurId()).isEqualTo(utilisateurId);
     }
 
     @Test
@@ -157,6 +182,24 @@ class EngagementServiceTest {
 
         assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.TERMINE);
         verify(envoyeurEmail).envoyer(eq("createur@test.fr"), anyString(), anyString());
+    }
+
+    @Test
+    void terminer_notifie_precisement_le_responsable_identifie_plutot_que_tous_les_participants() {
+        UUID sessionId = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        UUID responsableId = UUID.randomUUID();
+        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash");
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", "Alice Martin", null, responsableId);
+        engagement.confirmer();
+        when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
+        when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(utilisateurRepository.findById(responsableId)).thenReturn(Optional.of(responsable));
+
+        engagementService.terminer(id);
+
+        verify(envoyeurEmail).envoyer(eq("alice@test.fr"), anyString(), anyString());
+        verify(sessionService, never()).resoudreEmailsParticipants(any());
     }
 
     @Test

@@ -27,9 +27,17 @@ public class Engagement {
     @Column(columnDefinition = "text", nullable = false)
     private String description;
 
-    // "Intervenant N" (diarization) ou null : pas de vrai nom tant que la
-    // reconnaissance de voix recurrente n'existe pas.
+    // Etiquette telle que produite par le compte rendu : un vrai nom si le
+    // locuteur a ete identifie, sinon "Intervenant X" (voir ActionCompteRendu
+    // / ConstructeurTranscriptLabelise).
     private String responsable;
+
+    // Resolu quand "responsable" designe un locuteur identifie -- permet aux
+    // rappels/notifications de cibler precisement cette personne au lieu de
+    // tous les participants de la session (voir EngagementService.notifierCompletion,
+    // RappelEngagementService). Null si non identifie.
+    @Column(name = "responsable_utilisateur_id")
+    private UUID responsableUtilisateurId;
 
     // Texte libre ("vendredi prochain") : voir ActionCompteRendu pour la
     // meme decision de ne pas convertir en date absolue. dateEcheance
@@ -64,10 +72,15 @@ public class Engagement {
     }
 
     public Engagement(UUID sessionId, String description, String responsable, String echeance) {
+        this(sessionId, description, responsable, echeance, null);
+    }
+
+    public Engagement(UUID sessionId, String description, String responsable, String echeance, UUID responsableUtilisateurId) {
         this.id = UUID.randomUUID();
         this.sessionId = sessionId;
         this.description = description;
         this.responsable = responsable;
+        this.responsableUtilisateurId = responsableUtilisateurId;
         this.echeance = echeance;
         this.statut = StatutEngagement.EN_ATTENTE;
         this.dateCreation = Instant.now();
@@ -131,6 +144,10 @@ public class Engagement {
 
     public String getResponsable() {
         return responsable;
+    }
+
+    public UUID getResponsableUtilisateurId() {
+        return responsableUtilisateurId;
     }
 
     public String getEcheance() {

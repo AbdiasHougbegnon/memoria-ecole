@@ -1,5 +1,7 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
 import com.memoria.core.session.SessionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,13 +33,17 @@ class RappelEngagementServiceTest {
     private SessionService sessionService;
 
     @Mock
+    private UtilisateurRepository utilisateurRepository;
+
+    @Mock
     private EnvoyeurEmail envoyeurEmail;
 
     private RappelEngagementService rappelEngagementService;
 
     @BeforeEach
     void setUp() {
-        rappelEngagementService = new RappelEngagementService(engagementRepository, sessionService, envoyeurEmail);
+        rappelEngagementService = new RappelEngagementService(
+                engagementRepository, sessionService, utilisateurRepository, envoyeurEmail);
     }
 
     private Engagement engagementConfirme(UUID sessionId, Instant echeance) {
@@ -74,6 +80,24 @@ class RappelEngagementServiceTest {
 
         verify(envoyeurEmail).envoyer(eq("createur@test.fr"), anyString(), anyString());
         assertThat(engagement.isRappelRetardEnvoye()).isTrue();
+    }
+
+    @Test
+    void verifierEcheances_cible_precisement_le_responsable_identifie() {
+        UUID sessionId = UUID.randomUUID();
+        UUID responsableId = UUID.randomUUID();
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", "Alice Martin", "vendredi", responsableId);
+        engagement.confirmer();
+        engagement.planifierEcheance(Instant.now().minus(1, ChronoUnit.HOURS));
+        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash");
+        when(engagementRepository.findByStatutAndDateEcheanceNotNull(StatutEngagement.CONFIRME)).thenReturn(List.of(engagement));
+        when(utilisateurRepository.findById(responsableId)).thenReturn(java.util.Optional.of(responsable));
+        when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        rappelEngagementService.verifierEcheances();
+
+        verify(envoyeurEmail).envoyer(eq("alice@test.fr"), anyString(), anyString());
+        verify(sessionService, never()).resoudreEmailsParticipants(any());
     }
 
     @Test

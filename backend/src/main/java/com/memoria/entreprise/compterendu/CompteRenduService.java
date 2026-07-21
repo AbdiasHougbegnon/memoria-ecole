@@ -1,6 +1,9 @@
 package com.memoria.entreprise.compterendu;
 
+import com.memoria.core.auth.Utilisateur;
+import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.session.SessionService;
+import com.memoria.core.transcription.ConstructeurTranscriptLabelise;
 import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.core.transcription.TranscriptionStatut;
@@ -12,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 // S'appuie sur le moteur (transcription, session) sans y ajouter de
 // vocabulaire Entreprise -- le moteur ne connait ni "decision" ni "action".
@@ -26,19 +28,22 @@ public class CompteRenduService {
     private final GenerateurCompteRenduPort generateurCompteRendu;
     private final SessionService sessionService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UtilisateurRepository utilisateurRepository;
 
     public CompteRenduService(
             CompteRenduRepository compteRenduRepository,
             TranscriptionRepository transcriptionRepository,
             GenerateurCompteRenduPort generateurCompteRendu,
             SessionService sessionService,
-            ApplicationEventPublisher eventPublisher
+            ApplicationEventPublisher eventPublisher,
+            UtilisateurRepository utilisateurRepository
     ) {
         this.compteRenduRepository = compteRenduRepository;
         this.transcriptionRepository = transcriptionRepository;
         this.generateurCompteRendu = generateurCompteRendu;
         this.sessionService = sessionService;
         this.eventPublisher = eventPublisher;
+        this.utilisateurRepository = utilisateurRepository;
     }
 
     // Genere a la demande uniquement (comme les resumes COURT/ACTIONS) : un
@@ -62,14 +67,22 @@ public class CompteRenduService {
         List<Integer> segmentsSources = transcriptionsReussies.stream()
                 .map(Transcription::getNumeroSequence)
                 .toList();
-        String transcriptComplet = transcriptionsReussies.stream()
-                .map(Transcription::getTexte)
-                .collect(Collectors.joining(" "));
+        // Etiquette chaque segment par locuteur (vrai nom si identifie, sinon
+        // "Intervenant X") avant de soumettre le texte a l'IA -- sans ca,
+        // celle-ci ne recoit qu'un texte concatene sans aucun repere de
+        // locuteur et ne peut pas suivre la consigne "reprends ces reperes
+        // tels quels" (voir ConstructeurTranscriptLabelise).
+        ConstructeurTranscriptLabelise.Resultat transcriptLabelise = ConstructeurTranscriptLabelise.construire(
+                transcriptionsReussies, this::nomUtilisateur);
 
         try {
-            CompteRenduGenere genere = generateurCompteRendu.genererCompteRendu(transcriptComplet);
+            CompteRenduGenere genere = generateurCompteRendu.genererCompteRendu(transcriptLabelise.texte());
             List<ActionCompteRendu> actions = genere.actions().stream()
-                    .map(action -> new ActionCompteRendu(action.description(), action.responsable(), action.echeance()))
+                    .map(action -> new ActionCompteRendu(
+                            action.description(),
+                            action.responsable(),
+                            action.echeance(),
+                            action.responsable() == null ? null : transcriptLabelise.utilisateurIdParLabel().get(action.responsable())))
                     .toList();
             return enregistrerSiAbsent(
                     sessionId, genere.synthese(), genere.decisions(), actions, segmentsSources, StatutCompteRendu.REUSSI
@@ -85,6 +98,10 @@ public class CompteRenduService {
                 .findBySessionIdOrderByNumeroSequenceAsc(sessionId).stream()
                 .filter(transcription -> transcription.getStatut() == TranscriptionStatut.REUSSIE)
                 .toList();
+    }
+
+    private String nomUtilisateur(UUID utilisateurId) {
+        return utilisateurRepository.findById(utilisateurId).map(Utilisateur::nomAffichage).orElse(null);
     }
 
     private CompteRendu enregistrerSiAbsent(
