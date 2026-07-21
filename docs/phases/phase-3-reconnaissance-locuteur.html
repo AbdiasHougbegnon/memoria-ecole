@@ -1,0 +1,274 @@
+<title>Memoria — Dossier technique Phase 3 : reconnaissance de voix récurrente</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .alert { display: flex; gap: 12px; background: color-mix(in srgb, var(--warn) 12%, var(--surface)); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; }
+  .alert .icon { color: var(--warn); font-weight: 700; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 3 · Mémoire &amp; recherche</span>
+    <h1 class="title">Reconnaissance de voix récurrente — première brique</h1>
+    <p class="dek">Enrôlement vocal avec consentement explicite, identification par session (affichage seulement). Vérifiée de bout en bout avec deux vrais comptes — et une découverte importante en cours de route : Azure Speaker Recognition n'existe plus.</p>
+    <div class="factrow">
+      <span class="fact"><strong>149</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">verifie avec <strong>2 vrais comptes</strong> et une vraie API</span>
+      <span class="fact warn" style="color:var(--warn)">Azure Speaker Recognition retire (30/09/2025)</span>
+      <span class="fact">tag <code>phase-3-reconnaissance-locuteur</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <a href="#blocage">Le blocage et les decisions</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Tests et verification</a>
+    <a href="#retrait">Azure Speaker Recognition retire</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Point du roadmap Phase 3, jamais construit. Déclencheur concret : <code>Engagement.responsable</code> n'est qu'un label de diarization ("Intervenant 2"), jamais lié à un vrai compte <code>Utilisateur</code> — limite documentée deux fois lors du chantier engagements de cette session. Choisi comme direction suivante après sa clôture.</p>
+    </section>
+
+    <section id="blocage">
+      <h2><span class="num">§</span> Le blocage découvert avant de coder</h2>
+      <div class="card">
+        <div class="flow">
+          <div class="fstep"><span class="plabel">1</span><span class="pname">Exploration du pipeline</span><span class="pdesc">chaque chunk de 30s = un appel HTTP Azure independant</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">2</span><span class="pname">Renumerotation par appel</span><span class="pdesc">Azure renumerote les locuteurs a chaque appel -- aucune continuite meme intra-session</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">3</span><span class="pname">Vrai probleme</span><span class="pdesc">resolution d'identite PAR SEGMENT, pas un recollement d'index</span></div>
+          <div class="farrow">→</div>
+          <div class="fstep"><span class="plabel">4</span><span class="pname">Deux decisions posees</span><span class="pdesc">enrolement dedie + identification affichee seulement</span></div>
+        </div>
+      </div>
+      <p class="lead"><strong>Enrôlement</strong> : flux dédié, ~20s de voix, consentement explicite (biométrique RGPD, opt-in, révocable). <strong>Portée</strong> : identification affichée seulement — <code>Engagement.responsable</code> et le ciblage des rappels ne changent pas, chantier séparé.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Groupement par (chunk, locuteur), jamais par locuteur seul</strong> — reflète fidèlement la contrainte du §2. Une personne parlant dans 10 chunks reçoit jusqu'à 10 appels indépendants ; pas de recollement inter-chunks dans cette brique.</li>
+          <li><strong>Identification événementielle et par lot</strong> — <code>IdentificationLocuteurService</code> écoute <code>SessionTermineeEvent</code> (comme <code>ResumeService</code>/<code>FilMemoireService</code>), pas <code>ChunkAudioEnregistreEvent</code> : un seul passage par session, discipline de coûts.</li>
+          <li><strong>Jamais marquer une identification "faite" si elle n'a pas eu lieu</strong> — même classe de garde que pour les rappels d'engagements.</li>
+          <li><strong>Idempotence via l'état du segment</strong> — pas de table de suivi séparée ; <code>SegmentLocuteur</code> reste immuable (<code>avecIdentification(...)</code> reconstruit une copie).</li>
+          <li><strong>Un profil vocal par utilisateur</strong> — le ré-enrôlement supprime l'ancien profil externe (best-effort) avant d'en créer un nouveau.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend, fichier par fichier</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>com.memoria.core.locuteur — nouveau package</h4>
+          <p class="why" style="margin-top:0"><code>EmpreinteVocale</code> (consentement RGPD tracé), <code>IdentificateurLocuteurPort</code> + client Azure, <code>ExtracteurAudioLocuteur</code> (découpe WAV par locuteur, testable sans mock), <code>EmpreinteVocaleService</code>/<code>Controller</code> (<code>POST/GET/DELETE /utilisateurs/moi/empreinte-vocale</code>), <code>IdentificationLocuteurService</code>, <code>IdentificateurLocuteurFactice</code> (profil de vérification).</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>com.memoria.core.transcription — modifie</h4>
+          <pre><code>// Transcription.java
+public void identifierLocuteur(int locuteur, UUID utilisateurId, double confiance) {
+    this.segmentsLocuteur = segmentsLocuteur.stream()
+            .map(s -&gt; s.getLocuteur() == locuteur ? s.avecIdentification(utilisateurId, confiance) : s)
+            .toList();
+}</code></pre>
+          <p class="why"><span class="label">Detail —</span> <code>TranscriptionService.obtenirTranscriptionsAvecIdentification</code> resout les noms via <code>UtilisateurRepository.findAllById</code> (une seule requete, pas de N+1).</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>com.memoria.core.audio / auth — modifies</h4>
+          <p class="why" style="margin-top:0"><code>StockageAudioPort.lire(String): byte[]</code> (les chunks etaient deja persistes, jamais relus). <code>Utilisateur.nom</code> + <code>nomAffichage()</code> (repli sur l'email). <code>GET/PUT /api/v1/utilisateurs/moi</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <p class="lead"><code>SessionDetailPage.tsx</code> affiche "Intervenant N (Nom)" quand identifié — additif. Nouvelle page <code>/parametres</code> : champ nom, enrôlement vocal (consentement obligatoire, <code>MediaRecorder</code> ~20s, statut, révocation). <code>convertirBlobEnWav</code> extrait de <code>Recorder.tsx</code> vers <code>audioWav.ts</code>, partagé.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Tests et vérification en conditions réelles</h2>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">149/149 tests</strong> passent (couvrant notamment : aucun appel Azure si personne n'est enrôlé, seuil de confiance, durée minimale, idempotence, résilience par locuteur, et deux chunks avec le même index local résolus vers des personnes différentes). <code>tsc --noEmit</code> propre.</p>
+
+      <div class="card">
+        <p style="margin:0 0 12px; font-weight:600">Vérification réelle, sans vraies credentials Azure Speaker Recognition</p>
+        <p style="margin:0 0 10px; font-size:0.9rem; color:var(--text-muted)">Même principe que le faux serveur SMTP utilisé plus tôt dans le projet : <code>IdentificateurLocuteurFactice</code> (profil Spring <code>verification-locuteur</code>, jamais actif par défaut), différencie déterministiquement par la longueur en octets de l'échantillon — signal dérivé de l'audio réel, pas un mock aveugle.</p>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Deux comptes réels, enrôlés via la vraie route API avec deux échantillons distincts (3s / 8s) ; une session réelle, deux chunks placés sur disque avec les mêmes fichiers, <strong style="color:var(--text)">les deux segments portant le même index local <code>locuteur=1</code></strong> ; <code>POST /terminer</code> déclenche réellement l'événement.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Chunk</th><th>Index local</th><th>Attendu</th><th>Obtenu</th></tr></thead>
+          <tbody>
+            <tr><td>#0 (3s, profil A)</td><td class="mono">locuteur 1</td><td>résolu vers A</td><td style="color:var(--ok)">"Alice Martin", confiance 0.99</td></tr>
+            <tr><td>#1 (8s, profil B)</td><td class="mono">locuteur 1 (même index)</td><td>résolu vers B</td><td style="color:var(--ok)">"Bob Bernard", confiance 0.99</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead">Confirme l'absence de continuité inter-chunks : le même index local désigne deux personnes différentes selon le chunk, chacune résolue correctement. Vérifié aussi visuellement (Playwright) dans la vraie page de session et dans <code>/parametres</code> (statut "Active", consentement, nom pré-rempli). Révocation testée en réel : <code>DELETE</code> → 204, statut repasse à absent.</p>
+    </section>
+
+    <section id="retrait">
+      <h2><span class="num">§</span> Découverte en cours de vérification : Azure Speaker Recognition est retiré</h2>
+      <div class="alert">
+        <span class="icon">⚠</span>
+        <p style="margin:0; font-size:0.92rem;">En préparant un test contre le vrai Azure (les credentials <code>AZURE_SPEECH_KEY</code>/<code>AZURE_SPEECH_REGION</code> se sont révélées configurées dans l'environnement), une recherche a confirmé que <strong>Azure Speaker Recognition a été retiré par Microsoft le 30 septembre 2025</strong> — pas une question d'accès restreint (Limited Access, le risque anticipé avant de coder), un service qui n'existe plus du tout. Aucun remplacement direct proposé par Microsoft dans Azure. Alternatives citées : modèles auto-hébergés (pyannote, SpeechBrain, WeSpeaker) ou d'autres clouds (AWS Connect Voice ID, Google SpeakerID).</p>
+      </div>
+      <p class="lead" style="margin-top:12px"><code>IdentificateurLocuteurAzureSpeech</code> est donc <strong style="color:var(--warn)">non fonctionnel en l'état</strong> — documenté clairement dans le commentaire de classe, gardé comme référence de forme en attendant un choix de fournisseur. Le port <code>IdentificateurLocuteurPort</code> isole cette décision : remplacer cette seule classe suffira.</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Aucun fournisseur d'identification réellement fonctionnel</strong> — voir §7. Brique complète et vérifiée dans tout ce qui l'entoure, mais inerte en production tant qu'un remplaçant n'est pas choisi.</li>
+        <li><strong>Pas de recollement inter-chunks</strong> — assumé, plusieurs identifications indépendantes par session possibles.</li>
+        <li><strong>Pas de ciblage de <code>Engagement.responsable</code>/rappels</strong> — scope limité à l'affichage.</li>
+        <li><strong>Pas de ré-identification rétroactive</strong> des sessions déjà enregistrées.</li>
+        <li><strong>Pas d'effacement rétroactif</strong> des identifications déjà écrites à la révocation.</li>
+        <li><strong>Seuil de confiance (0.70) non calibré</strong> — placeholder, à revoir avec un vrai fournisseur.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Pour remplacer le fournisseur : implémenter <code>IdentificateurLocuteurPort</code> avec le nouveau choix, retirer/supprimer l'ancienne classe Azure — rien d'autre à toucher.</li>
+          <li>Chemin de bout en bout : <code>ParametresCompteePage.tsx</code> → <code>EmpreinteVocaleController</code>/<code>Service</code> → <code>IdentificateurLocuteurPort.enroller</code> → ... → <code>SessionTermineeEvent</code> → <code>IdentificationLocuteurService</code> → <code>ExtracteurAudioLocuteur</code> → <code>IdentificateurLocuteurPort.identifier</code> → <code>Transcription.identifierLocuteur</code> → <code>TranscriptionService.obtenirTranscriptionsAvecIdentification</code> → <code>SessionDetailPage.tsx</code>.</li>
+          <li>Vérification factice : <code>SPRING_PROFILES_ACTIVE=verification-locuteur</code>.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-3-reconnaissance-locuteur</code> — vérifiée avec deux vrais comptes, vraie API, port factice.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 3 (reconnaissance de voix récurrente, première brique).
+    </footer>
+  </main>
+</div>
