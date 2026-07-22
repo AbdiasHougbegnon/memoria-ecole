@@ -8,12 +8,25 @@ import {
   terminerEngagement,
 } from '../api'
 import type { CompteRendu, Engagement } from '../types'
+import { BoutonSecondaire, SectionTitre } from './SessionDetailPage'
 
-const LIBELLE_STATUT_ENGAGEMENT: Record<Engagement['statut'], string> = {
-  EN_ATTENTE: 'A confirmer',
-  CONFIRME: 'Confirme',
-  REJETE: 'Rejete',
-  TERMINE: 'Termine',
+const PILL_STATUT_ENGAGEMENT: Record<Engagement['statut'], { label: string; bg: string; color: string }> = {
+  EN_ATTENTE: { label: 'A confirmer', bg: 'var(--color-warn-wash)', color: 'var(--color-warn)' },
+  CONFIRME: { label: 'Confirme', bg: 'var(--color-brand-wash)', color: 'var(--color-brand)' },
+  REJETE: { label: 'Rejete', bg: '#F4F2EE', color: 'var(--color-ink-muted)' },
+  TERMINE: { label: 'Termine', bg: 'var(--color-ok-wash)', color: 'var(--color-ok)' },
+}
+
+const PALETTE_AVATAR = ['#4B46D6', '#2F6FB0', '#E0662D', '#2E9E6B', '#9B4DCA', '#C99A2E', '#B0472F']
+function couleurAvatar(nom: string | null): string {
+  if (!nom) return '#9A968E'
+  let h = 0
+  for (let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) >>> 0
+  return PALETTE_AVATAR[h % PALETTE_AVATAR.length]
+}
+function initiales(nom: string | null): string {
+  if (!nom) return '?'
+  return nom.trim().split(/\s+/).map((m) => m[0]).slice(0, 2).join('').toUpperCase()
 }
 
 export function SessionDetailEntreprise({ sessionId }: { sessionId: string }) {
@@ -62,119 +75,122 @@ export function SessionDetailEntreprise({ sessionId }: { sessionId: string }) {
 
   return (
     <>
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-          Compte rendu complet
-        </h2>
-
-        {!compteRendu && (
-          <button
-            onClick={() => void genererLeCompteRendu()}
-            disabled={compteRenduEnCours}
-            className="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200"
-          >
+      {!compteRendu && (
+        <section>
+          <BoutonSecondaire onClick={() => void genererLeCompteRendu()} disabled={compteRenduEnCours}>
             {compteRenduEnCours ? 'Generation en cours...' : 'Generer le compte rendu complet'}
-          </button>
-        )}
+          </BoutonSecondaire>
+          {erreurCompteRendu && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurCompteRendu}</p>}
+        </section>
+      )}
 
-        {erreurCompteRendu && <p className="mt-2 text-sm text-red-600">{erreurCompteRendu}</p>}
+      {compteRendu && compteRendu.statut === 'ECHEC' && (
+        <p className="text-sm" style={{ color: '#B02631' }}>La generation du compte rendu a echoue.</p>
+      )}
 
-        {compteRendu && compteRendu.statut === 'ECHEC' && (
-          <p className="text-sm text-red-600">La generation du compte rendu a echoue.</p>
-        )}
-
-        {compteRendu && compteRendu.statut === 'REUSSI' && (
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-800">{compteRendu.synthese}</p>
-
-            {compteRendu.decisions.length > 0 && (
-              <>
-                <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Decisions
-                </h3>
-                <ul className="list-disc pl-5 text-sm text-slate-700">
-                  {compteRendu.decisions.map((decision, index) => (
-                    <li key={index}>{decision}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            {compteRendu.actions.length > 0 && (
-              <>
-                <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Actions
-                </h3>
-                <ul className="flex flex-col gap-1 text-sm text-slate-700">
-                  {compteRendu.actions.map((action, index) => (
-                    <li key={index}>
-                      {action.description}
-                      {action.responsable && (
-                        <span className="ml-2 text-xs text-slate-500">({action.responsable})</span>
-                      )}
-                      {action.echeance && (
-                        <span className="ml-2 text-xs text-slate-400">- {action.echeance}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+      {compteRendu && compteRendu.statut === 'REUSSI' && compteRendu.synthese && (
+        <section>
+          <SectionTitre>Compte rendu complet</SectionTitre>
+          <div
+            className="rounded-2xl border p-5"
+            style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
+          >
+            <p className="text-sm leading-relaxed">{compteRendu.synthese}</p>
           </div>
-        )}
-      </section>
+        </section>
+      )}
+
+      {compteRendu && compteRendu.statut === 'REUSSI' && compteRendu.decisions.length > 0 && (
+        <section>
+          <SectionTitre>Decisions</SectionTitre>
+          <div className="flex flex-col gap-2">
+            {compteRendu.decisions.map((decision, index) => (
+              <div key={index} className="flex items-start gap-3 rounded-xl border bg-white p-3.5" style={{ borderColor: 'var(--color-border-soft)' }}>
+                <span
+                  className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-md text-[11.5px] font-bold"
+                  style={{ background: 'var(--color-brand-wash)', color: 'var(--color-brand)', fontFamily: 'var(--font-mono)' }}
+                >
+                  {index + 1}
+                </span>
+                <span className="pt-px text-sm">{decision}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {engagements.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-            Engagements
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {engagements.map((engagement) => (
-              <li key={engagement.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                <div className="mb-1 flex items-start justify-between gap-2">
-                  <p className="text-slate-800">{engagement.description}</p>
-                  <span className="shrink-0 text-xs font-medium text-slate-500">
-                    {LIBELLE_STATUT_ENGAGEMENT[engagement.statut]}
-                  </span>
-                </div>
-                {(engagement.responsable || engagement.echeance) && (
-                  <p className="mb-2 text-xs text-slate-500">
-                    {engagement.responsable && <span>{engagement.responsable}</span>}
-                    {engagement.responsable && engagement.echeance && <span> - </span>}
-                    {engagement.echeance && <span>{engagement.echeance}</span>}
-                  </p>
-                )}
-                {engagement.statut === 'EN_ATTENTE' && (
-                  <div className="flex gap-2">
-                    <button
-                      disabled={engagementEnCours === engagement.id}
-                      onClick={() => void agirSurEngagement(engagement.id, confirmerEngagement)}
-                      className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-                    >
-                      Confirmer
-                    </button>
-                    <button
-                      disabled={engagementEnCours === engagement.id}
-                      onClick={() => void agirSurEngagement(engagement.id, rejeterEngagement)}
-                      className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50"
-                    >
-                      Rejeter
-                    </button>
-                  </div>
-                )}
-                {engagement.statut === 'CONFIRME' && (
-                  <button
-                    disabled={engagementEnCours === engagement.id}
-                    onClick={() => void agirSurEngagement(engagement.id, terminerEngagement)}
-                    className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+        <section>
+          <SectionTitre>Taches extraites</SectionTitre>
+          <div className="overflow-hidden rounded-2xl border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
+            <div
+              className="grid gap-3 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide"
+              style={{ gridTemplateColumns: '150px 1fr auto', background: '#FAF9F6', borderBottom: '1px solid var(--color-border-softer)', color: 'var(--color-ink-faint)' }}
+            >
+              <span>Responsable</span>
+              <span>Tache</span>
+              <span className="text-right">Statut</span>
+            </div>
+            {engagements.map((engagement, index) => (
+              <div
+                key={engagement.id}
+                className="grid items-center gap-3 px-4 py-3"
+                style={index > 0 ? { gridTemplateColumns: '150px 1fr auto', borderTop: '1px solid var(--color-border-softer)' } : { gridTemplateColumns: '150px 1fr auto' }}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="flex h-6 w-6 flex-none items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                    style={{ background: couleurAvatar(engagement.responsable) }}
                   >
-                    Marquer comme termine
-                  </button>
-                )}
-              </li>
+                    {initiales(engagement.responsable)}
+                  </span>
+                  <span className="truncate text-[13px] font-semibold">{engagement.responsable ?? 'Non identifie'}</span>
+                </span>
+                <div>
+                  <div className="text-[13.5px]">{engagement.description}</div>
+                  {engagement.echeance && (
+                    <div className="mt-0.5 text-xs" style={{ color: 'var(--color-ink-faint)' }}>{engagement.echeance}</div>
+                  )}
+                  {engagement.statut === 'EN_ATTENTE' && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        disabled={engagementEnCours === engagement.id}
+                        onClick={() => void agirSurEngagement(engagement.id, confirmerEngagement)}
+                        className="rounded-lg px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                        style={{ background: 'var(--color-brand)' }}
+                      >
+                        Confirmer
+                      </button>
+                      <button
+                        disabled={engagementEnCours === engagement.id}
+                        onClick={() => void agirSurEngagement(engagement.id, rejeterEngagement)}
+                        className="rounded-lg px-2.5 py-1 text-xs font-semibold"
+                        style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+                      >
+                        Rejeter
+                      </button>
+                    </div>
+                  )}
+                  {engagement.statut === 'CONFIRME' && (
+                    <button
+                      disabled={engagementEnCours === engagement.id}
+                      onClick={() => void agirSurEngagement(engagement.id, terminerEngagement)}
+                      className="mt-2 rounded-lg px-2.5 py-1 text-xs font-semibold"
+                      style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+                    >
+                      Marquer comme termine
+                    </button>
+                  )}
+                </div>
+                <span
+                  className="flex-none rounded-full px-2.5 py-1 text-[11px] font-bold"
+                  style={{ background: PILL_STATUT_ENGAGEMENT[engagement.statut].bg, color: PILL_STATUT_ENGAGEMENT[engagement.statut].color }}
+                >
+                  {PILL_STATUT_ENGAGEMENT[engagement.statut].label}
+                </span>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
     </>

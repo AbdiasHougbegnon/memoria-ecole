@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+/* Palette et typographie reprises de docs/maquette-initiale.html (prototype
+   pre-Phase 1) : une seule identite de marque pour les deux modules, la
+   distinction Ecole/Entreprise se fait par le contenu de la nav, pas par la
+   couleur. */
+@theme {
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-brand: #4b46d6;
+  --color-brand-hover: #3d39c2;
+  --color-brand-wash: #eeedfb;
+
+  --color-cream: #faf9f7;
+  --color-sidebar: #f4f1ec;
+  --color-border-soft: #e6e1d8;
+  --color-border-softer: #eae5dc;
+
+  --color-ink: #1c1b1a;
+  --color-ink-muted: #6b6862;
+  --color-ink-faint: #9a968e;
+  --color-ink-faint-2: #b4afa5;
+
+  --color-ok: #2e9e6b;
+  --color-ok-wash: #e9f6ef;
+  --color-warn: #b4832b;
+  --color-warn-wash: #fbf3e1;
+  --color-live: #e5484d;
+  --color-live-wash: #fcebec;
+}
+
 body {
   margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+@keyframes mem-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .3; transform: scale(.7); }
 }

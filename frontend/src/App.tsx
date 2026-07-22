@@ -17,7 +17,7 @@ import { RouteProtegee } from './components/RouteProtegee'
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen">
         <Routes>
           <Route path="/choix-module" element={<ChoixModulePage />} />
           <Route path="/connexion" element={<LoginPage />} />

@@ -13,22 +13,19 @@ const LIBELLE_STATUT: Record<StatutEngagement, string> = {
 }
 
 // Memes teintes que les badges de statut sur la page Engagements (coherence
-// categorielle dans toute l'appli), en remplissage plein -500 pour rester
-// dans la bande de luminosite OKLCH validee (L 0.43-0.77) plutot que le -400
-// trop clair des badges. Toujours accompagne d'un libelle visible (legende) :
-// la regle de secours pour un contraste sous 3:1 sur fond clair.
+// categorielle dans toute l'appli).
 const COULEUR_BARRE: Record<StatutEngagement, string> = {
-  EN_ATTENTE: 'bg-amber-500',
-  CONFIRME: 'bg-blue-500',
-  TERMINE: 'bg-green-500',
-  REJETE: 'bg-slate-400',
+  EN_ATTENTE: 'var(--color-warn)',
+  CONFIRME: 'var(--color-brand)',
+  TERMINE: 'var(--color-ok)',
+  REJETE: '#D6D0C6',
 }
 
 function StatTuile({ label, valeur }: { label: string; valeur: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-slate-900">{valeur}</p>
+    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>{label}</p>
+      <p className="mt-1.5 text-3xl font-bold tracking-tight">{valeur}</p>
     </div>
   )
 }
@@ -44,10 +41,10 @@ export function TableauDeBordPage() {
   }, [])
 
   if (chargement) {
-    return <p className="p-6 text-center text-sm text-slate-500">Chargement...</p>
+    return <p className="p-6 text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
   }
   if (!donnees) {
-    return <p className="p-6 text-center text-sm text-red-600">Impossible de charger le tableau de bord.</p>
+    return <p className="p-6 text-center text-sm" style={{ color: '#B02631' }}>Impossible de charger le tableau de bord.</p>
   }
 
   const total = donnees.total
@@ -57,33 +54,33 @@ export function TableauDeBordPage() {
   })).filter((s) => s.valeur > 0)
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Tableau de bord</h1>
-        <Link to="/engagements" className="text-sm text-slate-500 hover:text-slate-700">
-          Voir les engagements
-        </Link>
+    <div className="mx-auto max-w-2xl px-8 py-10">
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-[28px] font-bold tracking-tight">Tableau de bord</h1>
+        <Link to="/engagements" className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Voir les engagements</Link>
       </div>
+      <p className="mb-7 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+        Vue d'ensemble des engagements de l'equipe.
+      </p>
 
-      <div className="mb-8 grid grid-cols-3 gap-3">
+      <div className="mb-6 grid grid-cols-3 gap-3">
         <StatTuile label="Engagements" valeur={String(total)} />
         <StatTuile label="Taux de completion" valeur={`${Math.round(donnees.tauxCompletion * 100)}%`} />
         <StatTuile label="En retard" valeur={String(donnees.enRetard)} />
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">Repartition par statut</h2>
+      <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>Repartition par statut</h2>
 
         {total === 0 ? (
-          <p className="text-sm text-slate-500">Aucun engagement pour le moment.</p>
+          <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun engagement pour le moment.</p>
         ) : (
           <>
             <div className="flex h-6 gap-[2px] overflow-hidden rounded-md">
               {segments.map(({ statut, valeur }) => (
                 <div
                   key={statut}
-                  className={COULEUR_BARRE[statut]}
-                  style={{ width: `${(valeur / total) * 100}%` }}
+                  style={{ background: COULEUR_BARRE[statut], width: `${(valeur / total) * 100}%` }}
                   title={`${LIBELLE_STATUT[statut]} : ${valeur}`}
                 />
               ))}
@@ -91,10 +88,10 @@ export function TableauDeBordPage() {
 
             <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               {segments.map(({ statut, valeur }) => (
-                <li key={statut} className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className={`h-3 w-3 rounded-sm ${COULEUR_BARRE[statut]}`} />
+                <li key={statut} className="flex items-center gap-2 text-sm">
+                  <span className="h-3 w-3 rounded-sm" style={{ background: COULEUR_BARRE[statut] }} />
                   <span>
-                    {LIBELLE_STATUT[statut]} <span className="text-slate-400">({valeur})</span>
+                    {LIBELLE_STATUT[statut]} <span style={{ color: 'var(--color-ink-faint)' }}>({valeur})</span>
                   </span>
                 </li>
               ))}
@@ -103,7 +100,7 @@ export function TableauDeBordPage() {
         )}
       </div>
 
-      <p className="mt-6 text-xs text-slate-400">
+      <p className="mt-6 text-xs" style={{ color: 'var(--color-ink-faint)' }}>
         Vue d'ensemble uniquement -- pour le detail par personne, chacun gere ses propres engagements.
       </p>
     </div>

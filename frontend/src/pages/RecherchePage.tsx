@@ -37,67 +37,86 @@ export function RecherchePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Recherche</h1>
-        <Link to="/" className="text-sm text-slate-500 hover:text-slate-700">
-          Retour aux sessions
-        </Link>
+    <div className="mx-auto max-w-[760px] px-8 py-12">
+      <div className="flex flex-col items-center text-center">
+        <span className="mb-4 flex h-[46px] w-[46px] items-center justify-center rounded-2xl" style={{ background: 'var(--color-brand-wash)' }}>
+          <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1.5 L9.4 5.6 L13.5 7 L9.4 8.4 L8 12.5 L6.6 8.4 L2.5 7 L6.6 5.6 Z" fill="var(--color-brand)" />
+          </svg>
+        </span>
+        <h1 className="text-[26px] font-bold tracking-tight">Recherche semantique</h1>
+        <p className="mt-2 max-w-md text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+          Posez une question en langage naturel. Memoria retrouve le passage exact et l'horodatage dans tout
+          votre historique.
+        </p>
       </div>
 
-      <form onSubmit={lancerRecherche} className="mb-2 flex gap-2">
+      <form
+        onSubmit={lancerRecherche}
+        className="my-7 flex items-center gap-2.5 rounded-2xl border bg-white p-1.5 pl-4 shadow-sm"
+        style={{ borderColor: 'var(--color-border-soft)' }}
+      >
+        <svg width="19" height="19" viewBox="0 0 18 18" fill="none" style={{ flex: 'none' }}>
+          <circle cx="8" cy="8" r="5" stroke="var(--color-ink-faint)" strokeWidth="1.8" />
+          <line x1="11.8" y1="11.8" x2="15.5" y2="15.5" stroke="var(--color-ink-faint)" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
         <input
           type="text"
           value={requete}
           onChange={(e) => setRequete(e.target.value)}
-          placeholder="Rechercher dans tout l'historique (ex. quand a-t-on decide de reporter le projet ?)"
-          className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          placeholder="ex. quand a-t-on decide de reporter le projet ?"
+          className="flex-1 border-none bg-transparent py-2 text-[15px] outline-none"
         />
         <button
           type="submit"
           disabled={chargement}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          className="flex-none rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
         >
           {chargement ? 'Recherche...' : 'Rechercher'}
         </button>
       </form>
 
-      <p className="mb-6 text-xs text-slate-400">
+      <p className="mb-6 text-center text-xs" style={{ color: 'var(--color-ink-faint)' }}>
         Les sessions terminees avant l'existence de la recherche ne sont pas indexees automatiquement.{' '}
         {reindexationLancee ? (
           <span>Reindexation en cours en arriere-plan, reessaie dans quelques minutes.</span>
         ) : (
-          <button type="button" onClick={() => void lancerReindexation()} className="underline hover:text-slate-600">
+          <button type="button" onClick={() => void lancerReindexation()} className="underline">
             Reindexer l'historique
           </button>
         )}
       </p>
 
       {aRecherche && !chargement && resultats.length === 0 && (
-        <p className="mb-4 text-sm text-slate-500">Aucun resultat.</p>
+        <p className="text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun resultat.</p>
       )}
 
-      <ul className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {resultats.map((resultat, index) => (
-          <li key={index} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-            <div className="mb-1 flex items-center justify-between">
-              <Link
-                to={`/sessions/${resultat.sessionId}`}
-                className="text-sm font-medium text-slate-900 hover:underline"
-              >
-                {resultat.titreSession}
-              </Link>
-              <span className="text-xs text-slate-400">
-                {new Date(resultat.dateSession).toLocaleDateString('fr-FR')}
+          <Link
+            key={index}
+            to={`/sessions/${resultat.sessionId}`}
+            className="flex flex-col gap-2 rounded-2xl border bg-white px-4 py-3.5 transition-all hover:-translate-y-px hover:shadow-md"
+            style={{ borderColor: 'var(--color-border-soft)' }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13.5px] font-semibold">{resultat.titreSession}</span>
+              <span className="flex flex-none items-center gap-2">
+                <span className="text-[11px]" style={{ color: 'var(--color-ink-faint)' }}>
+                  {new Date(resultat.dateSession).toLocaleDateString('fr-FR')}
+                </span>
+                <span className="rounded px-2 py-0.5 text-[11px]" style={{ background: 'var(--color-brand-wash)', color: 'var(--color-brand)', fontFamily: 'var(--font-mono)' }}>
+                  &#9656; {formaterTimestamp(resultat.offsetMillisecondes)}
+                </span>
               </span>
             </div>
-            <p className="text-sm text-slate-800">{resultat.texte}</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Intervenant {resultat.locuteur} - {formaterTimestamp(resultat.offsetMillisecondes)}
-            </p>
-          </li>
+            <div className="border-l-2 pl-3 text-[13px] italic leading-relaxed" style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}>
+              &laquo; {resultat.texte} &raquo;
+            </div>
+          </Link>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }

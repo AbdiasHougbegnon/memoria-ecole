@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { genererResumeCours, obtenirResumeCours } from '../api'
 import type { ResumeCours } from '../types'
+import { BoutonSecondaire, SectionTitre } from './SessionDetailPage'
 
 export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
   const [resumeCours, setResumeCours] = useState<ResumeCours | null>(null)
@@ -33,60 +34,60 @@ export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <section className="mb-8">
-      <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-        Resume de cours
-      </h2>
-
+    <>
       {!resumeCours && (
-        <button
-          onClick={() => void genererLeResumeCours()}
-          disabled={resumeCoursEnCours}
-          className="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200"
-        >
-          {resumeCoursEnCours ? 'Generation en cours...' : 'Generer le resume de cours'}
-        </button>
+        <section>
+          <BoutonSecondaire onClick={() => void genererLeResumeCours()} disabled={resumeCoursEnCours}>
+            {resumeCoursEnCours ? 'Generation en cours...' : 'Generer le resume de cours'}
+          </BoutonSecondaire>
+          {erreurResumeCours && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurResumeCours}</p>}
+        </section>
       )}
 
-      {erreurResumeCours && <p className="mt-2 text-sm text-red-600">{erreurResumeCours}</p>}
-
       {resumeCours && resumeCours.statut === 'ECHEC' && (
-        <p className="text-sm text-red-600">La generation du resume de cours a echoue.</p>
+        <p className="text-sm" style={{ color: '#B02631' }}>La generation du resume de cours a echoue.</p>
       )}
 
       {resumeCours && resumeCours.statut === 'REUSSI' && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-800">{resumeCours.synthese}</p>
+        <>
+          {resumeCours.synthese && (
+            <section>
+              <SectionTitre>Resume de cours</SectionTitre>
+              <div
+                className="rounded-2xl border p-5"
+                style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
+              >
+                <p className="text-sm leading-relaxed">{resumeCours.synthese}</p>
+              </div>
+            </section>
+          )}
 
           {resumeCours.notions.length > 0 && (
-            <>
-              <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Notions
-              </h3>
-              <ul className="flex flex-col gap-1 text-sm text-slate-700">
+            <section>
+              <SectionTitre>Notions</SectionTitre>
+              <div className="flex flex-col gap-2">
                 {resumeCours.notions.map((notion, index) => (
-                  <li key={index}>
-                    <span className="font-medium">{notion.terme}</span> : {notion.definition}
-                  </li>
+                  <div key={index} className="rounded-xl border bg-white p-3.5 text-sm" style={{ borderColor: 'var(--color-border-soft)' }}>
+                    <span className="font-semibold">{notion.terme}</span>
+                    <span style={{ color: 'var(--color-ink-muted)' }}> : {notion.definition}</span>
+                  </div>
                 ))}
-              </ul>
-            </>
+              </div>
+            </section>
           )}
 
           {resumeCours.pointsARevoir.length > 0 && (
-            <>
-              <h3 className="mt-4 mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Points a revoir
-              </h3>
-              <ul className="list-disc pl-5 text-sm text-slate-700">
+            <section>
+              <SectionTitre>Points a revoir</SectionTitre>
+              <ul className="list-disc rounded-2xl border bg-white p-4 pl-8 text-sm" style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}>
                 {resumeCours.pointsARevoir.map((point, index) => (
                   <li key={index}>{point}</li>
                 ))}
               </ul>
-            </>
+            </section>
           )}
-        </div>
+        </>
       )}
-    </section>
+    </>
   )
 }

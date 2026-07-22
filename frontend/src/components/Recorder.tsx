@@ -113,7 +113,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)', boxShadow: '0 1px 3px rgba(20,18,15,.04)' }}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="text"
@@ -121,14 +121,16 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
           value={titre}
           disabled={enregistrement}
           onChange={(e) => setTitre(e.target.value)}
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
+          className="flex-1 rounded-lg border px-3.5 py-2.5 text-sm outline-none disabled:opacity-60"
+          style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
         />
         {couloirs.length > 0 && (
           <select
             value={couloirId}
             disabled={enregistrement}
             onChange={(e) => setCouloirId(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100"
+            className="rounded-lg border px-3 py-2.5 text-sm outline-none disabled:opacity-60"
+            style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
           >
             <option value="">Aucun (personnel)</option>
             {couloirs.map((couloir) => (
@@ -141,26 +143,30 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
         {!enregistrement ? (
           <button
             onClick={demarrer}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+            style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
           >
-            Demarrer l'enregistrement
+            <span className="inline-block h-2 w-2 rounded-full bg-white" />
+            Demarrer
           </button>
         ) : (
           <button
             onClick={arreter}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
+            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+            style={{ background: 'var(--color-ink)' }}
           >
-            Arreter
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--color-live)' }} />
+            Terminer
           </button>
         )}
       </div>
       {enregistrement && (
-        <p className="mt-2 flex items-center gap-2 text-sm text-red-600">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" />
+        <p className="mt-3 flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-live)' }}>
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: 'var(--color-live)', animation: 'mem-pulse 1.4s ease-in-out infinite' }} />
           Enregistrement en cours...
         </p>
       )}
-      {erreur && <p className="mt-2 text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
     </div>
   )
 }

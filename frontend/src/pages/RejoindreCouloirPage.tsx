@@ -33,22 +33,23 @@ export function RejoindreCouloirPage() {
   }
 
   if (introuvable) {
-    return <p className="p-6 text-center text-sm text-red-600">Couloir introuvable.</p>
+    return <p className="p-6 text-center text-sm" style={{ color: '#B02631' }}>Couloir introuvable.</p>
   }
 
   if (!couloir) {
-    return <p className="p-6 text-center text-sm text-slate-500">Chargement...</p>
+    return <p className="p-6 text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 text-center">
-      <p className="mb-2 text-sm text-slate-500">Tu es sur le point de rejoindre</p>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">{couloir.nom}</h1>
-      {erreur && <p className="mb-4 text-sm text-red-600">{erreur}</p>}
+    <div style={{ background: 'var(--color-cream)', minHeight: '100vh' }} className="mx-auto flex max-w-sm flex-col justify-center px-4 text-center">
+      <p className="mb-2 text-sm" style={{ color: 'var(--color-ink-muted)' }}>Tu es sur le point de rejoindre</p>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">{couloir.nom}</h1>
+      {erreur && <p className="mb-4 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
       <button
         onClick={() => void rejoindre()}
         disabled={enCours}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+        className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
       >
         {enCours ? 'Patiente...' : 'Rejoindre'}
       </button>

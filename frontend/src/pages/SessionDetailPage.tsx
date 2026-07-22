@@ -29,15 +29,41 @@ const ONGLETS_RESUME: { valeur: ResumeType; libelle: string }[] = [
   { valeur: 'ACTIONS', libelle: 'Actions' },
 ]
 
+export function SectionTitre({ children }: { children: string }) {
+  return <h2 className="mb-3 text-[15px] font-bold">{children}</h2>
+}
+
+export function Carte({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+      {children}
+    </div>
+  )
+}
+
+export function BoutonSecondaire(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { className, style, ...rest } = props
+  return (
+    <button
+      {...rest}
+      className={`rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${className ?? ''}`}
+      style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)', ...style }}
+    />
+  )
+}
+
 function ContenuResume({ resume }: { resume: Resume }) {
   if (resume.statut === 'ECHEC') {
-    return <p className="text-sm text-red-600">La generation du resume a echoue.</p>
+    return <p className="text-sm" style={{ color: '#B02631' }}>La generation du resume a echoue.</p>
   }
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-sm text-slate-800">{resume.texteResume}</p>
+    <div
+      className="rounded-2xl border p-5"
+      style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
+    >
+      <p className="text-sm leading-relaxed">{resume.texteResume}</p>
       {resume.pointsCles.length > 0 && (
-        <ul className="mt-3 list-disc pl-5 text-sm text-slate-700">
+        <ul className="mt-3 list-disc pl-5 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
           {resume.pointsCles.map((point, index) => (
             <li key={index}>{point}</li>
           ))}
@@ -187,192 +213,201 @@ export function SessionDetailPage() {
   }, [adresseReseau])
 
   if (chargement) {
-    return <p className="p-8 text-sm text-slate-500">Chargement...</p>
+    return <p className="p-8 text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
   }
 
   if (!session) {
-    return <p className="p-8 text-sm text-red-600">Session introuvable.</p>
+    return <p className="p-8 text-sm" style={{ color: '#B02631' }}>Session introuvable.</p>
   }
 
   const resumeOnglet = resumesParType[ongletActif]
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <Link to="/" className="text-sm text-slate-500 hover:underline">
-        &larr; Retour aux sessions
+    <div className="mx-auto max-w-[1020px] px-8 py-9">
+      <Link to="/" className="text-[13px]" style={{ color: 'var(--color-ink-faint)' }}>
+        &larr; Sessions
       </Link>
 
-      <h1 className="mt-2 mb-1 text-2xl font-semibold text-slate-900">{session.titre}</h1>
-      <p className="mb-6 text-sm text-slate-500">
-        {new Date(session.dateCreation).toLocaleString('fr-FR')} - {session.statut}
-      </p>
+      <h1 className="mt-2.5 text-[27px] font-bold leading-tight tracking-tight">{session.titre}</h1>
+      <div
+        className="mt-3 flex items-center gap-4 text-[13px]"
+        style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}
+      >
+        <span>{new Date(session.dateCreation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        <span>&middot;</span>
+        <span>{session.statut}</span>
+      </div>
 
-      <section className="mb-8">
-        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-          Resume
-        </h2>
+      <div className="mt-7 grid grid-cols-[1fr_290px] items-start gap-8">
+        <div className="flex min-w-0 flex-col gap-7">
 
-        <div className="mb-3 flex gap-2">
-          {ONGLETS_RESUME.map(({ valeur, libelle }) => (
-            <button
-              key={valeur}
-              onClick={() => void afficherOnglet(valeur)}
-              className={`rounded-lg px-3 py-1 text-sm ${
-                ongletActif === valeur
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {libelle}
-            </button>
-          ))}
-        </div>
+          <section>
+            <div className="mb-3 flex gap-2">
+              {ONGLETS_RESUME.map(({ valeur, libelle }) => (
+                <button
+                  key={valeur}
+                  onClick={() => void afficherOnglet(valeur)}
+                  className="rounded-lg px-3 py-1 text-sm font-semibold transition-colors"
+                  style={ongletActif === valeur
+                    ? { background: 'var(--color-ink)', color: '#fff' }
+                    : { background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+                >
+                  {libelle}
+                </button>
+              ))}
+            </div>
 
-        {ongletActif === 'DETAILLE' && !resumeOnglet && (
-          <p className="text-sm text-slate-500">
-            {session.statut === 'EN_COURS'
-              ? 'Le resume sera genere a la fin de la session.'
-              : !resumeAbandonne
-                ? 'Resume en cours de generation...'
-                : transcriptions.some((segment) => segment.statut === 'REUSSIE')
-                  ? 'La generation du resume prend plus de temps que prevu.'
-                  : "Aucun resume : aucune transcription n'a abouti pour cette session."}
-          </p>
-        )}
+            {ongletActif === 'DETAILLE' && !resumeOnglet && (
+              <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+                {session.statut === 'EN_COURS'
+                  ? 'Le resume sera genere a la fin de la session.'
+                  : !resumeAbandonne
+                    ? 'Resume en cours de generation...'
+                    : transcriptions.some((segment) => segment.statut === 'REUSSIE')
+                      ? 'La generation du resume prend plus de temps que prevu.'
+                      : "Aucun resume : aucune transcription n'a abouti pour cette session."}
+              </p>
+            )}
 
-        {ongletActif !== 'DETAILLE' && generationEnCours === ongletActif && (
-          <p className="text-sm text-slate-500">Generation en cours...</p>
-        )}
-        {ongletActif !== 'DETAILLE' && generationEnCours !== ongletActif && erreurGeneration && (
-          <p className="text-sm text-red-600">{erreurGeneration}</p>
-        )}
-        {ongletActif !== 'DETAILLE' &&
-          generationEnCours !== ongletActif &&
-          !erreurGeneration &&
-          resumeOnglet === undefined && <p className="text-sm text-slate-500">Chargement...</p>}
+            {ongletActif !== 'DETAILLE' && generationEnCours === ongletActif && (
+              <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Generation en cours...</p>
+            )}
+            {ongletActif !== 'DETAILLE' && generationEnCours !== ongletActif && erreurGeneration && (
+              <p className="text-sm" style={{ color: '#B02631' }}>{erreurGeneration}</p>
+            )}
+            {ongletActif !== 'DETAILLE' &&
+              generationEnCours !== ongletActif &&
+              !erreurGeneration &&
+              resumeOnglet === undefined && <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>}
 
-        {resumeOnglet && <ContenuResume resume={resumeOnglet} />}
-      </section>
+            {resumeOnglet && <ContenuResume resume={resumeOnglet} />}
+          </section>
 
-      {module === 'ENTREPRISE' && <SessionDetailEntreprise sessionId={id!} />}
-      {module === 'ECOLE' && <SessionDetailEcole sessionId={id!} />}
+          {module === 'ENTREPRISE' && <SessionDetailEntreprise sessionId={id!} />}
+          {module === 'ECOLE' && <SessionDetailEcole sessionId={id!} />}
 
-      <section>
-        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-          Transcription
-        </h2>
-        {transcriptions.length === 0 && (
-          <p className="text-sm text-slate-500">Aucun segment transcrit pour le moment.</p>
-        )}
-        <ol className="flex flex-col gap-2">
-          {transcriptions.map((segment) => (
-            <li
-              key={segment.numeroSequence}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
-            >
-              <span className="mr-2 font-mono text-xs text-slate-400">
-                #{segment.numeroSequence}
-              </span>
-              {segment.statut !== 'REUSSIE' ? (
-                <span className="italic text-red-600">Echec de la transcription</span>
-              ) : segment.segmentsLocuteur.length > 0 ? (
-                <div className="mt-1 flex flex-col gap-1">
-                  {segment.segmentsLocuteur.map((locuteur, index) => (
-                    <p key={index}>
-                      <span className="mr-2 font-medium text-slate-500">
-                        Intervenant {locuteur.locuteur}
-                        {locuteur.nomUtilisateurIdentifie && ` (${locuteur.nomUtilisateurIdentifie})`}
-                      </span>
-                      <span className="text-slate-800">{locuteur.texte}</span>
-                    </p>
-                  ))}
+          <section>
+            <SectionTitre>Transcription</SectionTitre>
+            {transcriptions.length === 0 && (
+              <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun segment transcrit pour le moment.</p>
+            )}
+            <div className="rounded-2xl border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
+              {transcriptions.map((segment, index) => (
+                <div
+                  key={segment.numeroSequence}
+                  className="p-3.5 text-sm"
+                  style={index > 0 ? { borderTop: '1px solid var(--color-border-softer)' } : undefined}
+                >
+                  <span className="mr-2 text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>
+                    #{segment.numeroSequence}
+                  </span>
+                  {segment.statut !== 'REUSSIE' ? (
+                    <span className="italic" style={{ color: '#B02631' }}>Echec de la transcription</span>
+                  ) : segment.segmentsLocuteur.length > 0 ? (
+                    <div className="mt-1 flex flex-col gap-1">
+                      {segment.segmentsLocuteur.map((locuteur, i) => (
+                        <p key={i}>
+                          <span className="mr-2 font-medium" style={{ color: 'var(--color-ink-muted)' }}>
+                            Intervenant {locuteur.locuteur}
+                            {locuteur.nomUtilisateurIdentifie && ` (${locuteur.nomUtilisateurIdentifie})`}
+                          </span>
+                          <span>{locuteur.texte}</span>
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <span>{segment.texte}</span>
+                  )}
                 </div>
-              ) : (
-                <span className="text-slate-800">{segment.texte}</span>
-              )}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-          Documents
-        </h2>
-
-        <div className="mb-3 flex flex-wrap gap-2">
-          <label className="inline-block cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200">
-            {televersementEnCours ? 'Envoi en cours...' : 'Ajouter un PDF ou une photo'}
-            <input
-              type="file"
-              accept="application/pdf,image/*"
-              className="hidden"
-              disabled={televersementEnCours}
-              onChange={(e) => {
-                void surSelectionFichier(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
-          </label>
-
-          <input
-            type="text"
-            value={adresseReseau}
-            onChange={(e) => setAdresseReseau(e.target.value)}
-            placeholder="Detectee automatiquement (modifiable si besoin)"
-            title="Rempli automatiquement par le serveur. A ajuster seulement si plusieurs reseaux sont disponibles sur ce PC."
-            className="w-64 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-          />
-
-          <button
-            onClick={() => void afficherQrCode()}
-            className="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-600 hover:bg-slate-200"
-          >
-            {qrCodeImage ? 'Masquer le QR code' : 'Ajouter depuis un telephone (QR code)'}
-          </button>
+              ))}
+            </div>
+          </section>
         </div>
 
-        {qrCodeImage && (
-          <div className="mb-4 flex flex-col items-center gap-2 rounded-lg border border-slate-200 bg-white p-4">
-            <img src={qrCodeImage} alt="QR code pour ajouter une photo depuis un telephone" />
-            <p className="text-xs break-all text-slate-400">{qrCodeUrl}</p>
-            <p className="text-xs text-slate-500">
-              Scanne ce QR code avec un telephone connecte au meme reseau Wi-Fi. Le micro reste
-              utilisable ici car cette page continue de tourner sur localhost.
-            </p>
-          </div>
-        )}
+        <aside className="sticky top-6 flex flex-col gap-4">
+          <div className="rounded-2xl border bg-white p-4" style={{ borderColor: 'var(--color-border-soft)' }}>
+            <div className="mb-3 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
+              Documents lies
+            </div>
 
-        {erreurTeleversement && <p className="mb-2 text-sm text-red-600">{erreurTeleversement}</p>}
+            <div className="flex flex-col gap-2">
+              <label
+                className="inline-block cursor-pointer rounded-lg px-3 py-1.5 text-center text-xs font-semibold"
+                style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+              >
+                {televersementEnCours ? 'Envoi en cours...' : 'Ajouter un PDF ou une photo'}
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  className="hidden"
+                  disabled={televersementEnCours}
+                  onChange={(e) => {
+                    void surSelectionFichier(e.target.files?.[0])
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              <button
+                onClick={() => void afficherQrCode()}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+              >
+                {qrCodeImage ? 'Masquer le QR code' : 'Depuis un telephone (QR)'}
+              </button>
+            </div>
 
-        {documents.length === 0 && (
-          <p className="text-sm text-slate-500">Aucun document depose pour le moment.</p>
-        )}
-        <ul className="flex flex-col gap-2">
-          {documents.map((document) => (
-            <li
-              key={document.id}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm"
-            >
-              <div className="mb-1 flex items-center gap-2">
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                  {document.type}
-                </span>
-                <span className="font-medium text-slate-800">{document.nomFichier}</span>
+            {qrCodeImage && (
+              <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border p-3" style={{ borderColor: 'var(--color-border-softer)' }}>
+                <img src={qrCodeImage} alt="QR code pour ajouter une photo depuis un telephone" />
+                <p className="break-all text-[10.5px]" style={{ color: 'var(--color-ink-faint)' }}>{qrCodeUrl}</p>
+                <p className="text-[10.5px]" style={{ color: 'var(--color-ink-muted)' }}>
+                  Meme reseau Wi-Fi requis. Le micro reste utilisable ici.
+                </p>
               </div>
-              {document.statut === 'EN_ATTENTE' && (
-                <p className="text-slate-500 italic">Extraction du texte en cours...</p>
-              )}
-              {document.statut === 'ECHEC' && (
-                <p className="text-red-600 italic">Echec de l'extraction du texte.</p>
-              )}
-              {document.statut === 'REUSSI' && (
-                <p className="whitespace-pre-wrap text-slate-800">{document.texteExtrait}</p>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+            )}
+
+            {erreurTeleversement && <p className="mt-2 text-xs" style={{ color: '#B02631' }}>{erreurTeleversement}</p>}
+
+            {documents.length === 0 ? (
+              <p className="mt-3 text-xs" style={{ color: 'var(--color-ink-muted)' }}>Aucun document depose.</p>
+            ) : (
+              <div className="mt-3 flex flex-col gap-2">
+                {documents.map((document) => (
+                  <details key={document.id} className="rounded-lg border p-2.5 text-xs" style={{ borderColor: 'var(--color-border-softer)' }}>
+                    <summary className="flex cursor-pointer items-center gap-2">
+                      <span className="rounded px-1.5 py-0.5" style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)', fontFamily: 'var(--font-mono)', fontSize: '9px' }}>
+                        {document.type}
+                      </span>
+                      <span className="truncate font-medium">{document.nomFichier}</span>
+                    </summary>
+                    {document.statut === 'EN_ATTENTE' && (
+                      <p className="mt-2 italic" style={{ color: 'var(--color-ink-muted)' }}>Extraction en cours...</p>
+                    )}
+                    {document.statut === 'ECHEC' && (
+                      <p className="mt-2 italic" style={{ color: '#B02631' }}>Echec de l'extraction.</p>
+                    )}
+                    {document.statut === 'REUSSI' && (
+                      <p className="mt-2 whitespace-pre-wrap">{document.texteExtrait}</p>
+                    )}
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Link
+            to="/fils-memoire"
+            className="flex items-center justify-between gap-2 rounded-2xl border p-4 transition-colors"
+            style={{ borderColor: '#E4E2F6', background: 'var(--color-brand-wash)' }}
+          >
+            <div>
+              <div className="text-[12.5px] font-semibold" style={{ color: 'var(--color-brand)' }}>Voir les fils de memoire</div>
+              <div className="mt-0.5 text-[11.5px]" style={{ color: 'var(--color-ink-faint)' }}>Sessions du meme sujet</div>
+            </div>
+            <span style={{ color: 'var(--color-brand)' }}>&rarr;</span>
+          </Link>
+        </aside>
+      </div>
     </div>
   )
 }

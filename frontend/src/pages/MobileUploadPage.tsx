@@ -41,21 +41,33 @@ export function MobileUploadPage() {
   }
 
   if (sessionIntrouvable) {
-    return <p className="p-6 text-center text-sm text-red-600">Session introuvable.</p>
+    return (
+      <div style={{ background: 'var(--color-cream)', minHeight: '100vh' }} className="flex items-center justify-center p-6">
+        <p className="text-sm" style={{ color: '#B02631' }}>Session introuvable.</p>
+      </div>
+    )
   }
 
   if (!session) {
-    return <p className="p-6 text-center text-sm text-slate-500">Chargement...</p>
+    return (
+      <div style={{ background: 'var(--color-cream)', minHeight: '100vh' }} className="flex items-center justify-center p-6">
+        <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center gap-4 bg-slate-50 px-4 py-10 text-center">
-      <h1 className="text-lg font-semibold text-slate-900">{session.titre}</h1>
-      <p className="text-sm text-slate-500">
+    <div style={{ background: 'var(--color-cream)', minHeight: '100vh' }} className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-12 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-extrabold text-white" style={{ background: 'var(--color-brand)' }}>M</span>
+      <h1 className="text-xl font-bold tracking-tight">{session.titre}</h1>
+      <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
         Prends en photo le tableau ou un document pour l'ajouter a cette session.
       </p>
 
-      <label className="mt-4 w-full cursor-pointer rounded-xl bg-slate-900 px-6 py-4 text-base font-medium text-white active:bg-slate-800">
+      <label
+        className="mt-4 w-full cursor-pointer rounded-2xl px-6 py-4 text-base font-semibold text-white"
+        style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
+      >
         {envoiEnCours ? 'Envoi en cours...' : 'Prendre une photo'}
         <input
           type="file"
@@ -71,11 +83,11 @@ export function MobileUploadPage() {
       </label>
 
       {derniereEnvoyee && (
-        <p className="text-sm text-green-700">Photo envoyee : {derniereEnvoyee}</p>
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-ok)' }}>Photo envoyee : {derniereEnvoyee}</p>
       )}
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
-      <p className="mt-6 text-xs text-slate-400">
+      <p className="mt-6 text-xs" style={{ color: 'var(--color-ink-faint)' }}>
         {documents.length} document(s) deja envoye(s) pour cette session.
       </p>
     </div>

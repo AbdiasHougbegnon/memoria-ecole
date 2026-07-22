@@ -69,58 +69,87 @@ function FormulaireConnexion({ module }: { module: ModuleMemoria }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
-      <Link to="/choix-module" className="mb-4 text-sm text-slate-500 hover:text-slate-700">
-        &larr; Choisir un autre module
-      </Link>
-      <h1 className={`mb-6 text-center text-2xl font-semibold ${identite.classeAccent}`}>
-        {identite.nomProduit}
-      </h1>
-
-      <div className="mb-4 flex rounded-lg border border-slate-200 bg-white p-1 text-sm">
-        <button
-          type="button"
-          onClick={() => setMode('connexion')}
-          className={`flex-1 rounded-md py-1.5 font-medium ${mode === 'connexion' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}
-        >
-          Connexion
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('inscription')}
-          className={`flex-1 rounded-md py-1.5 font-medium ${mode === 'inscription' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}
-        >
-          Inscription
-        </button>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-cream)' }}>
+      <div
+        className="hidden flex-1 flex-col justify-between p-14 text-white sm:flex"
+        style={{
+          background: 'radial-gradient(circle at 20% 20%, #6C67E8, transparent 55%), radial-gradient(circle at 80% 80%, #3B37B4, transparent 50%), var(--color-brand)',
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-white text-xl font-extrabold" style={{ color: 'var(--color-brand)' }}>M</div>
+          <span className="text-xl font-bold tracking-tight">{identite.nomProduit}</span>
+        </div>
+        <div className="max-w-md">
+          <div className="text-[30px] font-bold leading-tight tracking-tight">{identite.descriptif}</div>
+        </div>
+        <div />
       </div>
 
-      <form onSubmit={soumettre} className="flex flex-col gap-3">
-        <input
-          type="email"
-          required
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
-        <input
-          type="password"
-          required
-          minLength={8}
-          placeholder="Mot de passe (8 caracteres minimum)"
-          value={motDePasse}
-          onChange={(e) => setMotDePasse(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
-        {erreur && <p className="text-sm text-red-600">{erreur}</p>}
-        <button
-          type="submit"
-          disabled={enCours}
-          className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${identite.classeBouton}`}
-        >
-          {enCours ? 'Patiente...' : mode === 'connexion' ? 'Se connecter' : "Creer le compte"}
-        </button>
-      </form>
+      <div className="flex flex-1 items-center justify-center p-10">
+        <div className="w-full max-w-sm">
+          <Link to="/choix-module" className="mb-6 inline-block text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+            &larr; Choisir un autre espace
+          </Link>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">
+            {mode === 'connexion' ? 'Connexion' : 'Creer un compte'}
+          </h1>
+          <p className="mb-7 text-sm" style={{ color: 'var(--color-ink-muted)' }}>{identite.nomProduit}</p>
+
+          <div
+            className="mb-5 flex rounded-lg p-1 text-sm"
+            style={{ background: '#E8E3DA' }}
+          >
+            <button
+              type="button"
+              onClick={() => setMode('connexion')}
+              className="flex-1 rounded-md py-1.5 font-semibold transition-colors"
+              style={mode === 'connexion' ? { background: '#fff', color: 'var(--color-ink)', boxShadow: '0 1px 3px rgba(20,18,15,.12)' } : { color: 'var(--color-ink-muted)' }}
+            >
+              Connexion
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('inscription')}
+              className="flex-1 rounded-md py-1.5 font-semibold transition-colors"
+              style={mode === 'inscription' ? { background: '#fff', color: 'var(--color-ink)', boxShadow: '0 1px 3px rgba(20,18,15,.12)' } : { color: 'var(--color-ink-muted)' }}
+            >
+              Inscription
+            </button>
+          </div>
+
+          <form onSubmit={soumettre} className="flex flex-col gap-3">
+            <input
+              type="email"
+              required
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+              style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+            />
+            <input
+              type="password"
+              required
+              minLength={8}
+              placeholder="Mot de passe (8 caracteres minimum)"
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
+              className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+              style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+            />
+            {erreur && <p className="text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
+            <button
+              type="submit"
+              disabled={enCours}
+              className="rounded-lg py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+              style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
+            >
+              {enCours ? 'Patiente...' : mode === 'connexion' ? 'Se connecter' : 'Creer le compte'}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
