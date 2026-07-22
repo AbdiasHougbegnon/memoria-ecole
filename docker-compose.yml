@@ -64,8 +64,54 @@ services:
     ports:
       - "80:80"
 
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: memoria-prometheus
+    volumes:
+      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - memoria_prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: memoria-tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - memoria_tempo_data:/var/tempo
+    # Pas de "ports" publie : meme doctrine que speaker-service -- seul Grafana
+    # et le backend (envoi OTLP) l'atteignent, via le reseau Docker interne.
+    expose:
+      - "3200"
+      - "4317"
+      - "4318"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: memoria-grafana
+    environment:
+      # Pas de valeur de repli faible : le "up" echoue explicitement si absent
+      # de .env (voir .env.example et docs/deploiement.md).
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD doit etre defini dans .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - memoria_grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+
 volumes:
   memoria_postgres_data:
   memoria_audio_data:
   memoria_documents_data:
   memoria_speaker_profiles:
+  memoria_prometheus_data:
+  memoria_tempo_data:
+  memoria_grafana_data:

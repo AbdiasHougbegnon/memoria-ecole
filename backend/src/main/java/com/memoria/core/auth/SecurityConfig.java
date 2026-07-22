@@ -34,10 +34,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
                         // Sonde de sante Docker/orchestrateur (pas de compte pour verifier
-                        // qu'un conteneur repond) -- ne pas confondre avec les autres
-                        // endpoints actuator (non exposes ici, donc anyRequest().authenticated()
-                        // continue de s'appliquer si jamais un autre etait active).
+                        // qu'un conteneur repond).
                         .requestMatchers("/actuator/health").permitAll()
+                        // Scraping Prometheus : meme raisonnement que /actuator/health --
+                        // nginx (frontend) ne relaie que /api/*, jamais /actuator/*, donc
+                        // ce endpoint n'est atteignable que depuis le reseau Docker interne
+                        // (par prometheus). C'est la frontiere reseau qui protege, pas
+                        // l'authentification applicative -- coherent avec speaker-service,
+                        // jamais publie vers l'hote non plus. Tout AUTRE endpoint actuator
+                        // (env, beans, mappings...) reste couvert par anyRequest().authenticated()
+                        // ci-dessous puisqu'il n'est pas expose (management.endpoints.web.exposure.include
+                        // ne liste que health,prometheus).
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Flux mobile QR code (Phase 2) : une personne scanne un QR code
                         // avec son telephone, sans jamais se connecter. La securite de ce
                         // flux repose sur la confidentialite de l'UUID de session, pas sur

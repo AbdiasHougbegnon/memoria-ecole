@@ -63,7 +63,7 @@ La VM provisionnée n'a que Docker + le plugin Compose installés (via
 cloud-init) — le dépôt applicatif et le `.env` réel se déploient séparément
 (scp manuel pour l'instant, étape CI/CD à construire plus tard).
 
-## 5. Limites et migration future
+## 5. Limites et migration future (déploiement)
 
 - **Pas d'AKS dans ce lot.** Le master prompt nomme AKS, mais ça correspond à
   la Phase 4 "Plateforme/passage à l'échelle" — prématuré sans client réel
@@ -80,3 +80,42 @@ cloud-init) — le dépôt applicatif et le `.env` réel se déploient séparém
   la CI construit les images comme garde-fou (`docker build`), mais ne les
   pousse nulle part. À construire quand un vrai déploiement récurrent
   (plusieurs clients, mises à jour fréquentes) le justifiera.
+
+## 6. Observabilité : Prometheus, Grafana, OpenTelemetry (Tempo)
+
+`docker compose up --build` démarre désormais **7 conteneurs** : les 4
+précédents (postgres, backend, speaker-service, frontend) + `prometheus`,
+`tempo`, `grafana`.
+
+- **Grafana** : `http://localhost:3000`, identifiant `admin`, mot de passe =
+  `GF_SECURITY_ADMIN_PASSWORD` du `.env` (obligatoire, jamais "admin" —
+  `docker compose up` échoue explicitement si absent). Dashboard "Memoria
+  Backend" préprovisionné (menu Dashboards) : taux de requêtes HTTP, latence
+  p95/p99, mémoire JVM heap, connexions actives Hikari.
+- **Prometheus** : `http://localhost:9090` — debug local uniquement. En
+  déploiement Azure réel, le NSG Terraform (`infra/terraform/main.tf`) n'ouvre
+  que 80/443/22 : ce port reste inaccessible depuis Internet même s'il est
+  "publié" localement par Compose — défense en profondeur.
+- **Tempo** (traces) : jamais exposé à l'hôte (même doctrine que
+  `speaker-service`, voir §3) — consultable uniquement via Grafana Explore
+  (datasource "Tempo"), recherche par `service.name = memoria-core`.
+- **Sécurité** : `/actuator/prometheus` suit exactement la même doctrine que
+  `/actuator/health` (§3) — jamais relayé par nginx, jamais publié vers
+  l'hôte, protégé par la frontière réseau Docker, pas par une authentification
+  applicative.
+- **Dégradation gracieuse** : l'agent Java OpenTelemetry (attaché au conteneur
+  `backend`) suit la même doctrine que le reste du projet (`EnvoyeurEmailSmtp`,
+  clients Azure) — si `tempo` est arrêté ou indisponible, le backend démarre et
+  fonctionne normalement, seuls des warnings d'export OTLP échoué apparaissent
+  dans les logs.
+
+## 7. Limites et migration future (observabilité)
+
+- **Pas de métriques de coût par tenant/service** — nécessiterait du code
+  métier custom (comptage d'appels Azure par session/tenant), chantier séparé
+  ("Maîtrise des coûts Azure" du master prompt).
+- **Pas d'alerting** (Alertmanager) — dashboards de consultation uniquement
+  pour l'instant, personne n'est notifié automatiquement d'une anomalie.
+- **Pas d'observabilité frontend** (Sentry/RUM) — ce lot couvre uniquement le
+  backend.
+- **Pas de logs centralisés** (Loki) — seulement métriques + traces.
