@@ -16,5 +16,56 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/memoria
+      SPRING_DATASOURCE_USERNAME: memoria
+      SPRING_DATASOURCE_PASSWORD: memoria
+      MEMORIA_JWT_SECRET: ${MEMORIA_JWT_SECRET:-}
+      MEMORIA_SPEAKER_SERVICE_URL: http://speaker-service:8090
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY:-}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-}
+      AZURE_DOCINTEL_ENDPOINT: ${AZURE_DOCINTEL_ENDPOINT:-}
+      AZURE_DOCINTEL_KEY: ${AZURE_DOCINTEL_KEY:-}
+      AZURE_SEARCH_ENDPOINT: ${AZURE_SEARCH_ENDPOINT:-}
+      AZURE_SEARCH_KEY: ${AZURE_SEARCH_KEY:-}
+      MEMORIA_EMAIL_HOST: ${MEMORIA_EMAIL_HOST:-}
+      MEMORIA_EMAIL_PORT: ${MEMORIA_EMAIL_PORT:-587}
+      MEMORIA_EMAIL_USERNAME: ${MEMORIA_EMAIL_USERNAME:-}
+      MEMORIA_EMAIL_PASSWORD: ${MEMORIA_EMAIL_PASSWORD:-}
+    volumes:
+      - memoria_audio_data:/app/data/audio
+      - memoria_documents_data:/app/data/documents
+    expose:
+      - "8080"
+
+  speaker-service:
+    build: ./speaker-service
+    # Pas de "ports" publie vers l'hote : le README du service documente
+    # explicitement l'absence d'authentification entre le backend et ce
+    # service -- il ne doit jamais etre exposé au-dela du reseau Docker interne.
+    expose:
+      - "8090"
+    volumes:
+      - memoria_speaker_profiles:/app/data
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
 volumes:
   memoria_postgres_data:
+  memoria_audio_data:
+  memoria_documents_data:
+  memoria_speaker_profiles:

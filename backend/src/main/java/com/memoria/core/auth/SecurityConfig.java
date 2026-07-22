@@ -33,6 +33,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
+                        // Sonde de sante Docker/orchestrateur (pas de compte pour verifier
+                        // qu'un conteneur repond) -- ne pas confondre avec les autres
+                        // endpoints actuator (non exposes ici, donc anyRequest().authenticated()
+                        // continue de s'appliquer si jamais un autre etait active).
+                        .requestMatchers("/actuator/health").permitAll()
                         // Flux mobile QR code (Phase 2) : une personne scanne un QR code
                         // avec son telephone, sans jamais se connecter. La securite de ce
                         // flux repose sur la confidentialite de l'UUID de session, pas sur

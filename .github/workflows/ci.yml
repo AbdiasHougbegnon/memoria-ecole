@@ -46,3 +46,17 @@ jobs:
       - name: Build (verifie le typage et la compilation Vite)
         working-directory: frontend
         run: npm run build
+
+  docker:
+    name: Docker build (garde-fou)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ne push rien, ne deploie rien -- verifie seulement que les Dockerfiles
+      # construisent reellement, pour eviter qu'ils se degradent en silence.
+      - name: Build image backend
+        run: docker build -t memoria-backend:ci ./backend
+
+      - name: Build image frontend
+        run: docker build -t memoria-frontend:ci ./frontend

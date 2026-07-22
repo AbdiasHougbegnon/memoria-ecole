@@ -1,0 +1,8 @@
+# Copier en terraform.tfvars (jamais commite) et renseigner les valeurs reelles.
+
+client_name           = "episen"
+domain_name           = "memoria.episen.fr"
+location              = "francecentral"
+vm_size               = "Standard_B2s"
+admin_ssh_public_key  = "ssh-ed25519 AAAA... exemple-a-remplacer"
+ssh_allowed_cidr      = "203.0.113.42/32"
