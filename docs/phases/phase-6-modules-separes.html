@@ -1,0 +1,273 @@
+<title>Memoria — Dossier technique : séparation École/Entreprise en deux modules</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #4f6bd8; --accent-strong: #33459c; --accent-wash: #dfe4fa; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #8b9df0; --accent-strong: #aab6f5; --accent-wash: #232a47; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #8b9df0; --accent-strong: #aab6f5; --accent-wash: #232a47; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #4f6bd8; --accent-strong: #33459c; --accent-wash: #dfe4fa; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+  .pill.ecole { color: #1f7a4d; border-color: #1f7a4d; background: transparent; }
+  .pill.entreprise { color: var(--accent-strong); border-color: var(--accent-strong); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .code200 { color: var(--ok); font-weight: 600; }
+  .verif-line .code403 { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Plateforme · École &amp; Entreprise</span>
+    <h1 class="title">Séparation École/Entreprise en deux modules</h1>
+    <p class="dek">École et Entreprise étaient mélangés dans les mêmes pages (une section "Entreprise" et une section "Ecole" côte à côte sur le détail de session, une nav unique). Chaque compte appartient désormais à un module choisi à l'inscription, avec un écran de sélection dédié, une identité visuelle propre à chaque module, et des routes API restreintes côté serveur — le tout sans toucher au moteur commun.</p>
+    <div class="factrow">
+      <span class="fact"><strong>164</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">vérifié par <strong>curl + navigateur</strong>, deux vrais comptes</span>
+      <span class="fact">tag <code>phase-6-modules-separes</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#backend">Le backend</a>
+    <a href="#frontend">Le frontend</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">École et Entreprise étaient mélangés dans les mêmes pages frontend : le détail de session affichait côte à côte "Compte rendu complet (Entreprise)" et "Résumé de cours (Ecole)", la nav mélangeait liens génériques et liens Entreprise sans distinction visuelle, et la connexion ne portait aucune notion de produit. Demande explicite : deux modules réellement séparés, regroupés par le moteur commun, connexion module-aware. <strong>Kafka et les microservices séparés restent hors périmètre</strong> — reportés à un signal réel (deuxième développeur ou premier déploiement client).</p>
+      <div class="card">
+        <p style="margin:0 0 8px; font-size:0.88rem; color:var(--text-muted)">Trois décisions tranchées avant conception :</p>
+        <ul class="plain">
+          <li><strong>Module persisté sur le compte</strong> — champ sur <code>Utilisateur</code>, choisi à l'inscription.</li>
+          <li><strong>Écran de sélection dédié avant le login</strong> — pas un simple toggle sur le formulaire.</li>
+          <li><strong>Identité visuelle par module</strong> pour les pages du moteur partagé (nav/couleurs différentes, même fonctionnalité).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Suivre le chemin déjà anticipé pour un futur role</strong> — <code>phase-5-securite-auth.md</code> décrivait déjà : champ sur <code>Utilisateur</code>, autorité dans <code>JwtAuthenticationFilter</code>, <code>hasRole(...)</code> dans <code>SecurityConfig</code>. Appliqué tel quel avec <code>module</code>.</li>
+          <li><strong>ModuleMemoria dans core.auth, jamais dans un package produit</strong> — même principe que <code>Couloir</code>/<code>MembreCouloir</code> : le moteur ne connaît ni Ecole ni Entreprise.</li>
+          <li><strong>Module dans le JWT, pas relu en base</strong> — <code>JwtAuthenticationFilter</code> reste stateless. Limite assumée : un changement de module ne serait pris en compte qu'à la réémission du token (24h) — sans conséquence, aucun endpoint ne permet ce changement.</li>
+          <li><strong>Restriction dans SecurityConfig, pas dans les services</strong> — un contrôle de module est une autorisation, pas une règle métier ; <code>hasAuthority("MODULE_ENTREPRISE")</code> centralise la logique.</li>
+          <li><strong>Mauvais écran de login → redirection silencieuse</strong> — le module vient toujours du serveur, jamais de l'URL cliquée ; refuser la connexion n'apporterait aucun bénéfice de sécurité.</li>
+          <li><strong>Split de SessionDetailPage en sous-composants</strong> — le fetch devait de toute façon devenir conditionnel au module (sinon 403 pour l'autre module), donc extraction complète plutôt qu'un simple if de rendu.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2><span class="num">§</span> Le backend, fichier par fichier</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>ModuleMemoria — nouveau, core.auth</h4>
+          <pre><code>public enum ModuleMemoria { ECOLE, ENTREPRISE }</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>Utilisateur — gagne le champ module</h4>
+          <pre><code>@Enumerated(EnumType.STRING)
+@Column(nullable = false, length = 20)
+private ModuleMemoria module;</code></pre>
+          <p class="why"><span class="label">Note —</span> ancien constructeur à 2 arguments retiré, tous les appelants (code + tests) mis à jour.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>JwtService — claim module + validerEtExtraire</h4>
+          <pre><code>.claim("module", utilisateur.getModule().name())
+// ...
+public record UtilisateurAuthentifie(UUID utilisateurId, ModuleMemoria module) {}
+public Optional&lt;UtilisateurAuthentifie&gt; validerEtExtraire(String token) { ... }</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>SecurityConfig — restriction des routes par module</h4>
+          <pre><code>.requestMatchers("/api/v1/engagements/**").hasAuthority("MODULE_ENTREPRISE")
+.requestMatchers("/api/v1/entreprise/**").hasAuthority("MODULE_ENTREPRISE")
+.requestMatchers("/api/v1/sessions/*/compte-rendu").hasAuthority("MODULE_ENTREPRISE")
+.requestMatchers("/api/v1/sessions/*/resume-cours").hasAuthority("MODULE_ECOLE")
+// tout le reste (sessions, couloirs, recherche, transcriptions...) : anyRequest().authenticated()</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> Le frontend</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">moduleIdentite.ts</td><td>Table centralisée (nom produit, couleurs) — évite toute incohérence entre écran de choix, login et nav</td></tr>
+            <tr><td class="mono">ChoixModulePage.tsx</td><td>Route <code>/choix-module</code>, deux cartes École/Entreprise vers <code>/connexion?module=...</code></td></tr>
+            <tr><td class="mono">Layout.tsx</td><td>Nav + identité visuelle par module, remplace le header codé en dur de SessionsListPage</td></tr>
+            <tr><td class="mono">SessionDetailEntreprise.tsx / SessionDetailEcole.tsx</td><td>Sections extraites, fetch propre à chaque module</td></tr>
+            <tr><td class="mono">RouteProtegee.tsx</td><td>Prop <code>module?</code> — garde UX (la vraie frontière est SecurityConfig)</td></tr>
+            <tr><td class="mono">LoginPage.tsx</td><td>Module lu depuis l'URL, redirige vers /choix-module si absent</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <p class="lead"><code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">164/164 tests</strong> passent (162 précédents + 2 nouveaux : stockage du module à l'inscription, round-trip du module dans le JWT). Les tests des autres services (Session, Transcription, CompteRendu, Engagement, Rappel) ont simplement leurs constructeurs <code>Utilisateur</code> mis à jour, sans nouvelle assertion. <code>cd frontend &amp;&amp; npx tsc -b --noEmit</code> — zéro nouvelle erreur (une erreur pré-existante sans rapport sur <code>api.ts:7</code>, confirmée antérieure via <code>git stash</code>). <code>npm run lint</code> — clean.</p>
+      <p class="lead">Pas de nouveau test <code>@WebMvcTest</code> pour <code>SecurityConfig</code> — convention déjà explicite dans <code>ResumeControllerTest</code> : règles Spring Security couvertes par les tests dédiés à <code>JwtService</code>/<code>AuthService</code> et par la vérification manuelle end-to-end.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Backend redémarré avec le nouveau code (vérifié via son propre log : <code>Started CoreApplication ... Tomcat started on port 8080</code>), migration SQL appliquée sur la base de dev réelle. Séquence curl avec deux vrais comptes :</p>
+      <div class="card">
+        <div class="verif-line"><span class="route">POST /api/v1/auth/inscription {module: ECOLE}</span><span class="code200">201</span></div>
+        <div class="verif-line"><span class="route">POST /api/v1/auth/inscription {module: ENTREPRISE}</span><span class="code200">201</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/engagements <span class="pill ecole">token ECOLE</span></span><span class="code403">403</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/engagements <span class="pill entreprise">token ENTREPRISE</span></span><span class="code200">200</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/entreprise/tableau-de-bord <span class="pill ecole">token ECOLE</span></span><span class="code403">403</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/sessions/{id}/resume-cours <span class="pill ecole">token ECOLE</span></span><span class="code200">200</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/sessions/{id}/resume-cours <span class="pill entreprise">token ENTREPRISE</span></span><span class="code403">403</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/utilisateurs/moi <span class="pill ecole">token ECOLE</span> (moteur commun)</span><span class="code200">200</span></div>
+        <div class="verif-line"><span class="route">GET /api/v1/couloirs <span class="pill entreprise">token ENTREPRISE</span> (moteur commun)</span><span class="code200">200</span></div>
+      </div>
+      <p class="lead" style="color:var(--ok)">Confirmé ensuite par l'utilisateur lui-même dans le navigateur (<code>/choix-module</code> → connexion → nav/couleurs par module → détail de session affichant la bonne section) : "ça marche bien".</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de changement de module après inscription</strong> — aucun endpoint ne le permet ; cohérent avec le modèle de déploiement cible (une instance dédiée par client).</li>
+        <li><strong>Module du JWT jamais re-vérifié en base pendant 24h</strong> — sans conséquence tant qu'aucun changement de module n'est possible.</li>
+        <li><strong>Migration manuelle, pas de Flyway/Liquibase</strong> — acceptable en Phase 1, à revoir si un vrai déploiement client l'exige.</li>
+        <li><strong>Kafka et microservices séparés hors périmètre</strong> — reporté à un signal réel, choix délibéré, pas un oubli.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Chemin de bout en bout : <code>ChoixModulePage</code> → <code>LoginPage</code> (lit <code>?module=</code>) → <code>POST /inscription</code> ou <code>/connexion</code> → <code>AuthResponse.module</code> → <code>enregistrerSession</code> → <code>RouteProtegee</code> + <code>Layout</code> → chaque requête porte le JWT avec la claim <code>module</code> → <code>SecurityConfig</code> autorise ou bloque.</li>
+          <li>Prochaine direction retenue : Docker + Terraform pour un déploiement mono-instance industrialisé — ce que le master prompt pose explicitement comme ce qui compte techniquement pour un vrai client.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-6-modules-separes</code> — vérifiée par curl (autorisations croisées) et par l'utilisateur dans le navigateur.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur la séparation École/Entreprise en deux modules.
+    </footer>
+  </main>
+</div>
