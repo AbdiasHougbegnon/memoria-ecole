@@ -1,13 +1,15 @@
-import type { AuthResponse } from './types'
+import type { AuthResponse, ModuleMemoria } from './types'
 
 const CLE_TOKEN = 'memoria_token'
 const CLE_EMAIL = 'memoria_email'
 const CLE_UTILISATEUR_ID = 'memoria_utilisateur_id'
+const CLE_MODULE = 'memoria_module'
 
 export function enregistrerSession(auth: AuthResponse): void {
   localStorage.setItem(CLE_TOKEN, auth.token)
   localStorage.setItem(CLE_EMAIL, auth.email)
   localStorage.setItem(CLE_UTILISATEUR_ID, auth.utilisateurId)
+  localStorage.setItem(CLE_MODULE, auth.module)
 }
 
 export function obtenirToken(): string | null {
@@ -22,6 +24,10 @@ export function obtenirUtilisateurIdConnecte(): string | null {
   return localStorage.getItem(CLE_UTILISATEUR_ID)
 }
 
+export function obtenirModuleConnecte(): ModuleMemoria | null {
+  return localStorage.getItem(CLE_MODULE) as ModuleMemoria | null
+}
+
 export function estConnecte(): boolean {
   return obtenirToken() !== null
 }
@@ -30,4 +36,5 @@ export function deconnecter(): void {
   localStorage.removeItem(CLE_TOKEN)
   localStorage.removeItem(CLE_EMAIL)
   localStorage.removeItem(CLE_UTILISATEUR_ID)
+  localStorage.removeItem(CLE_MODULE)
 }

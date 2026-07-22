@@ -130,10 +130,13 @@ export interface ResumeCours {
   dateCreation: string
 }
 
+export type ModuleMemoria = 'ECOLE' | 'ENTREPRISE'
+
 export interface AuthResponse {
   token: string
   utilisateurId: string
   email: string
+  module: ModuleMemoria
 }
 
 export interface Couloir {

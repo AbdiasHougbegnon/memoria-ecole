@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,40 +19,53 @@ class JwtServiceTest {
     }
 
     @Test
-    void genererToken_produit_un_token_dont_on_peut_extraire_lid_de_lutilisateur() {
-        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash");
+    void genererToken_produit_un_token_dont_on_peut_extraire_lid_et_le_module_de_lutilisateur() {
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash", ModuleMemoria.ENTREPRISE);
 
         String token = jwtService.genererToken(utilisateur);
-        Optional<UUID> idExtrait = jwtService.validerEtExtraireUtilisateurId(token);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
 
-        assertThat(idExtrait).contains(utilisateur.getId());
+        assertThat(resultat).isPresent();
+        assertThat(resultat.get().utilisateurId()).isEqualTo(utilisateur.getId());
+        assertThat(resultat.get().module()).isEqualTo(ModuleMemoria.ENTREPRISE);
     }
 
     @Test
-    void validerEtExtraireUtilisateurId_retourne_vide_pour_un_token_invalide() {
-        Optional<UUID> resultat = jwtService.validerEtExtraireUtilisateurId("token-invalide");
+    void genererToken_propage_le_module_ecole() {
+        Utilisateur utilisateur = new Utilisateur("jean@memoria.fr", "hash", ModuleMemoria.ECOLE);
+
+        String token = jwtService.genererToken(utilisateur);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
+
+        assertThat(resultat).isPresent();
+        assertThat(resultat.get().module()).isEqualTo(ModuleMemoria.ECOLE);
+    }
+
+    @Test
+    void validerEtExtraire_retourne_vide_pour_un_token_invalide() {
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire("token-invalide");
 
         assertThat(resultat).isEmpty();
     }
 
     @Test
-    void validerEtExtraireUtilisateurId_retourne_vide_pour_un_token_signe_avec_un_autre_secret() {
+    void validerEtExtraire_retourne_vide_pour_un_token_signe_avec_un_autre_secret() {
         JwtService autreService = new JwtService("un-autre-secret-completement-different-32car", 24);
-        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash");
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash", ModuleMemoria.ENTREPRISE);
         String token = autreService.genererToken(utilisateur);
 
-        Optional<UUID> resultat = jwtService.validerEtExtraireUtilisateurId(token);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
 
         assertThat(resultat).isEmpty();
     }
 
     @Test
-    void validerEtExtraireUtilisateurId_retourne_vide_pour_un_token_expire() {
+    void validerEtExtraire_retourne_vide_pour_un_token_expire() {
         JwtService serviceDejaExpire = new JwtService(SECRET, -1);
-        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash");
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash", ModuleMemoria.ENTREPRISE);
         String token = serviceDejaExpire.genererToken(utilisateur);
 
-        Optional<UUID> resultat = jwtService.validerEtExtraireUtilisateurId(token);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
 
         assertThat(resultat).isEmpty();
     }

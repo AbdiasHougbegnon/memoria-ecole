@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, ModuleMemoria, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -19,7 +19,7 @@ async function appelApi(chemin: string, options: RequestInit = {}): Promise<Resp
   const reponse = await fetch(chemin, { ...options, headers })
   if (reponse.status === 401) {
     deconnecter()
-    window.location.href = '/connexion'
+    window.location.href = '/choix-module'
     throw new Error('Session expiree, reconnexion necessaire')
   }
   return reponse
@@ -32,12 +32,12 @@ async function verifierReponse(reponse: Response): Promise<Response> {
   return reponse
 }
 
-export async function inscrire(email: string, motDePasse: string): Promise<AuthResponse> {
+export async function inscrire(email: string, motDePasse: string, module: ModuleMemoria): Promise<AuthResponse> {
   const reponse = await verifierReponse(
     await fetch('/api/v1/auth/inscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, motDePasse }),
+      body: JSON.stringify({ email, motDePasse, module }),
     }),
   )
   return reponse.json()
@@ -276,7 +276,7 @@ export async function obtenirTableauDeBordEntreprise(): Promise<TableauDeBordEnt
   return reponse.json()
 }
 
-export async function obtenirMonCompte(): Promise<{ id: string; email: string; nom: string | null }> {
+export async function obtenirMonCompte(): Promise<{ id: string; email: string; nom: string | null; module: ModuleMemoria }> {
   const reponse = await verifierReponse(await appelApi('/api/v1/utilisateurs/moi'))
   return reponse.json()
 }

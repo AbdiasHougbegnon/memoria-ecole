@@ -1,5 +1,6 @@
 package com.memoria.core.session;
 
+import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.couloir.MembreCouloir;
@@ -52,8 +53,8 @@ class SessionServiceTest {
         UUID couloirId = UUID.randomUUID();
         UUID membreId = UUID.randomUUID();
         Session session = new Session("Cours", createurId, couloirId);
-        Utilisateur createur = new Utilisateur("createur@test.fr", "hash");
-        Utilisateur membre = new Utilisateur("membre@test.fr", "hash");
+        Utilisateur createur = new Utilisateur("createur@test.fr", "hash", ModuleMemoria.ENTREPRISE);
+        Utilisateur membre = new Utilisateur("membre@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
         when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(new MembreCouloir(couloirId, membreId)));
         when(utilisateurRepository.findById(createurId)).thenReturn(Optional.of(createur));

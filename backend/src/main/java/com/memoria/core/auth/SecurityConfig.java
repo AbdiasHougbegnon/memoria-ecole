@@ -41,6 +41,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*/documents").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sessions/*/documents").permitAll()
+
+                        // Entreprise uniquement -- le moteur commun (sessions, couloirs,
+                        // recherche, fils de memoire, transcriptions, resumes generiques)
+                        // reste accessible aux deux modules via anyRequest().authenticated().
+                        .requestMatchers("/api/v1/engagements/**").hasAuthority("MODULE_ENTREPRISE")
+                        .requestMatchers("/api/v1/entreprise/**").hasAuthority("MODULE_ENTREPRISE")
+                        .requestMatchers("/api/v1/sessions/*/engagements").hasAuthority("MODULE_ENTREPRISE")
+                        .requestMatchers("/api/v1/sessions/*/compte-rendu").hasAuthority("MODULE_ENTREPRISE")
+
+                        // Ecole uniquement
+                        .requestMatchers("/api/v1/sessions/*/resume-cours").hasAuthority("MODULE_ECOLE")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);

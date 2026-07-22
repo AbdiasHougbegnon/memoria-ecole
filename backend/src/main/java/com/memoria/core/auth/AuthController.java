@@ -21,7 +21,7 @@ public class AuthController {
     @PostMapping("/inscription")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse inscrire(@Valid @RequestBody InscriptionRequest requete) {
-        return authService.inscrire(requete.email(), requete.motDePasse());
+        return authService.inscrire(requete.email(), requete.motDePasse(), requete.module());
     }
 
     @PostMapping("/connexion")

@@ -6,6 +6,7 @@ import { RecherchePage } from './pages/RecherchePage'
 import { FilsMemoirePage } from './pages/FilsMemoirePage'
 import { EngagementsPage } from './pages/EngagementsPage'
 import { LoginPage } from './pages/LoginPage'
+import { ChoixModulePage } from './pages/ChoixModulePage'
 import { CouloirsPage } from './pages/CouloirsPage'
 import { CouloirDetailPage } from './pages/CouloirDetailPage'
 import { RejoindreCouloirPage } from './pages/RejoindreCouloirPage'
@@ -18,6 +19,7 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-slate-50">
         <Routes>
+          <Route path="/choix-module" element={<ChoixModulePage />} />
           <Route path="/connexion" element={<LoginPage />} />
           {/* Pas de garde d'auth : flux QR code scanne depuis un telephone, sans compte. */}
           <Route path="/mobile/sessions/:id" element={<MobileUploadPage />} />
@@ -26,12 +28,12 @@ function App() {
           <Route path="/sessions/:id" element={<RouteProtegee><SessionDetailPage /></RouteProtegee>} />
           <Route path="/recherche" element={<RouteProtegee><RecherchePage /></RouteProtegee>} />
           <Route path="/fils-memoire" element={<RouteProtegee><FilsMemoirePage /></RouteProtegee>} />
-          <Route path="/engagements" element={<RouteProtegee><EngagementsPage /></RouteProtegee>} />
+          <Route path="/engagements" element={<RouteProtegee module="ENTREPRISE"><EngagementsPage /></RouteProtegee>} />
           <Route path="/couloirs" element={<RouteProtegee><CouloirsPage /></RouteProtegee>} />
           <Route path="/couloirs/:id" element={<RouteProtegee><CouloirDetailPage /></RouteProtegee>} />
           <Route path="/couloirs/:id/rejoindre" element={<RouteProtegee><RejoindreCouloirPage /></RouteProtegee>} />
           <Route path="/parametres" element={<RouteProtegee><ParametresCompteePage /></RouteProtegee>} />
-          <Route path="/tableau-de-bord" element={<RouteProtegee><TableauDeBordPage /></RouteProtegee>} />
+          <Route path="/tableau-de-bord" element={<RouteProtegee module="ENTREPRISE"><TableauDeBordPage /></RouteProtegee>} />
         </Routes>
       </div>
     </BrowserRouter>

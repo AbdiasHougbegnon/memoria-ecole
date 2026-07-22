@@ -2,6 +2,8 @@ package com.memoria.core.auth;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -31,15 +33,24 @@ public class Utilisateur {
     @Column
     private String nom;
 
+    // Produit auquel ce compte appartient (choisi a l'inscription, jamais
+    // modifiable ensuite dans ce lot). Determine le routage frontend et les
+    // autorisations backend (voir SecurityConfig) -- pas un concept du
+    // moteur lui-meme (cf. Couloir), mais une propriete du compte.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ModuleMemoria module;
+
     protected Utilisateur() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
-    public Utilisateur(String email, String motDePasseHash) {
+    public Utilisateur(String email, String motDePasseHash, ModuleMemoria module) {
         this.id = UUID.randomUUID();
         this.email = email;
         this.motDePasseHash = motDePasseHash;
         this.dateCreation = Instant.now();
+        this.module = module;
     }
 
     public UUID getId() {
@@ -60,6 +71,10 @@ public class Utilisateur {
 
     public String getNom() {
         return nom;
+    }
+
+    public ModuleMemoria getModule() {
+        return module;
     }
 
     public void renseignerNom(String nom) {

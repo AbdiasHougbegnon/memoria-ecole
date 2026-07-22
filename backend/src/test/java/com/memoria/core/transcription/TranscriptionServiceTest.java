@@ -2,6 +2,7 @@ package com.memoria.core.transcription;
 
 import com.memoria.core.audio.AudioChunkRepository;
 import com.memoria.core.audio.ChunkAudioEnregistreEvent;
+import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.session.Session;
@@ -164,7 +165,7 @@ class TranscriptionServiceTest {
     @Test
     void obtenirTranscriptionsAvecIdentification_resout_le_nom_des_segments_identifies() {
         UUID sessionId = UUID.randomUUID();
-        Utilisateur utilisateur = new Utilisateur("jean@test.fr", "hash");
+        Utilisateur utilisateur = new Utilisateur("jean@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         utilisateur.renseignerNom("Jean Dupont");
         UUID utilisateurId = utilisateur.getId(); // l'id genere par le constructeur, pas un id independant
         List<SegmentLocuteur> segments = List.of(

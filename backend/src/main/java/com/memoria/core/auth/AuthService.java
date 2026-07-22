@@ -18,11 +18,11 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public AuthResponse inscrire(String email, String motDePasse) {
+    public AuthResponse inscrire(String email, String motDePasse, ModuleMemoria module) {
         if (utilisateurRepository.existsByEmail(email)) {
             throw new EmailDejaUtiliseException(email);
         }
-        Utilisateur utilisateur = new Utilisateur(email, passwordEncoder.encode(motDePasse));
+        Utilisateur utilisateur = new Utilisateur(email, passwordEncoder.encode(motDePasse), module);
         utilisateur = utilisateurRepository.save(utilisateur);
         return AuthResponse.depuis(utilisateur, jwtService.genererToken(utilisateur));
     }

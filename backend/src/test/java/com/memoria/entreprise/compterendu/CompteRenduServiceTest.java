@@ -1,5 +1,6 @@
 package com.memoria.entreprise.compterendu;
 
+import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.session.Session;
@@ -100,7 +101,7 @@ class CompteRenduServiceTest {
     void obtenirOuGenererCompteRendu_resout_le_responsable_identifie() {
         UUID sessionId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
-        Utilisateur utilisateur = new Utilisateur("alice@test.fr", "hash");
+        Utilisateur utilisateur = new Utilisateur("alice@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         utilisateur.renseignerNom("Alice Martin");
         List<Transcription> transcriptions = List.of(
                 new Transcription(sessionId, 0, "Bonjour", TranscriptionStatut.REUSSIE,

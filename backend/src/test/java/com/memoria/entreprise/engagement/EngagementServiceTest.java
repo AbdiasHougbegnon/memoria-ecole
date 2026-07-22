@@ -1,5 +1,6 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
@@ -189,7 +190,7 @@ class EngagementServiceTest {
         UUID sessionId = UUID.randomUUID();
         UUID id = UUID.randomUUID();
         UUID responsableId = UUID.randomUUID();
-        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash");
+        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         Engagement engagement = new Engagement(sessionId, "Envoyer le mail", "Alice Martin", null, responsableId);
         engagement.confirmer();
         when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));

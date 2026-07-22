@@ -34,20 +34,31 @@ public class JwtService {
         return Jwts.builder()
                 .subject(utilisateur.getId().toString())
                 .claim("email", utilisateur.getEmail())
+                .claim("module", utilisateur.getModule().name())
                 .issuedAt(Date.from(maintenant))
                 .expiration(Date.from(maintenant.plus(dureeValidite)))
                 .signWith(cleSignature)
                 .compact();
     }
 
-    public Optional<UUID> validerEtExtraireUtilisateurId(String token) {
+    public record UtilisateurAuthentifie(UUID utilisateurId, ModuleMemoria module) {
+    }
+
+    // Le module vient du JWT, pas d'une relecture en base : le filtre reste
+    // stateless (aucun appel DB par requete, deja le cas pour l'email).
+    // Limite assumee : un changement de module ne serait pris en compte
+    // qu'a la reemission d'un token (jusqu'a 24h) -- sans consequence ici,
+    // aucun endpoint ne permet de changer de module dans ce lot.
+    public Optional<UtilisateurAuthentifie> validerEtExtraire(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(cleSignature)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return Optional.of(UUID.fromString(claims.getSubject()));
+            UUID utilisateurId = UUID.fromString(claims.getSubject());
+            ModuleMemoria module = ModuleMemoria.valueOf(claims.get("module", String.class));
+            return Optional.of(new UtilisateurAuthentifie(utilisateurId, module));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

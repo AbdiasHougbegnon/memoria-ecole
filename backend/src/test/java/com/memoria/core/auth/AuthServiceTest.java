@@ -41,7 +41,7 @@ class AuthServiceTest {
         when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
 
-        AuthResponse reponse = authService.inscrire("alice@memoria.fr", "motdepasse123");
+        AuthResponse reponse = authService.inscrire("alice@memoria.fr", "motdepasse123", ModuleMemoria.ENTREPRISE);
 
         ArgumentCaptor<Utilisateur> captor = ArgumentCaptor.forClass(Utilisateur.class);
         org.mockito.Mockito.verify(utilisateurRepository).save(captor.capture());
@@ -52,16 +52,31 @@ class AuthServiceTest {
     }
 
     @Test
+    void inscrire_stocke_le_module_choisi() {
+        when(utilisateurRepository.existsByEmail("jean@memoria.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authService.inscrire("jean@memoria.fr", "motdepasse123", ModuleMemoria.ECOLE);
+
+        ArgumentCaptor<Utilisateur> captor = ArgumentCaptor.forClass(Utilisateur.class);
+        org.mockito.Mockito.verify(utilisateurRepository).save(captor.capture());
+        assertThat(captor.getValue().getModule()).isEqualTo(ModuleMemoria.ECOLE);
+        assertThat(reponse.module()).isEqualTo(ModuleMemoria.ECOLE);
+    }
+
+    @Test
     void inscrire_leve_une_exception_si_lemail_est_deja_utilise() {
         when(utilisateurRepository.existsByEmail("alice@memoria.fr")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.inscrire("alice@memoria.fr", "motdepasse123"))
+        assertThatThrownBy(() -> authService.inscrire("alice@memoria.fr", "motdepasse123", ModuleMemoria.ENTREPRISE))
                 .isInstanceOf(EmailDejaUtiliseException.class);
     }
 
     @Test
     void connecter_retourne_un_token_quand_les_identifiants_sont_corrects() {
-        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash-secret");
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash-secret", ModuleMemoria.ENTREPRISE);
         when(utilisateurRepository.findByEmail("alice@memoria.fr")).thenReturn(Optional.of(utilisateur));
         when(passwordEncoder.matches("motdepasse123", "hash-secret")).thenReturn(true);
         when(jwtService.genererToken(utilisateur)).thenReturn("un-jwt");
@@ -70,6 +85,7 @@ class AuthServiceTest {
 
         assertThat(reponse.token()).isEqualTo("un-jwt");
         assertThat(reponse.utilisateurId()).isEqualTo(utilisateur.getId());
+        assertThat(reponse.module()).isEqualTo(ModuleMemoria.ENTREPRISE);
     }
 
     @Test
@@ -82,7 +98,7 @@ class AuthServiceTest {
 
     @Test
     void connecter_leve_une_exception_si_le_mot_de_passe_est_incorrect() {
-        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash-secret");
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash-secret", ModuleMemoria.ENTREPRISE);
         when(utilisateurRepository.findByEmail("alice@memoria.fr")).thenReturn(Optional.of(utilisateur));
         when(passwordEncoder.matches("mauvais-mot-de-passe", "hash-secret")).thenReturn(false);
 

@@ -1,5 +1,6 @@
 package com.memoria.entreprise.engagement;
 
+import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
 import com.memoria.core.email.EnvoyeurEmail;
@@ -89,7 +90,7 @@ class RappelEngagementServiceTest {
         Engagement engagement = new Engagement(sessionId, "Envoyer le mail", "Alice Martin", "vendredi", responsableId);
         engagement.confirmer();
         engagement.planifierEcheance(Instant.now().minus(1, ChronoUnit.HOURS));
-        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash");
+        Utilisateur responsable = new Utilisateur("alice@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         when(engagementRepository.findByStatutAndDateEcheanceNotNull(StatutEngagement.CONFIRME)).thenReturn(List.of(engagement));
         when(utilisateurRepository.findById(responsableId)).thenReturn(java.util.Optional.of(responsable));
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));

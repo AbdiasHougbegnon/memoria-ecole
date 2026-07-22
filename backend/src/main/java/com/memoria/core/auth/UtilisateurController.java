@@ -34,9 +34,10 @@ public class UtilisateurController {
     public record RenseignerNomRequest(@NotBlank(message = "le nom est obligatoire") String nom) {
     }
 
-    public record UtilisateurResponse(UUID id, String email, String nom) {
+    public record UtilisateurResponse(UUID id, String email, String nom, ModuleMemoria module) {
         public static UtilisateurResponse depuis(Utilisateur utilisateur) {
-            return new UtilisateurResponse(utilisateur.getId(), utilisateur.getEmail(), utilisateur.getNom());
+            return new UtilisateurResponse(
+                    utilisateur.getId(), utilisateur.getEmail(), utilisateur.getNom(), utilisateur.getModule());
         }
     }
 }

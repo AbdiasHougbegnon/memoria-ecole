@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listerSessions } from '../api'
 import type { Session } from '../types'
 import { Recorder } from '../components/Recorder'
-import { deconnecter } from '../auth'
 
 const LIBELLE_STATUT: Record<Session['statut'], string> = {
   EN_COURS: 'En cours',
@@ -31,40 +30,6 @@ export function SessionsListPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Memoria</h1>
-        <div className="flex gap-4">
-          <Link to="/fils-memoire" className="text-sm text-slate-500 hover:text-slate-700">
-            Fils de memoire
-          </Link>
-          <Link to="/engagements" className="text-sm text-slate-500 hover:text-slate-700">
-            Engagements
-          </Link>
-          <Link to="/tableau-de-bord" className="text-sm text-slate-500 hover:text-slate-700">
-            Tableau de bord
-          </Link>
-          <Link to="/couloirs" className="text-sm text-slate-500 hover:text-slate-700">
-            Couloirs
-          </Link>
-          <Link to="/recherche" className="text-sm text-slate-500 hover:text-slate-700">
-            Rechercher
-          </Link>
-          <Link to="/parametres" className="text-sm text-slate-500 hover:text-slate-700">
-            Parametres
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              deconnecter()
-              navigate('/connexion')
-            }}
-            className="text-sm text-slate-500 hover:text-slate-700"
-          >
-            Deconnexion
-          </button>
-        </div>
-      </div>
-
       <Recorder
         onSessionTerminee={(id) => {
           void rafraichir()
