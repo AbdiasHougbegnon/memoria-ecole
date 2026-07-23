@@ -1,0 +1,263 @@
+<title>Memoria — Dossier technique : observabilité (Prometheus, Grafana, OpenTelemetry)</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Plateforme · Observabilité</span>
+    <h1 class="title">Observabilité : Prometheus, Grafana, OpenTelemetry (Tempo)</h1>
+    <p class="dek">Le master prompt le pose dans "Stack technique" : "Prometheus + Grafana + OpenTelemetry (observabilité dès la conception)". Cette brique complète le premier pas minimal (<code>/actuator/health</code> seul) posé lors du déploiement Docker/Terraform : métriques exportées, traces distribuées, visualisation provisionnée par fichiers.</p>
+    <div class="factrow">
+      <span class="fact"><strong>164</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">7 conteneurs vérifiés <strong>sains</strong> en conditions réelles</span>
+      <span class="fact"><strong>3</strong> bugs découverts et corrigés en vérification</span>
+      <span class="fact">tag <code>phase-7-observabilite</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Le master prompt : <em>"Prometheus + Grafana + OpenTelemetry (observabilité dès la conception)"</em>. La fiche technique de la brique précédente concluait : <em>"Prochaine direction retenue... observabilité minimale, explicitement liée à Docker/Terraform dans le master prompt."</em> État avant cette brique : aucune dépendance micrometer/prometheus/opentelemetry, seule <code>/actuator/health</code> exposée, <code>docker-compose.yml</code> à 4 services. Hors périmètre explicite : métriques de coût par tenant, alerting, observabilité frontend, logs centralisés.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Micrometer + /actuator/prometheus, zéro code métier</strong> — instrumente automatiquement HTTP Spring MVC, JVM, Hikari, Tomcat. <code>percentiles-histogram</code> nécessaire pour p95/p99 via <code>histogram_quantile()</code>.</li>
+          <li><strong>Agent Java OpenTelemetry en auto-instrumentation</strong> — attaché via <code>-javaagent:</code>, zéro code applicatif. Version épinglée (2.30.0), jamais <code>latest</code>. <code>OTEL_METRICS_EXPORTER=none</code> évite une double émission de métriques.</li>
+          <li><strong>Grafana Tempo, jamais exposé à l'hôte</strong> — mode monolithique, stockage local, même doctrine que <code>speaker-service</code> : seuls backend (export) et Grafana (lecture) l'atteignent.</li>
+          <li><strong>/actuator/prometheus suit exactement la doctrine de /actuator/health</strong> — <code>permitAll()</code>, protégé par la frontière réseau (nginx ne relaie jamais <code>/actuator/*</code>), pas par l'authentification applicative.</li>
+          <li><strong>Grafana provisionné par fichiers</strong> — datasources et dashboard montés en lecture seule, reproductibles, jamais perdus au prochain <code>docker compose down</code>.</li>
+          <li><strong>Dégradation gracieuse pour Tempo</strong> — même doctrine que <code>EnvoyeurEmailSmtp</code>/clients Azure : absence de destination = warning de log, jamais de crash.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>backend/pom.xml + application.properties</h4>
+          <pre><code>management.endpoints.web.exposure.include=health,prometheus
+management.metrics.distribution.percentiles-histogram.http.server.requests=true
+management.metrics.tags.application=${spring.application.name}</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>SecurityConfig.java — scraping Prometheus ouvert</h4>
+          <pre><code>.requestMatchers("/actuator/prometheus").permitAll()</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>backend/Dockerfile — agent Java OpenTelemetry</h4>
+          <pre><code>ARG OTEL_JAVAAGENT_VERSION=2.30.0
+ENV OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317 \
+    OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
+    OTEL_METRICS_EXPORTER=none
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>infra/observability/ — miroir de infra/terraform/</h4>
+          <p class="why" style="margin-top:0"><code>prometheus/prometheus.yml</code> (scrape 15s), <code>tempo/tempo.yaml</code> (monolithique, stockage local), <code>grafana/provisioning/{datasources,dashboards}/</code>, <code>grafana/dashboards/memoria-backend.json</code> (4 panels fonctionnels).</p>
+        </div>
+        <div class="bug">
+          <span class="n">5</span>
+          <h4>docker-compose.yml — 3 nouveaux services</h4>
+          <p class="why" style="margin-top:0"><code>prometheus</code> (:9090 publié, debug local), <code>tempo</code> (jamais publié), <code>grafana</code> (:3000 publié, mot de passe admin obligatoire). Trois nouveaux volumes nommés.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Trois bugs ont été découverts pendant la vérification par redémarrage réel de conteneurs — pas anticipés par le plan initial, corrigés dans la même brique :</p>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>L'agent OTel ne déduit pas gRPC du port 4317</h4>
+          <p class="why" style="margin-top:0">Sans <code>OTEL_EXPORTER_OTLP_PROTOCOL=grpc</code> explicite, le SDK retombe sur <code>http/protobuf</code> et échoue en silence contre le port gRPC de Tempo. Corrigé, vérifié par des traces réelles complètes dans Tempo.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>nginx met en cache l'IP Docker du backend indéfiniment</h4>
+          <p class="why" style="margin-top:0"><code>proxy_pass</code> statique résout le DNS une seule fois au chargement de la config. Après un redémarrage du backend, nginx tapait sur l'ancienne IP (502). Corrigé avec <code>resolver 127.0.0.11 valid=10s;</code> + variable.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>Une variable dans proxy_pass casse la réécriture de chemin</h4>
+          <p class="why" style="margin-top:0">Le correctif précédent a introduit un chemin ambigu (403 au lieu de 401). Corrigé avec <code>proxy_pass http://$backend_upstream:8080$request_uri;</code> — <code>$request_uri</code> repasse l'URI d'origine sans ambiguïté. Vérifié robuste sur plusieurs redémarrages successifs.</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>HEALTHCHECK frontend échoue en IPv6, nginx répond pourtant bien</h4>
+          <p class="why" style="margin-top:0"><code>wget http://localhost/</code> résout d'abord en <code>::1</code>, or nginx n'écoute qu'en IPv4 (<code>0.0.0.0:80</code>) — conteneur marqué "unhealthy" en continu malgré un trafic réel fonctionnel. Corrigé en utilisant <code>http://127.0.0.1/</code> explicitement dans le <code>HEALTHCHECK</code>.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="verif-line"><span class="route">docker compose up --build -d (7 conteneurs)</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">Prometheus Targets — memoria-backend</span><span class="ok-txt">UP</span></div>
+        <div class="verif-line"><span class="route">PromQL http_server_requests_seconds_count &gt; 0</span><span class="ok-txt">series reelles</span></div>
+        <div class="verif-line"><span class="route">Grafana Explore — Tempo, service.name=memoria-core</span><span class="ok-txt">traces reelles</span></div>
+        <div class="verif-line"><span class="route">docker compose stop tempo + restart backend</span><span class="ok-txt">healthy, warnings seulement</span></div>
+        <div class="verif-line"><span class="route">docker compose stop prometheus grafana + curl connexion/inscription</span><span class="ok-txt">401 / 201, flux intact</span></div>
+        <div class="verif-line"><span class="route">nginx apres redemarrages repetes du backend</span><span class="ok-txt">401 correct a chaque fois</span></div>
+        <div class="verif-line"><span class="route">Frontend healthcheck apres correctif §4</span><span class="ok-txt">healthy</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de métriques de coût par tenant/service</strong> — chantier séparé ("Maîtrise des coûts Azure" du master prompt).</li>
+        <li><strong>Pas d'alerting</strong> (Alertmanager) — dashboards de consultation uniquement.</li>
+        <li><strong>Pas d'observabilité frontend</strong> (Sentry/RUM) — ce lot couvre uniquement le backend.</li>
+        <li><strong>Pas de logs centralisés</strong> (Loki) — seulement métriques + traces.</li>
+        <li><strong>Ports 9090/3000 publiés localement</strong> — en Azure réel, seul le NSG Terraform contrôle l'accès depuis Internet.</li>
+        <li><strong>API Grafana (curl) non fiable pendant cette session</strong> — 403 malgré des logs de provisioning propres ; probablement un contrôle CSRF/origin de Grafana 11.x. Vérification manuelle au navigateur recommandée.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Grafana : <code>http://localhost:3000</code>, <code>admin</code> / <code>GF_SECURITY_ADMIN_PASSWORD</code> du <code>.env</code>, dashboard "Memoria Backend" préprovisionné.</li>
+          <li>Prometheus : <code>http://localhost:9090</code> — debug local uniquement.</li>
+          <li>Tempo : jamais exposé, consultable via Grafana Explore (datasource "Tempo").</li>
+          <li>Prochaine direction possible : qualité (SonarQube/OWASP dependency-check) ou tuteur vocal École — à choisir explicitement.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-7-observabilite</code> — verifiee avec de vrais conteneurs, trafic reel dans Prometheus/Tempo, degradation gracieuse testee deux fois.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur l'observabilité (Prometheus, Grafana, OpenTelemetry).
+    </footer>
+  </main>
+</div>
