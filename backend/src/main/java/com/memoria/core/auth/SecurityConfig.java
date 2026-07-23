@@ -1,5 +1,6 @@
 package com.memoria.core.auth;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,6 +14,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@SuppressFBWarnings(
+        value = "SPRING_CSRF_PROTECTION_DISABLED",
+        justification = "API stateless (SessionCreationPolicy.STATELESS, authentification par JWT "
+                + "Bearer, aucun cookie de session) -- CSRF exploite l'envoi automatique de cookies "
+                + "par le navigateur, non applicable a une API sans etat consommee via un header "
+                + "Authorization explicite. Pratique standard Spring Security pour les APIs "
+                + "non-navigateur (cf. documentation officielle Spring Security sur CSRF). Annotation "
+                + "posee au niveau classe (pas sur la methode filterChain) : le csrf.disable() vit "
+                + "dans un lambda, compile en methode synthetique separee que SpotBugs n'associe pas "
+                + "aux annotations de la methode englobante -- seule une annotation de classe couvre "
+                + "cette methode generee."
+)
 public class SecurityConfig {
 
     private final JwtService jwtService;

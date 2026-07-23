@@ -1,0 +1,242 @@
+<title>Memoria — Dossier technique : gates de qualité (JaCoCo, SpotBugs/FindSecBugs, OWASP Dependency-Check)</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Plateforme · Qualité</span>
+    <h1 class="title">Gates de qualité : JaCoCo, SpotBugs/FindSecBugs, OWASP Dependency-Check</h1>
+    <p class="dek">Le master prompt exige, "à partir de la Phase 2" : tests, analyse statique ("SonarQube ou équivalent"), vérification OWASP sur les points sensibles, scan des dépendances, couverture minimale. Cette brique construit ces gates sans compte externe — une combinaison auto-hébergée dans la CI GitHub Actions.</p>
+    <div class="factrow">
+      <span class="fact"><strong>164</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">couverture mesurée <strong>52,6%</strong>, seuil fixé à 50%</span>
+      <span class="fact"><strong>1</strong> finding SpotBugs, suppimé avec justification</span>
+      <span class="fact">tag <code>phase-8-gates-qualite</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Le master prompt : <em>"À partir de la Phase 2, aucune PR n'est fusionnée sans : tests unitaires et d'intégration ; analyse statique (SonarQube ou équivalent) sans nouvelle dette critique ; vérification OWASP sur les points sensibles ; scan des dépendances (vulnérabilités connues) ; couverture de tests minimale."</em> Le projet est bien au-delà de la Phase 2. État avant cette brique : CI à 3 jobs (tests backend seuls, lint+build frontend, build Docker garde-fou), aucun plugin de couverture/analyse statique/scan de dépendances, speaker-service absent de la CI.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Équivalent auto-hébergé plutôt que SonarQube/SonarCloud</strong> — SonarCloud nécessite un compte externe + token que je ne peux pas créer moi-même, même raisonnement que <code>terraform apply</code>. JaCoCo + SpotBugs/FindSecBugs + Dependency-Check couvre les 4 exigences non-test sans compte externe.</li>
+          <li><strong>Rollout en une passe, seuils mesurés</strong> — pas de mode rapport temporaire : couverture mesurée reellement (52,6%), seuil fixé à 50% ; SpotBugs/FindSecBugs exécuté réellement, finding trié immédiatement.</li>
+          <li><strong>Un seul finding réel, suppimé avec justification écrite</strong> — CSRF désactivé sur une API stateless JWT Bearer : pratique standard, pas un oubli. Jamais de suppression silencieuse.</li>
+          <li><strong>dataDirectory hors ~/.m2, clé NVD via variable d'environnement</strong> — évite tout conflit avec le cache Maven de actions/setup-java, évite toute fuite de la clé en logs.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>backend/pom.xml — 3 plugins</h4>
+          <pre><code>jacoco-maven-plugin 0.8.15
+spotbugs-maven-plugin 4.10.3.0 + findsecbugs-plugin 1.14.0 (threshold=High)
+dependency-check-maven 12.2.2 (failBuildOnCVSS=8)</code></pre>
+          <p class="why">SpotBugs doit etre &gt;= 4.8.0 : les versions &lt;= 4.7.3.x plantent sur du bytecode Java 21 (issue spotbugs/spotbugs#2567).</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>SecurityConfig.java — suppression au niveau classe</h4>
+          <pre><code>@SuppressFBWarnings(value = "SPRING_CSRF_PROTECTION_DISABLED", justification = "...")
+public class SecurityConfig { ... }</code></pre>
+          <p class="why">Pas sur la methode filterChain -- voir §5.1, piege reel rencontre en verification.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>.github/workflows/ci.yml</h4>
+          <p class="why" style="margin-top:0">Job <code>backend</code> : <code>mvn -B test</code> devient <code>mvn -B verify</code>, cache OWASP date, <code>timeout-minutes: 25</code>. Job <code>frontend</code> : <code>npm audit --audit-level=high</code>. Nouveau job <code>speaker-service</code> : <code>pip-audit --no-deps</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>docs/qualite.md (nouveau)</h4>
+          <p class="why" style="margin-top:0">Guide operationnel miroir de docs/deploiement.md : ce que chaque gate verifie, comment lire les rapports, secret NVD_API_KEY optionnel, limites.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>@SuppressFBWarnings sur une methode ne couvre pas un lambda</h4>
+          <p class="why" style="margin-top:0"><code>.csrf(csrf -&gt; csrf.disable())</code> vit dans un lambda, compile en methode synthetique separee que SpotBugs analyse independamment de l'annotation posee sur la methode englobante. Corrige en deplacant l'annotation au niveau classe. Verifie : <code>BugInstance size is 0</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>OWASP Dependency-Check sans cle NVD : confirme impraticable en une session</h4>
+          <p class="why" style="margin-top:0">Premier run reel : 46% des 369587 enregistrements NVD apres ~80 minutes, interrompu. Extrapole, plusieurs heures pour une synchronisation complete -- pas juste "un peu plus lent". L'interruption a corrompu un verrou H2 (echec apres 58 min sur la tentative suivante). Un troisieme run, apres nettoyage complet, s'est bloque net des le debut sans reprendre le telechargement -- verrou Windows residuel persistant meme sans process Maven actif. <strong>Aucun run local n'a pu etre mene a completion dans cette session.</strong> Ce qui est verifie malgre tout : le plugin se configure, se connecte a l'API NVD et telecharge des donnees reelles (odc.mv.db mesure a plus de 600 Mo) -- seul le resultat final du scan (CVE ou non) n'a pas pu etre obtenu, limite traitee comme <code>terraform apply</code> ailleurs dans ce projet. <code>timeout-minutes: 25</code> ajoute a la CI en garde-fou (probablement encore court pour un tout premier run sans cle) ; <code>NVD_API_KEY</code> reclassifie de "optionnel" a "fortement recommande avant de compter sur cette gate".</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B verify -- 164 tests, couverture 52,6%</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">SpotBugs/FindSecBugs apres correctif §5.1</span><span class="ok-txt">0 finding</span></div>
+        <div class="verif-line"><span class="route">npm audit --audit-level=high (frontend)</span><span class="ok-txt">0 vulnerabilite</span></div>
+        <div class="verif-line"><span class="route">pip-audit -r requirements.txt --no-deps (speaker-service)</span><span class="ok-txt">0 vulnerabilite</span></div>
+        <div class="verif-line"><span class="route">torch / torchaudio (+cpu, extra-index-url)</span><span class="warn-txt">non couverts, avertissement visible</span></div>
+        <div class="verif-line"><span class="route">OWASP Dependency-Check sans NVD_API_KEY -- config/connexion NVD verifiees</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">OWASP Dependency-Check -- resultat final du scan (CVE ou non)</span><span class="warn-txt">non obtenu, voir §5.2</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de vrai SonarQube/SonarCloud</strong> — equivalent auto-heberge a la place.</li>
+        <li><strong>OWASP Dependency-Check impraticable sans NVD_API_KEY</strong> — confirme, pas theorique.</li>
+        <li><strong>speaker-service sans lint ni tests ni couverture</strong> — seul le scan de dependances est en place.</li>
+        <li><strong>torch/torchaudio non couverts par pip-audit</strong> — angle mort documente.</li>
+        <li><strong>Seuil de couverture (50%) documente la baseline</strong>, ce n'est pas un objectif actif.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Obtenir une cle NVD gratuite : nvd.nist.gov/developers/request-an-api-key, l'ajouter comme secret GitHub <code>NVD_API_KEY</code> avant de compter sur la gate Dependency-Check en CI.</li>
+          <li>Lire un rapport en local : voir <code>docs/qualite.md</code> §2.</li>
+          <li>Prochaine direction possible : tuteur vocal Ecole, ou faire monter le seuil de couverture progressivement.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-8-gates-qualite</code> — verifiee avec de vrais runs mvn/npm/pip, un vrai finding trie, une vraie limite operationnelle decouverte et documentee.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur les gates de qualité.
+    </footer>
+  </main>
+</div>
