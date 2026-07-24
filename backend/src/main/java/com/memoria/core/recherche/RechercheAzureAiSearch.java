@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.memoria.core.cout.CoutAzureService;
+import com.memoria.core.cout.ServiceAzure;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,15 +41,18 @@ public class RechercheAzureAiSearch implements RecherchePort {
     private final String endpoint;
     private final String cle;
     private final String index;
+    private final CoutAzureService coutAzureService;
 
     public RechercheAzureAiSearch(
             @Value("${azure.search.endpoint}") String endpoint,
             @Value("${azure.search.key}") String cle,
-            @Value("${azure.search.index}") String index
+            @Value("${azure.search.index}") String index,
+            CoutAzureService coutAzureService
     ) {
         this.endpoint = endpoint;
         this.cle = cle;
         this.index = index;
+        this.coutAzureService = coutAzureService;
 
         if (endpoint == null || endpoint.isBlank() || cle == null || cle.isBlank()) {
             LOG.warn(
@@ -183,6 +188,11 @@ public class RechercheAzureAiSearch implements RecherchePort {
                         "Azure AI Search a repondu avec le statut " + reponse.statusCode() + " : " + reponse.body()
                 );
             }
+            // Forfait approximatif : Azure AI Search est typiquement facture a
+            // la capacite provisionnee (replicas/partitions), pas a l'appel --
+            // ce compteur suit le volume relatif d'utilisation, pas une vraie
+            // facturation marginale.
+            coutAzureService.enregistrerAppel(ServiceAzure.AI_SEARCH, coutAzureService.coutForfaitaireEuros());
         } catch (IOException e) {
             throw new RechercheException("Echec de l'indexation dans Azure AI Search", e);
         } catch (InterruptedException e) {
@@ -229,6 +239,7 @@ public class RechercheAzureAiSearch implements RecherchePort {
                         "Azure AI Search a repondu avec le statut " + reponse.statusCode() + " : " + reponse.body()
                 );
             }
+            coutAzureService.enregistrerAppel(ServiceAzure.AI_SEARCH, coutAzureService.coutForfaitaireEuros());
             return extraireResultats(JSON.readTree(reponse.body()));
         } catch (IOException e) {
             throw new RechercheException("Echec de la recherche dans Azure AI Search", e);

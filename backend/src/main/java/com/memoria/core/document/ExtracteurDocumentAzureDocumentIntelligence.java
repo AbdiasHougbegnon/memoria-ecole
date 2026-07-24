@@ -2,6 +2,8 @@ package com.memoria.core.document;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memoria.core.cout.CoutAzureService;
+import com.memoria.core.cout.ServiceAzure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,15 +31,18 @@ public class ExtracteurDocumentAzureDocumentIntelligence implements ExtracteurDo
 
     private final String endpoint;
     private final String cle;
+    private final CoutAzureService coutAzureService;
 
     public ExtracteurDocumentAzureDocumentIntelligence(
             @Value("${azure.docintel.endpoint}") String endpoint,
-            @Value("${azure.docintel.key}") String cle
+            @Value("${azure.docintel.key}") String cle,
+            CoutAzureService coutAzureService
     ) {
         this.endpoint = (endpoint == null || endpoint.isBlank() || endpoint.endsWith("/"))
                 ? endpoint
                 : endpoint + "/";
         this.cle = cle;
+        this.coutAzureService = coutAzureService;
 
         if (cle == null || cle.isBlank() || endpoint == null || endpoint.isBlank()) {
             LOG.warn(
@@ -108,6 +113,11 @@ public class ExtracteurDocumentAzureDocumentIntelligence implements ExtracteurDo
             String statut = racine.path("status").asText();
 
             if ("succeeded".equals(statut)) {
+                // Facturation reelle Azure Document Intelligence = par page ;
+                // le nombre de pages analysees est directement dans la
+                // reponse (defaut a 1 si absent/inattendu).
+                int nombrePages = Math.max(1, racine.path("analyzeResult").path("pages").size());
+                coutAzureService.enregistrerAppel(ServiceAzure.DOCUMENT_INTELLIGENCE, nombrePages * coutAzureService.coutForfaitaireEuros());
                 return racine.path("analyzeResult").path("content").asText();
             }
             if ("failed".equals(statut)) {

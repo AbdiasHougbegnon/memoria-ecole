@@ -2,6 +2,8 @@ package com.memoria.entreprise.compterendu;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memoria.core.cout.CoutAzureService;
+import com.memoria.core.cout.ServiceAzure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,15 +52,21 @@ public class GenerateurCompteRenduAzureOpenAI implements GenerateurCompteRenduPo
     private final String endpoint;
     private final String cle;
     private final String modele;
+    private final CoutAzureService coutAzureService;
+    private final double eurosPar1000Tokens;
 
     public GenerateurCompteRenduAzureOpenAI(
             @Value("${azure.openai.endpoint}") String endpoint,
             @Value("${azure.openai.key}") String cle,
-            @Value("${azure.openai.deployment}") String modele
+            @Value("${azure.openai.deployment}") String modele,
+            @Value("${memoria.cout.azure.openai.euros-par-1k-tokens:0.002}") double eurosPar1000Tokens,
+            CoutAzureService coutAzureService
     ) {
         this.endpoint = endpoint;
         this.cle = cle;
         this.modele = modele;
+        this.coutAzureService = coutAzureService;
+        this.eurosPar1000Tokens = eurosPar1000Tokens;
 
         if (endpoint == null || endpoint.isBlank() || cle == null || cle.isBlank()
                 || modele == null || modele.isBlank()) {
@@ -103,6 +111,7 @@ public class GenerateurCompteRenduAzureOpenAI implements GenerateurCompteRenduPo
             }
 
             JsonNode corpsReponse = JSON.readTree(reponse.body());
+            enregistrerCout(corpsReponse);
             String contenu = extraireTexteDeSortie(corpsReponse);
             return extraireCompteRendu(contenu);
         } catch (IOException e) {
@@ -111,6 +120,14 @@ public class GenerateurCompteRenduAzureOpenAI implements GenerateurCompteRenduPo
             Thread.currentThread().interrupt();
             throw new GenerationCompteRenduException("Appel a Azure OpenAI interrompu", e);
         }
+    }
+
+    private void enregistrerCout(JsonNode corpsReponse) {
+        int tokens = corpsReponse.path("usage").path("total_tokens").asInt(-1);
+        double coutEuros = tokens >= 0
+                ? (tokens / 1000.0) * eurosPar1000Tokens
+                : coutAzureService.coutForfaitaireEuros();
+        coutAzureService.enregistrerAppel(ServiceAzure.OPENAI_CHAT, coutEuros);
     }
 
     private String extraireTexteDeSortie(JsonNode corpsReponse) {

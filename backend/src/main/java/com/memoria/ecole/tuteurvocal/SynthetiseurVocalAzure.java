@@ -1,5 +1,7 @@
 package com.memoria.ecole.tuteurvocal;
 
+import com.memoria.core.cout.CoutAzureService;
+import com.memoria.core.cout.ServiceAzure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,15 +31,21 @@ public class SynthetiseurVocalAzure implements SynthetiseurVocalPort {
     private final String cle;
     private final String region;
     private final String voix;
+    private final CoutAzureService coutAzureService;
+    private final double eurosPar1000Caracteres;
 
     public SynthetiseurVocalAzure(
             @Value("${azure.speech.key}") String cle,
             @Value("${azure.speech.region}") String region,
-            @Value("${azure.speech.tts.voix:fr-FR-DeniseNeural}") String voix
+            @Value("${azure.speech.tts.voix:fr-FR-DeniseNeural}") String voix,
+            @Value("${memoria.cout.azure.speech.euros-par-1k-caracteres:0.015}") double eurosPar1000Caracteres,
+            CoutAzureService coutAzureService
     ) {
         this.cle = cle;
         this.region = region;
         this.voix = voix;
+        this.coutAzureService = coutAzureService;
+        this.eurosPar1000Caracteres = eurosPar1000Caracteres;
 
         if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
             LOG.warn(
@@ -78,6 +86,10 @@ public class SynthetiseurVocalAzure implements SynthetiseurVocalPort {
                         "Azure Speech (TTS) a repondu avec le statut " + reponse.statusCode()
                 );
             }
+            // Nombre de caracteres en entree : unite de facturation reelle
+            // d'Azure Neural TTS (pas la duree de l'audio produit, jamais
+            // decodee ici).
+            coutAzureService.enregistrerAppel(ServiceAzure.SPEECH_TTS, (texte.length() / 1000.0) * eurosPar1000Caracteres);
             return reponse.body();
         } catch (IOException e) {
             throw new SyntheseVocaleException("Echec de l'appel a Azure Speech (TTS)", e);

@@ -60,6 +60,63 @@
           "legendFormat": "actives"
         }
       ]
+    },
+    {
+      "id": 5,
+      "title": "Appels Azure par service (cumule)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "memoria_azure_appels_total{application=\"memoria-core\"}",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Cout Azure estime par service (euros / heure)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(memoria_azure_cout_euros_total{application=\"memoria-core\"}[1h])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Cout Azure - mois en cours vs budget",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEUR",
+          "max": null,
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 70 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "memoria_azure_cout_mensuel_euros{application=\"memoria-core\"}",
+          "legendFormat": "cout mensuel"
+        },
+        {
+          "expr": "memoria_azure_budget_mensuel_euros{application=\"memoria-core\"}",
+          "legendFormat": "budget"
+        }
+      ]
     }
   ]
 }

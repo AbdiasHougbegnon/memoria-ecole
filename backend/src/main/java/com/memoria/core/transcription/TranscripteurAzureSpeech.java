@@ -2,6 +2,8 @@ package com.memoria.core.transcription;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memoria.core.cout.CoutAzureService;
+import com.memoria.core.cout.ServiceAzure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,17 +36,26 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
     private final String region;
     private final String langue;
     private final int maxLocuteurs;
+    private final CoutAzureService coutAzureService;
+    private final double eurosParHeure;
+    private final int dureeSegmentSecondes;
 
     public TranscripteurAzureSpeech(
             @Value("${azure.speech.key}") String cle,
             @Value("${azure.speech.region}") String region,
             @Value("${azure.speech.langue:fr-FR}") String langue,
-            @Value("${azure.speech.max-locuteurs:4}") int maxLocuteurs
+            @Value("${azure.speech.max-locuteurs:4}") int maxLocuteurs,
+            @Value("${memoria.cout.azure.speech.euros-par-heure:1.0}") double eurosParHeure,
+            @Value("${memoria.audio.duree-segment-secondes:30}") int dureeSegmentSecondes,
+            CoutAzureService coutAzureService
     ) {
         this.cle = cle;
         this.region = region;
         this.langue = langue;
         this.maxLocuteurs = maxLocuteurs;
+        this.coutAzureService = coutAzureService;
+        this.eurosParHeure = eurosParHeure;
+        this.dureeSegmentSecondes = dureeSegmentSecondes;
 
         if (cle == null || cle.isBlank() || region == null || region.isBlank()) {
             LOG.warn(
@@ -88,6 +99,12 @@ public class TranscripteurAzureSpeech implements TranscripteurPort {
                         "Azure Speech a repondu avec le statut " + reponse.statusCode() + " : " + reponse.body()
                 );
             }
+            // Duree fixe du chunk (pas decodee depuis l'audio) : le moteur de
+            // capture envoie des segments de duree constante (voir
+            // frontend/src/components/Recorder.tsx, DUREE_SEGMENT_MS) --
+            // approximation suffisante pour un suivi de cout, pas une mesure
+            // exacte par seconde consommee.
+            coutAzureService.enregistrerAppel(ServiceAzure.SPEECH_STT, (dureeSegmentSecondes / 3600.0) * eurosParHeure);
             return extraireResultat(reponse.body());
         } catch (IOException e) {
             throw new TranscriptionException("Echec de l'appel a Azure Speech", e);
