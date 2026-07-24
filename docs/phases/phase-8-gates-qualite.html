@@ -1,4 +1,4 @@
-<title>Memoria — Dossier technique : gates de qualité (JaCoCo, SpotBugs/FindSecBugs, OWASP Dependency-Check)</title>
+<title>Memoria — Dossier technique : gates de qualité (JaCoCo, SpotBugs/FindSecBugs, GitHub Dependency Review)</title>
 <style>
   :root {
     --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
@@ -110,12 +110,13 @@
 <div class="layout">
   <header class="masthead">
     <span class="eyebrow">Memoria — Plateforme · Qualité</span>
-    <h1 class="title">Gates de qualité : JaCoCo, SpotBugs/FindSecBugs, OWASP Dependency-Check</h1>
-    <p class="dek">Le master prompt exige, "à partir de la Phase 2" : tests, analyse statique ("SonarQube ou équivalent"), vérification OWASP sur les points sensibles, scan des dépendances, couverture minimale. Cette brique construit ces gates sans compte externe — une combinaison auto-hébergée dans la CI GitHub Actions.</p>
+    <h1 class="title">Gates de qualité : JaCoCo, SpotBugs/FindSecBugs, GitHub Dependency Review</h1>
+    <p class="dek">Le master prompt exige, "à partir de la Phase 2" : tests, analyse statique ("SonarQube ou équivalent"), vérification OWASP sur les points sensibles, scan des dépendances, couverture minimale. Cette brique construit ces gates sans compte externe — le scan de dépendances Java a nécessité trois tentatives réelles avant d'aboutir (voir §4).</p>
     <div class="factrow">
       <span class="fact"><strong>164</strong>&nbsp;tests backend, tous verts</span>
       <span class="fact">couverture mesurée <strong>52,6%</strong>, seuil fixé à 50%</span>
       <span class="fact"><strong>1</strong> finding SpotBugs, suppimé avec justification</span>
+      <span class="fact"><strong>2</strong> outils de scan de dependances rejetes avant d'aboutir</span>
       <span class="fact">tag <code>phase-8-gates-qualite</code></span>
     </div>
   </header>
@@ -145,10 +146,10 @@
       <h2><span class="num">§</span> Les décisions de conception</h2>
       <div class="card">
         <ul class="plain">
-          <li><strong>Équivalent auto-hébergé plutôt que SonarQube/SonarCloud</strong> — SonarCloud nécessite un compte externe + token que je ne peux pas créer moi-même, même raisonnement que <code>terraform apply</code>. JaCoCo + SpotBugs/FindSecBugs + Dependency-Check couvre les 4 exigences non-test sans compte externe.</li>
+          <li><strong>Équivalent auto-hébergé plutôt que SonarQube/SonarCloud</strong> — SonarCloud nécessite un compte externe + token que je ne peux pas créer moi-même, même raisonnement que <code>terraform apply</code>. JaCoCo + SpotBugs/FindSecBugs + GitHub Dependency Review couvre les 4 exigences non-test sans compte externe.</li>
           <li><strong>Rollout en une passe, seuils mesurés</strong> — pas de mode rapport temporaire : couverture mesurée reellement (52,6%), seuil fixé à 50% ; SpotBugs/FindSecBugs exécuté réellement, finding trié immédiatement.</li>
           <li><strong>Un seul finding réel, suppimé avec justification écrite</strong> — CSRF désactivé sur une API stateless JWT Bearer : pratique standard, pas un oubli. Jamais de suppression silencieuse.</li>
-          <li><strong>dataDirectory hors ~/.m2, clé NVD via variable d'environnement</strong> — évite tout conflit avec le cache Maven de actions/setup-java, évite toute fuite de la clé en logs.</li>
+          <li><strong>Deux outils de scan de dependances essayes et abandonnes</strong> — OWASP Dependency-Check (NVD, impraticable meme avec cle API) puis Sonatype OSS Index (401 avale silencieusement), remplaces par GitHub Dependency Review, natif, zero compte. Voir §4.</li>
         </ul>
       </div>
     </section>
@@ -158,11 +159,10 @@
       <div class="card">
         <div class="bug">
           <span class="n">1</span>
-          <h4>backend/pom.xml — 3 plugins</h4>
+          <h4>backend/pom.xml — 2 plugins actifs</h4>
           <pre><code>jacoco-maven-plugin 0.8.15
-spotbugs-maven-plugin 4.10.3.0 + findsecbugs-plugin 1.14.0 (threshold=High)
-dependency-check-maven 12.2.2 (failBuildOnCVSS=8)</code></pre>
-          <p class="why">SpotBugs doit etre &gt;= 4.8.0 : les versions &lt;= 4.7.3.x plantent sur du bytecode Java 21 (issue spotbugs/spotbugs#2567).</p>
+spotbugs-maven-plugin 4.10.3.0 + findsecbugs-plugin 1.14.0 (threshold=High)</code></pre>
+          <p class="why">SpotBugs doit etre &gt;= 4.8.0 : les versions &lt;= 4.7.3.x plantent sur du bytecode Java 21 (issue spotbugs/spotbugs#2567). Aucun plugin Maven pour le scan de dependances -- voir §4.</p>
         </div>
         <div class="bug">
           <span class="n">2</span>
@@ -174,12 +174,12 @@ public class SecurityConfig { ... }</code></pre>
         <div class="bug">
           <span class="n">3</span>
           <h4>.github/workflows/ci.yml</h4>
-          <p class="why" style="margin-top:0">Job <code>backend</code> : <code>mvn -B test</code> devient <code>mvn -B verify</code>, cache OWASP date, <code>timeout-minutes: 25</code>. Job <code>frontend</code> : <code>npm audit --audit-level=high</code>. Nouveau job <code>speaker-service</code> : <code>pip-audit --no-deps</code>.</p>
+          <p class="why" style="margin-top:0">Job <code>backend</code> : <code>mvn -B test</code> devient <code>mvn -B verify</code>, <code>timeout-minutes: 15</code> generique. Job <code>frontend</code> : <code>npm audit --audit-level=high</code>. Job <code>speaker-service</code> : <code>pip-audit --no-deps</code>. Nouveau job <code>dependency-review</code> : <code>actions/dependency-review-action@v4</code>, PR uniquement.</p>
         </div>
         <div class="bug">
           <span class="n">4</span>
           <h4>docs/qualite.md (nouveau)</h4>
-          <p class="why" style="margin-top:0">Guide operationnel miroir de docs/deploiement.md : ce que chaque gate verifie, comment lire les rapports, secret NVD_API_KEY optionnel, limites.</p>
+          <p class="why" style="margin-top:0">Guide operationnel miroir de docs/deploiement.md : ce que chaque gate verifie, comment lire les rapports, pourquoi pas de plugin Maven pour le scan de dependances, limites.</p>
         </div>
       </div>
     </section>
@@ -194,18 +194,24 @@ public class SecurityConfig { ... }</code></pre>
         </div>
         <div class="bug">
           <span class="n">2</span>
-          <h4>OWASP Dependency-Check sans cle NVD : confirme impraticable en une session</h4>
-          <p class="why" style="margin-top:0">Premier run reel : 46% des 369587 enregistrements NVD apres ~80 minutes, interrompu. Extrapole, plusieurs heures pour une synchronisation complete -- pas juste "un peu plus lent". L'interruption a corrompu un verrou H2 (echec apres 58 min sur la tentative suivante). Un troisieme run, apres nettoyage complet, s'est bloque net des le debut sans reprendre le telechargement -- verrou Windows residuel persistant meme sans process Maven actif. <strong>Aucun run local n'a pu etre mene a completion dans cette session.</strong> Ce qui est verifie malgre tout : le plugin se configure, se connecte a l'API NVD et telecharge des donnees reelles (odc.mv.db mesure a plus de 600 Mo) -- seul le resultat final du scan (CVE ou non) n'a pas pu etre obtenu, limite traitee comme <code>terraform apply</code> ailleurs dans ce projet. <code>timeout-minutes: 25</code> ajoute a la CI en garde-fou (probablement encore court pour un tout premier run sans cle) ; <code>NVD_API_KEY</code> reclassifie de "optionnel" a "fortement recommande avant de compter sur cette gate".</p>
+          <h4>OWASP Dependency-Check : impraticable meme avec une cle NVD, confirme en CI</h4>
+          <p class="why" style="margin-top:0">Premier run local (sans cle) : 46% des 369587 enregistrements NVD apres ~80 minutes, interrompu -- verrou H2 corrompu, echecs en cascade sur les tentatives suivantes. Une fois une cle <code>NVD_API_KEY</code> obtenue et ajoutee en secret GitHub, le run <strong>en CI reelle</strong> a echoue a nouveau : <code>Error: The operation was canceled.</code> apres seulement 11% (40000/369802), timeout de 25 min depasse. Meme authentifie, le volume de donnees et les conditions reseau d'un runner ephemere ne permettent pas de completer ce premier sync. Pas un probleme de configuration : un probleme d'echelle structurel. <strong>Abandonne pour la CI.</strong></p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>Sonatype OSS Index : echoue silencieusement, rejete pour un defaut de conception</h4>
+          <p class="why" style="margin-top:0">Remplacement teste : <code>ossindex-maven-plugin</code>, verification par dependance individuelle (pas de miroir complet). Local : <code>BUILD SUCCESS</code> en 39 secondes, mais le log montre <code>401 Unauthorized</code> -- l'API anonyme Sonatype n'est plus accessible sans compte. Le vrai probleme : le plugin avale cette erreur en simple <code>WARNING</code> et continue, un <code>BUILD SUCCESS</code> qui ne veut rien dire puisqu'aucune dependance n'a ete verifiee. Pire qu'une absence de gate : un faux sentiment de securite. <strong>Rejete.</strong></p>
         </div>
       </div>
       <div class="card">
-        <div class="verif-line"><span class="route">mvn -B verify -- 164 tests, couverture 52,6%</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">mvn -B verify (sans plugin de scan de dependances) -- 164 tests, couverture 52,6%, 31,8s</span><span class="ok-txt">OK</span></div>
         <div class="verif-line"><span class="route">SpotBugs/FindSecBugs apres correctif §5.1</span><span class="ok-txt">0 finding</span></div>
         <div class="verif-line"><span class="route">npm audit --audit-level=high (frontend)</span><span class="ok-txt">0 vulnerabilite</span></div>
         <div class="verif-line"><span class="route">pip-audit -r requirements.txt --no-deps (speaker-service)</span><span class="ok-txt">0 vulnerabilite</span></div>
         <div class="verif-line"><span class="route">torch / torchaudio (+cpu, extra-index-url)</span><span class="warn-txt">non couverts, avertissement visible</span></div>
-        <div class="verif-line"><span class="route">OWASP Dependency-Check sans NVD_API_KEY -- config/connexion NVD verifiees</span><span class="ok-txt">OK</span></div>
-        <div class="verif-line"><span class="route">OWASP Dependency-Check -- resultat final du scan (CVE ou non)</span><span class="warn-txt">non obtenu, voir §5.2</span></div>
+        <div class="verif-line"><span class="route">OWASP Dependency-Check (avec cle NVD, en CI)</span><span class="warn-txt">timeout depasse, abandonne</span></div>
+        <div class="verif-line"><span class="route">Sonatype OSS Index (local)</span><span class="warn-txt">401 avale silencieusement, rejete</span></div>
+        <div class="verif-line"><span class="route">GitHub Dependency Review</span><span class="warn-txt">verifiable uniquement sur une vraie PR, pas encore observe</span></div>
       </div>
     </section>
 
@@ -213,7 +219,7 @@ public class SecurityConfig { ... }</code></pre>
       <h2><span class="num">§</span> Limites connues, assumées</h2>
       <ul class="plain">
         <li><strong>Pas de vrai SonarQube/SonarCloud</strong> — equivalent auto-heberge a la place.</li>
-        <li><strong>OWASP Dependency-Check impraticable sans NVD_API_KEY</strong> — confirme, pas theorique.</li>
+        <li><strong>Le scan de dependances Java ne se declenche que sur les PR</strong> — limite structurelle de GitHub Dependency Review (diff base vs head), pas sur un push simple.</li>
         <li><strong>speaker-service sans lint ni tests ni couverture</strong> — seul le scan de dependances est en place.</li>
         <li><strong>torch/torchaudio non couverts par pip-audit</strong> — angle mort documente.</li>
         <li><strong>Seuil de couverture (50%) documente la baseline</strong>, ce n'est pas un objectif actif.</li>
@@ -224,14 +230,14 @@ public class SecurityConfig { ... }</code></pre>
       <h2><span class="num">§</span> Pour reprendre seul</h2>
       <div class="card">
         <ul class="plain">
-          <li>Obtenir une cle NVD gratuite : nvd.nist.gov/developers/request-an-api-key, l'ajouter comme secret GitHub <code>NVD_API_KEY</code> avant de compter sur la gate Dependency-Check en CI.</li>
-          <li>Lire un rapport en local : voir <code>docs/qualite.md</code> §2.</li>
+          <li>Le scan de dependances Java se verifie sur l'onglet "Checks" d'une pull request GitHub, pas en local ni sur un push simple.</li>
+          <li>Lire un rapport JaCoCo/SpotBugs en local : voir <code>docs/qualite.md</code> §2.</li>
           <li>Prochaine direction possible : tuteur vocal Ecole, ou faire monter le seuil de couverture progressivement.</li>
         </ul>
       </div>
       <div class="tag-banner">
         <span class="pill entity mono">tag</span>
-        <span><code>phase-8-gates-qualite</code> — verifiee avec de vrais runs mvn/npm/pip, un vrai finding trie, une vraie limite operationnelle decouverte et documentee.</span>
+        <span><code>phase-8-gates-qualite</code> — verifiee avec de vrais runs mvn/npm/pip et une vraie PR CI, deux outils de scan de dependances rejetes en conditions reelles avant d'aboutir sur GitHub Dependency Review.</span>
       </div>
     </section>
 

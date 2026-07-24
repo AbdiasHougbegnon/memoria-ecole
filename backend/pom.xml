@@ -117,8 +117,9 @@
 
             <!-- Gates de qualite (brique "phase-8-gates-qualite") : "SonarQube ou
                  equivalent" du master prompt, sans compte externe. Couverture
-                 (JaCoCo) + analyse statique/OWASP (SpotBugs + FindSecBugs) + CVE des
-                 dependances (OWASP Dependency-Check). -->
+                 (JaCoCo) + analyse statique/OWASP (SpotBugs + FindSecBugs) ici ; le
+                 scan des dependances (CVE) se fait au niveau CI, pas Maven, voir le
+                 commentaire plus bas et .github/workflows/ci.yml. -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -187,32 +188,25 @@
                 </executions>
             </plugin>
 
-            <!-- failBuildOnCVSS=8 : seuls les CVE High/Critical font echouer le
-                 build. nvdApiKeyEnvironmentVariable (pas nvdApiKey direct) : le vrai
-                 secret ne vit que dans une variable d'environnement CI, jamais en
-                 dur/loggee. dataDirectory hors ~/.m2 pour ne pas entrer en conflit
-                 avec le cache Maven de actions/setup-java. -->
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>12.2.2</version>
-                <configuration>
-                    <failBuildOnCVSS>8</failBuildOnCVSS>
-                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
-                    <dataDirectory>${project.basedir}/../.owasp-dc-data</dataDirectory>
-                    <formats>
-                        <format>HTML</format>
-                    </formats>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>verify</phase>
-                    </execution>
-                </executions>
-            </plugin>
+            <!-- Le scan des dependances Java (CVE) n'est PAS fait ici par un plugin
+                 Maven, deux tentatives reelles ont echoue :
+                 1) OWASP Dependency-Check (base NVD locale) : synchroniser les
+                    370 000+ enregistrements depuis zero depasse largement ce qui
+                    est raisonnable sur un runner GitHub Actions ephemere, meme
+                    avec une cle NVD_API_KEY (confirme a plusieurs reprises, local
+                    ET CI).
+                 2) Sonatype OSS Index (ossindex-maven-plugin) : l'API anonyme
+                    renvoie desormais 401 Unauthorized (compte requis depuis un
+                    changement de politique Sonatype), et pire, le plugin avale
+                    cette erreur en simple WARNING et rapporte BUILD SUCCESS sans
+                    avoir verifie la moindre dependance : un faux sentiment de
+                    securite, pas juste un outil plus lent.
+                 Le scan reel se fait via "GitHub Dependency Review"
+                 (.github/workflows/ci.yml, job "dependency-review") : natif a
+                 GitHub, zero compte externe, bloque une PR qui introduit une
+                 dependance a vulnerabilite connue, correspond exactement au
+                 gate du master prompt ("aucune PR n'est fusionnee sans scan des
+                 dependances"). -->
         </plugins>
     </build>
 

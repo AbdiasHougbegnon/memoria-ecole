@@ -10,11 +10,9 @@ jobs:
   backend:
     name: Backend (Java 21 / Maven)
     runs-on: ubuntu-latest
-    # Filet de securite : un premier telechargement OWASP Dependency-Check sans
-    # cle NVD_API_KEY peut etre tres lent (rate-limiting NIST, confirme
-    # manuellement : bloque a 46% apres plus d'une heure sans cle) -- mieux vaut
-    # un echec visible que des heures de minutes CI consommees en silence.
-    timeout-minutes: 25
+    # Filet de securite generique (pas specifique a un outil) : mieux vaut un
+    # echec visible qu'un job bloque en silence.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -24,21 +22,8 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Date du jour (cle de cache OWASP)
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache base de vulnerabilites OWASP (NVD)
-        uses: actions/cache@v4
-        with:
-          path: .owasp-dc-data
-          key: owasp-dc-data-${{ steps.date.outputs.date }}
-          restore-keys: owasp-dc-data-
-
-      - name: Tests + gates qualite (couverture, analyse statique, scan dependances)
+      - name: Tests + gates qualite (couverture, analyse statique)
         working-directory: backend
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: mvn -B verify
 
   frontend:
@@ -84,6 +69,24 @@ jobs:
         run: |
           pip install pip-audit==2.10.1
           pip-audit -r requirements.txt --no-deps
+
+  dependency-review:
+    name: Revue des dependances (toutes technos, PR uniquement)
+    runs-on: ubuntu-latest
+    # Ne s'execute que sur les PR : cette action diffe le graphe de dependances
+    # base vs head, elle a besoin d'une base de comparaison. Couvre Maven/npm/
+    # pip en une fois via le graphe de dependances natif de GitHub -- aucun
+    # compte externe, contrairement a OWASP Dependency-Check (NVD) et Sonatype
+    # OSS Index, tous deux abandonnes pour le scan Java (voir backend/pom.xml).
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   docker:
     name: Docker build (garde-fou)
