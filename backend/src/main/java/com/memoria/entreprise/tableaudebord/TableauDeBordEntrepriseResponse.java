@@ -2,6 +2,7 @@ package com.memoria.entreprise.tableaudebord;
 
 import com.memoria.entreprise.engagement.StatutEngagement;
 
+import java.util.List;
 import java.util.Map;
 
 // Volontairement agrege, jamais nominatif : "le manager voit l'avancement
@@ -12,6 +13,9 @@ public record TableauDeBordEntrepriseResponse(
         long total,
         Map<StatutEngagement, Long> parStatut,
         double tauxCompletion,
-        long enRetard
+        long enRetard,
+        double tauxRejet,
+        Double delaiMoyenTraitementJours,
+        List<PointTendanceHebdomadaire> tendanceHebdomadaire
 ) {
 }

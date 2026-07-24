@@ -161,11 +161,20 @@ export interface EmpreinteVocale {
   dateConsentement: string | null
 }
 
+export interface PointTendanceHebdomadaire {
+  debutSemaine: string
+  crees: number
+  termines: number
+}
+
 export interface TableauDeBordEntreprise {
   total: number
   parStatut: Partial<Record<StatutEngagement, number>>
   tauxCompletion: number
   enRetard: number
+  tauxRejet: number
+  delaiMoyenTraitementJours: number | null
+  tendanceHebdomadaire: PointTendanceHebdomadaire[]
 }
 
 export interface Matiere {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { obtenirTableauDeBordEntreprise } from '../api'
-import type { StatutEngagement, TableauDeBordEntreprise } from '../types'
+import type { PointTendanceHebdomadaire, StatutEngagement, TableauDeBordEntreprise } from '../types'
 
 const ORDRE_STATUTS: StatutEngagement[] = ['EN_ATTENTE', 'CONFIRME', 'TERMINE', 'REJETE']
 
@@ -26,6 +26,69 @@ function StatTuile({ label, valeur }: { label: string; valeur: string }) {
     <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
       <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>{label}</p>
       <p className="mt-1.5 text-3xl font-bold tracking-tight">{valeur}</p>
+    </div>
+  )
+}
+
+const HAUTEUR_GRAPHIQUE_PX = 100
+
+function formaterSemaine(debutSemaine: string): string {
+  return new Date(debutSemaine).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
+// Barres groupees en flexbox/CSS (pas de SVG, pas de dependance de charting --
+// coherent avec la barre de repartition par statut plus bas sur la meme
+// page). Palette validee via la skill dataviz : --color-brand (crees) +
+// --color-ok (termines, deja la teinte "termine" etablie sur cette page),
+// 2 slots categoriels, toutes verifications passees. Legende toujours
+// visible (pas hover-only), infobulle native (title) par barre -- meme
+// pattern que la barre de repartition existante.
+function TendanceHebdomadaire({ points }: { points: PointTendanceHebdomadaire[] }) {
+  const maxValeur = Math.max(1, ...points.flatMap((point) => [point.crees, point.termines]))
+  const aDesDonnees = points.some((point) => point.crees > 0 || point.termines > 0)
+
+  return (
+    <div className="mb-6 rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
+        Tendance (8 dernieres semaines)
+      </h2>
+
+      {!aDesDonnees ? (
+        <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun engagement sur cette periode.</p>
+      ) : (
+        <>
+          <div className="flex items-end gap-2">
+            {points.map((point) => (
+              <div key={point.debutSemaine} className="flex flex-1 flex-col items-center gap-1.5">
+                <div className="flex items-end gap-[2px]" style={{ height: HAUTEUR_GRAPHIQUE_PX }}>
+                  <div
+                    className="w-2.5 rounded-t"
+                    style={{ height: `${(point.crees / maxValeur) * HAUTEUR_GRAPHIQUE_PX}px`, background: 'var(--color-brand)' }}
+                    title={`Crees semaine du ${formaterSemaine(point.debutSemaine)} : ${point.crees}`}
+                  />
+                  <div
+                    className="w-2.5 rounded-t"
+                    style={{ height: `${(point.termines / maxValeur) * HAUTEUR_GRAPHIQUE_PX}px`, background: 'var(--color-ok)' }}
+                    title={`Termines semaine du ${formaterSemaine(point.debutSemaine)} : ${point.termines}`}
+                  />
+                </div>
+                <span className="text-[10px]" style={{ color: 'var(--color-ink-faint)' }}>{formaterSemaine(point.debutSemaine)}</span>
+              </div>
+            ))}
+          </div>
+
+          <ul className="mt-4 flex gap-5">
+            <li className="flex items-center gap-2 text-sm">
+              <span className="h-3 w-3 rounded-sm" style={{ background: 'var(--color-brand)' }} />
+              Crees
+            </li>
+            <li className="flex items-center gap-2 text-sm">
+              <span className="h-3 w-3 rounded-sm" style={{ background: 'var(--color-ok)' }} />
+              Termines
+            </li>
+          </ul>
+        </>
+      )}
     </div>
   )
 }
@@ -69,7 +132,17 @@ export function TableauDeBordPage() {
         <StatTuile label="En retard" valeur={String(donnees.enRetard)} />
       </div>
 
-      <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <StatTuile
+          label="Delai moyen de traitement"
+          valeur={donnees.delaiMoyenTraitementJours === null ? '—' : `${donnees.delaiMoyenTraitementJours.toFixed(1)} j`}
+        />
+        <StatTuile label="Taux de rejet" valeur={`${Math.round(donnees.tauxRejet * 100)}%`} />
+      </div>
+
+      <TendanceHebdomadaire points={donnees.tendanceHebdomadaire} />
+
+      <div className="mt-6 rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>Repartition par statut</h2>
 
         {total === 0 ? (
