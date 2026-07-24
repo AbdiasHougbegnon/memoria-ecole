@@ -10,7 +10,7 @@ import {
   supprimerCouloir,
   transfererProprieteCouloir,
 } from '../api'
-import { obtenirUtilisateurIdConnecte } from '../auth'
+import { obtenirModuleConnecte, obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, MembreCouloir, Session } from '../types'
 
 const LIBELLE_STATUT: Record<Session['statut'], string> = {
@@ -121,6 +121,15 @@ export function CouloirDetailPage() {
             {couloir.nombreMembres} membre(s)
           </div>
         </div>
+        {obtenirModuleConnecte() === 'ECOLE' && (
+          <Link
+            to={`/couloirs/${couloir.id}/matieres`}
+            className="ml-auto rounded-lg px-3.5 py-2 text-xs font-semibold text-white"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            Matieres &amp; tuteur vocal
+          </Link>
+        )}
       </div>
 
       <div className="mt-7 grid grid-cols-[1.5fr_1fr] gap-6">

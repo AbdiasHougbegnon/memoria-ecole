@@ -78,6 +78,10 @@ public class SecurityConfig {
 
                         // Ecole uniquement
                         .requestMatchers("/api/v1/sessions/*/resume-cours").hasAuthority("MODULE_ECOLE")
+                        .requestMatchers("/api/v1/matieres/**").hasAuthority("MODULE_ECOLE")
+                        .requestMatchers("/api/v1/couloirs/*/matieres").hasAuthority("MODULE_ECOLE")
+                        .requestMatchers("/api/v1/seances/**").hasAuthority("MODULE_ECOLE")
+                        .requestMatchers("/api/v1/tutorat/**").hasAuthority("MODULE_ECOLE")
 
                         .anyRequest().authenticated()
                 )

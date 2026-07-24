@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, FilMemoire, MembreCouloir, ModuleMemoria, RechercheResultat, Resume, ResumeCours, ResumeType, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -326,4 +326,123 @@ export async function transfererProprieteCouloir(id: string, nouveauProprietaire
     }),
   )
   return reponse.json()
+}
+
+// --- Tuteur vocal (Matiere / Notion / Seance / dialogue) ---
+
+export async function creerMatiere(nom: string, couloirId: string): Promise<Matiere> {
+  const reponse = await verifierReponse(
+    await appelApi('/api/v1/matieres', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, couloirId }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function listerMatieresParCouloir(couloirId: string): Promise<Matiere[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${couloirId}/matieres`))
+  return reponse.json()
+}
+
+export async function obtenirMatiere(id: string): Promise<Matiere> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${id}`))
+  return reponse.json()
+}
+
+export async function creerNotion(matiereId: string, terme: string, definition: string, ordre: number): Promise<Notion> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/matieres/${matiereId}/notions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ terme, definition, ordre }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function listerNotionsParMatiere(matiereId: string): Promise<Notion[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/notions`))
+  return reponse.json()
+}
+
+export async function creerSeance(matiereId: string, titre: string): Promise<Seance> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/matieres/${matiereId}/seances`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titre }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function listerSeancesParMatiere(matiereId: string): Promise<Seance[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/seances`))
+  return reponse.json()
+}
+
+export async function obtenirSeance(seanceId: string): Promise<Seance> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/seances/${seanceId}`))
+  return reponse.json()
+}
+
+export async function rattacherNotions(seanceId: string, notionIds: string[]): Promise<Notion[]> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/seances/${seanceId}/notions`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notionIds }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function listerNotionsDeSeance(seanceId: string): Promise<Notion[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/seances/${seanceId}/notions`))
+  return reponse.json()
+}
+
+export async function obtenirMaitriseSeance(seanceId: string): Promise<Record<string, NiveauMaitrise>> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/seances/${seanceId}/maitrise`))
+  return reponse.json()
+}
+
+export async function demarrerTutorat(seanceId: string, modeExercice: boolean): Promise<ResultatTour> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/seances/${seanceId}/tutorat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modeExercice }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirEtatTutorat(id: string): Promise<EtatTutorat> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/tutorat/${id}`))
+  return reponse.json()
+}
+
+export async function soumettreReponseTutorat(id: string, audio: Blob): Promise<ResultatTour> {
+  const corps = new FormData()
+  corps.append('audio', audio, 'reponse.webm')
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/tutorat/${id}/reponse`, { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
+export async function arreterTutorat(id: string): Promise<EtatTutorat> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/tutorat/${id}/arreter`, { method: 'POST' }))
+  return reponse.json()
+}
+
+// Recupere l'audio via fetch authentifie (pas un <audio src=...> direct) :
+// le navigateur n'attache pas l'en-tete Authorization a une requete src
+// declenchee par une balise media, contrairement a fetch() ici.
+export async function obtenirAudioTutorat(audioUrl: string): Promise<Blob> {
+  const reponse = await verifierReponse(await appelApi(audioUrl))
+  return reponse.blob()
 }

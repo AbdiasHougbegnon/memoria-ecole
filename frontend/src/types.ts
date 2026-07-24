@@ -167,3 +167,63 @@ export interface TableauDeBordEntreprise {
   tauxCompletion: number
   enRetard: number
 }
+
+export interface Matiere {
+  id: string
+  nom: string
+  couloirId: string
+  createurId: string
+  dateCreation: string
+}
+
+export interface Notion {
+  id: string
+  matiereId: string
+  terme: string
+  definition: string
+  ordre: number
+  dateCreation: string
+}
+
+export type NiveauMaitrise = 'NON_ABORDEE' | 'EN_COURS' | 'MAITRISEE'
+
+export interface Seance {
+  id: string
+  titre: string
+  matiereId: string
+  couloirId: string
+  sessionId: string | null
+  dateCreation: string
+}
+
+export type StatutSeanceTutorat = 'EN_COURS' | 'TERMINEE'
+export type LocuteurTutorat = 'ETUDIANT' | 'TUTEUR'
+
+export interface TourDialogue {
+  id: string
+  locuteur: LocuteurTutorat
+  texte: string
+  dateCreation: string
+  audioUrl: string | null
+}
+
+export interface EtatTutorat {
+  id: string
+  seanceId: string
+  statut: StatutSeanceTutorat
+  notionCouranteId: string | null
+  modeExercice: boolean
+  dateDebut: string
+  dateFin: string | null
+  tours: TourDialogue[]
+}
+
+export interface ResultatTour {
+  seanceTutoratId: string
+  tourId: string | null
+  texteTuteur: string
+  audioUrl: string | null
+  notionCouranteId: string | null
+  niveauMaitrise: NiveauMaitrise
+  seanceTerminee: boolean
+}

@@ -1,0 +1,244 @@
+<title>Memoria — Dossier technique : tuteur vocal École</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug .why .label { color: var(--accent-strong); font-weight: 600; }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  .transcript { display: flex; flex-direction: column; gap: 10px; }
+  .bulle { max-width: 85%; border-radius: 14px; padding: 10px 14px; font-size: 0.86rem; }
+  .bulle.tuteur { align-self: flex-start; background: var(--surface-2); color: var(--text); }
+  .bulle.etudiant { align-self: flex-end; background: var(--accent); color: white; }
+  .bulle .who { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; margin-bottom: 3px; font-family: ui-monospace, monospace; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École · Tuteur vocal</span>
+    <h1 class="title">Tuteur vocal École : dialogue tour par tour</h1>
+    <p class="dek">Le master prompt le decrit comme "la fonctionnalite la plus differenciante" de Memoria Ecole : un dialogue vocal naturel qui vise 100% de maitrise, ne lache pas une notion tant qu'elle n'est pas comprise, et suit un score de maitrise par notion. Verifie avec de vrais appels Azure OpenAI et Azure Speech, pas seulement des tests unitaires.</p>
+    <div class="factrow">
+      <span class="fact"><strong>193</strong>&nbsp;tests backend, tous verts (+29)</span>
+      <span class="fact">pipeline complet verifie avec de <strong>vrais</strong> appels Azure</span>
+      <span class="fact">comportement "change d'approche" <strong>observe reellement</strong></span>
+      <span class="fact">tag <code>phase-9-tuteur-vocal</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions</a>
+    <span class="toc-label">Implementation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Le master prompt : <em>"l'IA raconte le cours en dialogue vocal naturel comme un camarade present, vise 100% de maitrise, ne lache pas une notion tant qu'elle n'est pas comprise (change d'approche, analogies, reformulation), suit un score de maitrise par notion... propose un mode exercices. La seule sortie est l'arret par l'utilisateur, avec sauvegarde de l'etat."</em> Etat avant cette brique : aucun modele Matiere/Seance/Promotion/Notion, aucun TTS implemente, STT existant reutilisable tel quel.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Dialogue tour par tour</strong> (pas de streaming temps reel) — decide explicitement avec l'utilisateur, evite une infrastructure WebSocket/VAD hors de portee d'un seul increment.</li>
+          <li><strong>Couloir reutilise comme "Promotion"</strong>, aucune nouvelle entite — sa propre documentation (phase-5) le decrit deja comme "un espace partage par promotion". Le proprietaire du couloir joue le role enseignant, les membres jouent le role eleve.</li>
+          <li><strong>NiveauMaitrise qualitatif (3 valeurs)</strong>, pas un score numerique — une evaluation LLM est intrinsequement qualitative, un score 0-100 serait une fausse precision.</li>
+          <li><strong>Pas d'audio persiste</strong> — resynthetise a la demande via un endpoint dedie, coherent avec l'absence de stockage de blobs ailleurs dans le projet.</li>
+          <li><strong>"Change d'approche" = prompt engineering</strong>, pas une machine a etats — toute la nuance pedagogique vit dans le prompt systeme de l'adaptateur IA, verifie fonctionner en conditions reelles (voir §4).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>com.memoria.ecole.matiere / notion / seance (nouveaux)</h4>
+          <p class="why" style="margin-top:0">Matiere, Notion (entite de premier ordre, contrairement a l'embeddable NotionCours), MaitriseNotion (une ligne par notion+etudiant, meme style que MembreCouloir), Seance + SeanceNotion (jointure ordonnee).</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>com.memoria.ecole.tuteurvocal (nouveau) — le coeur</h4>
+          <p class="why" style="margin-top:0">SeanceTutorat (etat sauvegarde), TourDialogueTutorat (texte seul), SynthetiseurVocalPort + SynthetiseurVocalAzure (TTS, premiere implementation du projet), GenerateurTourTuteurPort + GenerateurTourTuteurAzureOpenAI (prompt systeme portant la pedagogie), TuteurVocalService (orchestration STT -&gt; IA -&gt; maitrise -&gt; avance de notion).</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>SecurityConfig.java / GestionnaireExceptionsApi.java (edites)</h4>
+          <p class="why" style="margin-top:0">Nouvelles routes gardees MODULE_ECOLE. PasMembreDuCouloirException/PasProprietaireDuCouloirException reutilisees telles quelles (deja mappees).</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>Frontend (nouveau)</h4>
+          <p class="why" style="margin-top:0">MatieresPage, MatiereDetailPage, SeanceDetailPage, TuteurVocalPage, hook useTutorRecorder (push-to-talk). Point d'attention gere : l'audio est recupere via fetch authentifie + URL de blob, pas un &lt;audio src=...&gt; direct (le navigateur n'attache pas l'en-tete Authorization a une requete de balise media).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <p class="lead">Contrairement aux briques precedentes, cette session disposait de vrais identifiants Azure OpenAI et Azure Speech -- la verification est allee jusqu'au bout du pipeline reel, pas seulement aux tests unitaires.</p>
+      <div class="card">
+        <div class="verif-line"><span class="route">Backend demarre (4 services interdependants, 2 nouveaux ports)</span><span class="ok-txt">Started CoreApplication</span></div>
+        <div class="verif-line"><span class="route">Couloir -&gt; Matiere -&gt; Notion -&gt; Seance -&gt; rattachement (vrais appels REST)</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">POST /seances/{id}/tutorat -- ouverture generee par Azure OpenAI</span><span class="ok-txt">reponse coherente</span></div>
+        <div class="verif-line"><span class="route">GET /tutorat/{id}/audio/{tourId} -- Azure Speech TTS</span><span class="ok-txt">MP3 reel, 66 Ko</span></div>
+        <div class="verif-line"><span class="route">POST /tutorat/{id}/reponse -- STT + evaluation IA</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">GET /tutorat/{id}, /seances/{id}/maitrise, POST .../arreter</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build + npm run lint (frontend)</span><span class="ok-txt">OK</span></div>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:10px;">Preuve concrete du comportement "ne lache pas une notion, change d'approche"</h4>
+        <p class="why" style="margin-top:0;margin-bottom:14px;">En reinjectant l'audio genere comme reponse etudiant (un test de plomberie), l'etudiant simule a repete la definition mot pour mot. Observe reellement, pas suppose :</p>
+        <div class="transcript">
+          <div class="bulle tuteur"><span class="who">Tuteur</span>La dérivée mesure le taux de variation instantané d'une fonction... Dis-moi avec tes mots ce que cela signifie : que représente la dérivée en un point ?</div>
+          <div class="bulle etudiant"><span class="who">Étudiant</span>La dérivée mesure le taux de variation instantanée d'une fonction... (répétition mot pour mot)</div>
+          <div class="bulle tuteur"><span class="who">Tuteur</span>Tu as repris la définition mot pour mot, donc je veux vérifier ta compréhension autrement. Pense à une voiture : la fonction donne sa position selon le temps...</div>
+        </div>
+        <p class="why" style="margin-top:14px;"><code>niveauMaitrise</code> est reste <code>EN_COURS</code>, la notion n'a pas avance -- exactement le comportement demande par le master prompt.</p>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>"Change d'approche" = prompt engineering</strong> — pas de suivi structure des approches deja tentees, pas de garde-fou si le modele finit par se repeter.</li>
+        <li><strong>Pas de garde-fou anti-blocage</strong> — une seance peut tourner indefiniment sur une notion (arret manuel toujours possible). <code>nombreTentatives</code> suivi mais pas exploite.</li>
+        <li><strong>Pas d'ancrage dans RechercheService</strong> — le tuteur utilise seulement Notion.definition, jamais la transcription reelle du cours. <code>Seance.sessionId</code> pret pour une extension future.</li>
+        <li><strong>Mode exercices fixe au demarrage</strong>, pas de bascule en cours de route.</li>
+        <li><strong>Pas de suivi enseignant en direct</strong> d'une seance de tutorat en cours.</li>
+        <li><strong>Adaptateurs HTTP sans test unitaire</strong> — meme convention que les autres adaptateurs Azure du projet.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Chemin de bout en bout : Couloir (promotion) → Matiere → Notion(s) → Seance (rattache des notions) → demarrer le tutorat → boucle tour par tour → arreter.</li>
+          <li>Depuis l'UI : couloir (module Ecole) → "Matieres &amp; tuteur vocal" → creer une matiere, des notions, une seance → rattacher les notions → "Demarrer le tutorat".</li>
+          <li>Prochaine direction possible : garde-fou anti-blocage (nombreTentatives), ancrage RechercheService via Seance.sessionId, suivi enseignant en direct.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-9-tuteur-vocal</code> — verifiee avec de vrais appels Azure OpenAI et Azure Speech, comportement pedagogique du master prompt observe reellement.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le tuteur vocal École.
+    </footer>
+  </main>
+</div>

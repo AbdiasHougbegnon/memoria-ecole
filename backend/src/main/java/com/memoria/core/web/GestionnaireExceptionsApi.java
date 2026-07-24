@@ -110,4 +110,44 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public void gererAudioEnrollementInsuffisant() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.matiere.MatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.notion.NotionNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererNotionIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.seance.SeanceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererSeanceIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.tuteurvocal.SeanceTutoratNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererSeanceTutoratIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.tuteurvocal.TourDialogueTutoratNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererTourDialogueTutoratIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.tuteurvocal.AccesTutoratRefuseException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererAccesTutoratRefuse() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.tuteurvocal.SeanceTutoratNonActiveException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererSeanceTutoratNonActive() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.tuteurvocal.TraitementTourTutoratException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public void gererTraitementTourTutoratEnEchec() {
+    }
 }

@@ -12,6 +12,10 @@ import { CouloirDetailPage } from './pages/CouloirDetailPage'
 import { RejoindreCouloirPage } from './pages/RejoindreCouloirPage'
 import { ParametresCompteePage } from './pages/ParametresCompteePage'
 import { TableauDeBordPage } from './pages/TableauDeBordPage'
+import { MatieresPage } from './pages/MatieresPage'
+import { MatiereDetailPage } from './pages/MatiereDetailPage'
+import { SeanceDetailPage } from './pages/SeanceDetailPage'
+import { TuteurVocalPage } from './pages/TuteurVocalPage'
 import { RouteProtegee } from './components/RouteProtegee'
 
 function App() {
@@ -34,6 +38,10 @@ function App() {
           <Route path="/couloirs/:id/rejoindre" element={<RouteProtegee><RejoindreCouloirPage /></RouteProtegee>} />
           <Route path="/parametres" element={<RouteProtegee><ParametresCompteePage /></RouteProtegee>} />
           <Route path="/tableau-de-bord" element={<RouteProtegee module="ENTREPRISE"><TableauDeBordPage /></RouteProtegee>} />
+          <Route path="/couloirs/:id/matieres" element={<RouteProtegee module="ECOLE"><MatieresPage /></RouteProtegee>} />
+          <Route path="/matieres/:id" element={<RouteProtegee module="ECOLE"><MatiereDetailPage /></RouteProtegee>} />
+          <Route path="/seances/:id" element={<RouteProtegee module="ECOLE"><SeanceDetailPage /></RouteProtegee>} />
+          <Route path="/tutorat/:seanceTutoratId" element={<RouteProtegee module="ECOLE"><TuteurVocalPage /></RouteProtegee>} />
         </Routes>
       </div>
     </BrowserRouter>
