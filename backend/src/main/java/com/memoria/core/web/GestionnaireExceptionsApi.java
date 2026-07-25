@@ -56,6 +56,11 @@ public class GestionnaireExceptionsApi {
     public void gererEmailDejaUtilise() {
     }
 
+    @ExceptionHandler(com.memoria.core.auth.DomaineEmailNonAutoriseException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererDomaineEmailNonAutorise() {
+    }
+
     @ExceptionHandler(com.memoria.core.auth.IdentifiantsInvalidesException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public void gererIdentifiantsInvalides() {

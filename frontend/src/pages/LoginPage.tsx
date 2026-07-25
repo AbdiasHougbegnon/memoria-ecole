@@ -19,6 +19,9 @@ function messageErreur(e: unknown, mode: 'connexion' | 'inscription'): string {
     if (mode === 'inscription' && e.status === 400) {
       return 'Email invalide ou mot de passe trop court (8 caracteres minimum).'
     }
+    if (mode === 'inscription' && e.status === 403) {
+      return "L'inscription est reservee aux emails de l'etablissement partenaire."
+    }
   }
   return 'Une erreur inattendue est survenue. Reessaie.'
 }

@@ -31,7 +31,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(utilisateurRepository, passwordEncoder, jwtService);
+        authService = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "");
     }
 
     @Test
@@ -104,5 +104,51 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.connecter("alice@memoria.fr", "mauvais-mot-de-passe"))
                 .isInstanceOf(IdentifiantsInvalidesException.class);
+    }
+
+    @Test
+    void inscrire_accepte_nimporte_quel_domaine_quand_la_restriction_est_desactivee() {
+        when(utilisateurRepository.existsByEmail("alice@gmail.com")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authService.inscrire("alice@gmail.com", "motdepasse123", ModuleMemoria.ENTREPRISE);
+
+        assertThat(reponse.email()).isEqualTo("alice@gmail.com");
+    }
+
+    @Test
+    void inscrire_accepte_un_email_du_domaine_autorise() {
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr, etu.episen.fr");
+        when(utilisateurRepository.existsByEmail("alice@episen.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authServiceRestreint.inscrire("alice@episen.fr", "motdepasse123", ModuleMemoria.ECOLE);
+
+        assertThat(reponse.email()).isEqualTo("alice@episen.fr");
+    }
+
+    @Test
+    void inscrire_accepte_un_domaine_autorise_sans_tenir_compte_de_la_casse() {
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr");
+        when(utilisateurRepository.existsByEmail("alice@EPISEN.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authServiceRestreint.inscrire("alice@EPISEN.fr", "motdepasse123", ModuleMemoria.ECOLE);
+
+        assertThat(reponse.email()).isEqualTo("alice@EPISEN.fr");
+    }
+
+    @Test
+    void inscrire_leve_une_exception_si_le_domaine_nest_pas_autorise() {
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr");
+
+        assertThatThrownBy(() -> authServiceRestreint.inscrire("alice@gmail.com", "motdepasse123", ModuleMemoria.ECOLE))
+                .isInstanceOf(DomaineEmailNonAutoriseException.class);
     }
 }
