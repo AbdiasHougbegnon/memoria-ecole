@@ -95,6 +95,11 @@ export async function envoyerChunk(id: string, numeroSequence: number, audio: Bl
   )
 }
 
+export async function listerNumerosChunksRecus(id: string): Promise<number[]> {
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/chunks`))
+  return reponse.json()
+}
+
 export async function obtenirTranscriptions(id: string): Promise<TranscriptionSegment[]> {
   const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/transcriptions`))
   return reponse.json()

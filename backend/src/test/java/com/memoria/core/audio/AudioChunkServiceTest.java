@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -103,5 +104,25 @@ class AudioChunkServiceTest {
                 .isInstanceOf(SessionNonActiveException.class);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void listerNumerosRecus_retourne_les_numeros_tries_du_repository() {
+        Session session = new Session("Cours de reseaux");
+        when(sessionService.obtenirSession(session.getId())).thenReturn(session);
+        when(audioChunkRepository.findNumerosSequenceBySessionId(session.getId())).thenReturn(List.of(0, 1, 2));
+
+        List<Integer> resultat = audioChunkService.listerNumerosRecus(session.getId());
+
+        assertThat(resultat).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    void listerNumerosRecus_leve_une_exception_quand_la_session_est_introuvable() {
+        UUID idInconnu = UUID.randomUUID();
+        when(sessionService.obtenirSession(idInconnu)).thenThrow(new SessionNotFoundException(idInconnu));
+
+        assertThatThrownBy(() -> audioChunkService.listerNumerosRecus(idInconnu))
+                .isInstanceOf(SessionNotFoundException.class);
     }
 }

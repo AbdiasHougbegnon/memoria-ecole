@@ -1,7 +1,9 @@
 package com.memoria.core.transcription;
 
+import com.memoria.core.audio.AudioChunk;
 import com.memoria.core.audio.AudioChunkRepository;
 import com.memoria.core.audio.ChunkAudioEnregistreEvent;
+import com.memoria.core.audio.StockageAudioPort;
 import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,12 +50,16 @@ class TranscriptionServiceTest {
     @Mock
     private UtilisateurRepository utilisateurRepository;
 
+    @Mock
+    private StockageAudioPort stockageAudio;
+
     private TranscriptionService transcriptionService;
 
     @BeforeEach
     void setUp() {
         transcriptionService = new TranscriptionService(
-                transcriptionRepository, audioChunkRepository, transcripteur, sessionService, eventPublisher, utilisateurRepository
+                transcriptionRepository, audioChunkRepository, transcripteur, sessionService, eventPublisher,
+                utilisateurRepository, stockageAudio, 120L
         );
     }
 
@@ -199,5 +206,52 @@ class TranscriptionServiceTest {
         List<TranscriptionResponse> resultat = transcriptionService.obtenirTranscriptionsAvecIdentification(sessionId);
 
         assertThat(resultat.get(0).segmentsLocuteur().get(0).nomUtilisateurIdentifie()).isNull();
+    }
+
+    @Test
+    void rattraperTranscriptionsManquantes_retraite_les_chunks_sans_transcription_correspondante() {
+        UUID sessionId = UUID.randomUUID();
+        AudioChunk chunk = new AudioChunk(sessionId, 0, "/data/audio/x/0.chunk", 3);
+        when(audioChunkRepository.findChunksSansTranscriptionAvant(any(Instant.class))).thenReturn(List.of(chunk));
+        when(stockageAudio.lire("/data/audio/x/0.chunk")).thenReturn(new byte[]{1, 2, 3});
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("texte rattrape", List.of()));
+        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
+
+        transcriptionService.rattraperTranscriptionsManquantes();
+
+        ArgumentCaptor<Transcription> captor = ArgumentCaptor.forClass(Transcription.class);
+        verify(transcriptionRepository).save(captor.capture());
+        assertThat(captor.getValue().getSessionId()).isEqualTo(sessionId);
+        assertThat(captor.getValue().getNumeroSequence()).isEqualTo(0);
+        assertThat(captor.getValue().getTexte()).isEqualTo("texte rattrape");
+    }
+
+    @Test
+    void rattraperTranscriptionsManquantes_ne_fait_rien_si_aucun_chunk_nest_en_retard() {
+        when(audioChunkRepository.findChunksSansTranscriptionAvant(any(Instant.class))).thenReturn(List.of());
+
+        transcriptionService.rattraperTranscriptionsManquantes();
+
+        verify(transcriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void rattraperTranscriptionsManquantes_continue_apres_lechec_dun_chunk() {
+        UUID sessionId1 = UUID.randomUUID();
+        UUID sessionId2 = UUID.randomUUID();
+        AudioChunk chunkEnErreur = new AudioChunk(sessionId1, 0, "/data/audio/x/0.chunk", 3);
+        AudioChunk chunkOk = new AudioChunk(sessionId2, 0, "/data/audio/y/0.chunk", 3);
+        when(audioChunkRepository.findChunksSansTranscriptionAvant(any(Instant.class)))
+                .thenReturn(List.of(chunkEnErreur, chunkOk));
+        when(stockageAudio.lire("/data/audio/x/0.chunk")).thenThrow(new RuntimeException("fichier illisible"));
+        when(stockageAudio.lire("/data/audio/y/0.chunk")).thenReturn(new byte[]{1, 2, 3});
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("texte", List.of()));
+        when(sessionService.obtenirSession(sessionId2)).thenReturn(new Session("Cours"));
+
+        transcriptionService.rattraperTranscriptionsManquantes();
+
+        ArgumentCaptor<Transcription> captor = ArgumentCaptor.forClass(Transcription.class);
+        verify(transcriptionRepository).save(captor.capture());
+        assertThat(captor.getValue().getSessionId()).isEqualTo(sessionId2);
     }
 }

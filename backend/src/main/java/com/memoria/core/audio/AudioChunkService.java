@@ -6,6 +6,7 @@ import com.memoria.core.session.SessionStatus;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,5 +46,13 @@ public class AudioChunkService {
         AudioChunk chunkSauvegarde = audioChunkRepository.save(chunk);
         eventPublisher.publishEvent(new ChunkAudioEnregistreEvent(sessionId, numeroSequence, donnees));
         return new ResultatEnregistrementChunk(chunkSauvegarde, false);
+    }
+
+    // Reprise cote client apres coupure reseau/fermeture d'onglet : le client
+    // demande ce qu'il a deja envoye avant de reprendre l'enregistrement, pour
+    // repartir juste apres le dernier numero recu sans trou ni renvoi massif.
+    public List<Integer> listerNumerosRecus(UUID sessionId) {
+        sessionService.obtenirSession(sessionId);
+        return audioChunkRepository.findNumerosSequenceBySessionId(sessionId);
     }
 }
