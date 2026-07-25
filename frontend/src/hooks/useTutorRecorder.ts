@@ -14,6 +14,11 @@ export function useTutorRecorder() {
   const chunksRef = useRef<Blob[]>([])
 
   async function demarrer() {
+    // Garde de defense en profondeur : un double declenchement (ex. double-clic
+    // accidentel) ne doit jamais creer un second MediaRecorder orphelin qui
+    // ecraserait recorderRef.current du premier (voir
+    // docs/phases/phase-16-corrections-tuteur-vocal.md).
+    if (recorderRef.current) return
     setErreur(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -42,6 +47,7 @@ export function useTutorRecorder() {
       recorder.onstop = () => {
         streamRef.current?.getTracks().forEach((piste) => piste.stop())
         streamRef.current = null
+        recorderRef.current = null
         setEnregistrement(false)
         const type = recorder.mimeType || 'audio/webm'
         resolve(new Blob(chunksRef.current, { type }))

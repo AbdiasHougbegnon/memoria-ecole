@@ -57,11 +57,23 @@ public class SeanceService {
     // diff incremental pour ce premier increment. @Transactional necessaire :
     // deleteBySeanceId est une requete derivee (pas heritee de JpaRepository),
     // meme raison que CouloirService.supprimerCouloir.
+    //
+    // flush() explicite juste apres la suppression : deleteBySeanceId n'est
+    // pas une requete bulk (@Modifying @Query) mais un "find puis remove"
+    // classique, dont l'action DELETE reste en attente dans la file
+    // d'actions Hibernate jusqu'au prochain flush. Hibernate execute
+    // systematiquement les INSERT en attente AVANT les DELETE en attente au
+    // sein d'un meme flush (ordre fixe de son ActionQueue), quel que soit
+    // l'ordre d'appel en Java -- sans ce flush, reinserer une notion deja
+    // rattachee (ensemble qui recoupe l'ancien) violait la contrainte unique
+    // (seance_id, notion_id) : l'insertion partait avant que la suppression
+    // ne soit reellement executee. Voir docs/phases/phase-16-corrections-tuteur-vocal.md.
     @Transactional
     public void rattacherNotions(UUID seanceId, List<UUID> notionIds, UUID utilisateurId) {
         Seance seance = obtenirSeance(seanceId);
         verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
         seanceNotionRepository.deleteBySeanceId(seanceId);
+        seanceNotionRepository.flush();
         for (int i = 0; i < notionIds.size(); i++) {
             seanceNotionRepository.save(new SeanceNotion(seanceId, notionIds.get(i), i));
         }

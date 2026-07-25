@@ -113,6 +113,30 @@ class SeanceServiceTest {
         assertThat(sauvegardees.get(1).getOrdre()).isEqualTo(1);
     }
 
+    // Regression : sans flush() explicite entre la suppression et la
+    // reinsertion, Hibernate execute les INSERT en attente avant les DELETE
+    // en attente au sein d'un meme flush (ordre fixe de son ActionQueue),
+    // deleteBySeanceId n'etant pas une requete bulk mais un "find puis
+    // remove" differe -- reinserer une notion deja rattachee violait alors
+    // la contrainte unique (seance_id, notion_id). Voir
+    // docs/phases/phase-16-corrections-tuteur-vocal.md.
+    @Test
+    void rattacherNotions_vide_le_cache_hibernate_entre_suppression_et_reinsertion() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
+        UUID notionDejaRattachee = UUID.randomUUID();
+        when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
+        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+
+        seanceService.rattacherNotions(seance.getId(), List.of(notionDejaRattachee), proprietaireId);
+
+        org.mockito.InOrder ordre = org.mockito.Mockito.inOrder(seanceNotionRepository);
+        ordre.verify(seanceNotionRepository).deleteBySeanceId(seance.getId());
+        ordre.verify(seanceNotionRepository).flush();
+        ordre.verify(seanceNotionRepository).save(any());
+    }
+
     @Test
     void rattacherNotions_leve_une_exception_si_pas_proprietaire_du_couloir() {
         UUID proprietaireId = UUID.randomUUID();

@@ -153,15 +153,12 @@ export function TuteurVocalPage() {
       ) : (
         <div className="flex items-center justify-between gap-4">
           <button
-            onMouseDown={demarrer}
-            onMouseUp={gererRelachement}
-            onTouchStart={demarrer}
-            onTouchEnd={gererRelachement}
+            onClick={() => void (enregistrement ? gererRelachement() : demarrer())}
             disabled={envoiEnCours}
             className="flex-1 rounded-2xl py-5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: enregistrement ? 'var(--color-live)' : 'var(--color-brand)' }}
           >
-            {envoiEnCours ? 'Le tuteur reflechit...' : enregistrement ? 'Relache pour envoyer...' : 'Maintiens pour parler'}
+            {envoiEnCours ? 'Le tuteur reflechit...' : enregistrement ? 'Clique pour envoyer...' : 'Parler'}
           </button>
           <button
             onClick={gererArret}

@@ -88,6 +88,12 @@ export function SeanceDetailPage() {
     setErreur(null)
     setDemarrageEnCours(true)
     try {
+      // Sauvegarde automatiquement l'etat des cases cochees a l'ecran avant
+      // de demarrer, plutot que de dependre d'un clic separe sur
+      // "Enregistrer" qui peut etre oublie -- une notion ajoutee puis cochee
+      // sans cliquer "Enregistrer" bloquait sinon le tutorat sur "toutes les
+      // notions sont deja maitrisees" (voir docs/phases/phase-16-corrections-tuteur-vocal.md).
+      await rattacherNotions(seanceId, notionsRattachees)
       const resultat = await demarrerTutorat(seanceId, modeExercice)
       navigate(`/tutorat/${resultat.seanceTutoratId}`)
     } catch {

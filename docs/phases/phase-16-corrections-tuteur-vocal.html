@@ -1,0 +1,206 @@
+<title>Memoria — Dossier technique : corrections du tuteur vocal</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École · Tuteur vocal</span>
+    <h1 class="title">Corrections du tuteur vocal</h1>
+    <p class="dek">Deux bugs signalés en usage réel — un piège UX (rattachement de notion oublié) et un bouton d'enregistrement fragile — plus un vrai bug transactionnel Hibernate découvert en vérifiant le premier correctif.</p>
+    <div class="factrow">
+      <span class="fact"><strong>248</strong>&nbsp;tests backend, tous verts (+1)</span>
+      <span class="fact">3 bugs corrigés (2 signalés + 1 découvert)</span>
+      <span class="fact">vérifié avec de vrais appels Azure OpenAI</span>
+      <span class="fact">tag <code>phase-16-corrections-tuteur-vocal</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">L'utilisateur a testé le tuteur vocal (phase-9) et signalé : (1) blocage de progression après qu'une notion soit maîtrisée, même en ajoutant de nouvelles notions ; (2) le tuteur semble ne pas attendre la fin de la réponse avant de répondre.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Bug 1 — piège UX, pas un bug métier</strong> — ajouter une notion à une matière ne la rattache jamais automatiquement à une séance. <code>gererDemarrage()</code> sauvegarde désormais le rattachement automatiquement avant de démarrer.</li>
+          <li><strong>Découverte en vérifiant le correctif : vrai bug transactionnel</strong> — <code>deleteBySeanceId</code> est un "find puis remove" différé, pas une requête bulk. Hibernate exécute toujours les INSERT en attente avant les DELETE en attente au sein d'un même flush, quel que soit l'ordre d'appel Java : réinsérer une notion déjà rattachée violait la contrainte unique. Un <code>flush()</code> explicite entre suppression et réinsertion force l'ordre correct.</li>
+          <li><strong>Bug 2 — modèle d'interaction fragile</strong> — bouton "maintenir enfoncé" sans <code>onMouseLeave</code> : un enregistrement orphelin en arrière-plan + un second <code>MediaRecorder</code> qui écrase le premier. Bascule au clic, plus robuste et un pas vers la conversation continue demandée pour la suite.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>SeanceDetailPage.tsx (édité)</h4>
+          <p class="why" style="margin-top:0"><code>gererDemarrage()</code> appelle <code>rattacherNotions</code> avant <code>demarrerTutorat</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>SeanceService.java (édité) — le vrai fix backend</h4>
+          <pre><code>seanceNotionRepository.deleteBySeanceId(seanceId);
+seanceNotionRepository.flush(); // force l'ordre DELETE avant INSERT
+for (...) { seanceNotionRepository.save(...); }</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>TuteurVocalPage.tsx + useTutorRecorder.ts (édités)</h4>
+          <p class="why" style="margin-top:0">Bouton en bascule au clic ; garde anti-double-démarrage ; <code>arreter()</code> remet enfin <code>recorderRef.current</code> à null.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B verify -- 248 tests, 0 finding, couverture maintenue</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">Reproduction du bug transactionnel par appels HTTP directs</span><span class="ok-txt">confirmee (duplicate key)</span></div>
+        <div class="verif-line"><span class="route">Coche UDP + clic direct "Demarrer le tutorat" (sans Enregistrer)</span><span class="ok-txt">demarre sur UDP, TCP=Maitrisee</span></div>
+        <div class="verif-line"><span class="route">Playwright + vrai appel Azure OpenAI</span><span class="ok-txt">capture d'ecran a l'appui</span></div>
+        <div class="verif-line"><span class="route">Confirmation manuelle par l'utilisateur, meme instance</span><span class="ok-txt">OK, aucun blocage ni retard reproduit</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Portée resserrée aux 2 bugs signalés</strong> — la refonte plus large (import en masse, inscription auto-assignée, contenu piloté par documents, mode conversation libre) est cadrée séparément.</li>
+        <li><strong>Clic-pour-parler reste un point de départ</strong>, pas la conversation continue complète (VAD côté client hors de portée d'un correctif de bug).</li>
+        <li><strong>Pas de test d'intégration réel</strong> pour le flush Hibernate — seul un test Mockito vérifie l'ordre des appels.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Le même piège de flush Hibernate s'applique à tout futur <code>deleteBy...</code> dérivé suivi d'une réinsertion pouvant recouper les mêmes clés.</li>
+          <li>Prochaine direction possible : cadrage de la grosse refonte du tuteur vocal.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-16-corrections-tuteur-vocal</code> — vérifiée en conditions réelles, 3 bugs corrigés.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur les corrections du tuteur vocal.
+    </footer>
+  </main>
+</div>
