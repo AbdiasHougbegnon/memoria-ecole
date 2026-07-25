@@ -55,4 +55,14 @@ public class AudioChunkService {
         sessionService.obtenirSession(sessionId);
         return audioChunkRepository.findNumerosSequenceBySessionId(sessionId);
     }
+
+    // Drill-down resume/compte-rendu -> transcription -> audio (voir
+    // docs/phases/phase-14-drilldown-source-audio.md) : jusqu'ici
+    // stockageAudio.lire n'etait appele que par IdentificationLocuteurService,
+    // jamais expose en HTTP.
+    public byte[] obtenirAudio(UUID sessionId, int numeroSequence) {
+        AudioChunk chunk = audioChunkRepository.findBySessionIdAndNumeroSequence(sessionId, numeroSequence)
+                .orElseThrow(() -> new AudioChunkNotFoundException(sessionId, numeroSequence));
+        return stockageAudio.lire(chunk.getCheminStockage());
+    }
 }

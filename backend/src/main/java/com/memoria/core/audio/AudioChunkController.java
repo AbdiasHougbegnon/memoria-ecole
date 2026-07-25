@@ -1,6 +1,7 @@
 package com.memoria.core.audio;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,5 +37,14 @@ public class AudioChunkController {
     @GetMapping
     public List<Integer> listerNumerosRecus(@PathVariable UUID sessionId) {
         return audioChunkService.listerNumerosRecus(sessionId);
+    }
+
+    // Drill-down resume/compte-rendu -> transcription -> audio. Pas de
+    // support HTTP Range : un chunk fait ~30s, un blob complet suffit (voir
+    // docs/phases/phase-14-drilldown-source-audio.md).
+    @GetMapping("/{numeroSequence}/audio")
+    public ResponseEntity<byte[]> obtenirAudio(@PathVariable UUID sessionId, @PathVariable int numeroSequence) {
+        byte[] audio = audioChunkService.obtenirAudio(sessionId, numeroSequence);
+        return ResponseEntity.ok().contentType(MediaType.valueOf("audio/wav")).body(audio);
     }
 }

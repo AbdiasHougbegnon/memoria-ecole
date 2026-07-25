@@ -1,5 +1,6 @@
 package com.memoria.core.web;
 
+import com.memoria.core.audio.AudioChunkNotFoundException;
 import com.memoria.core.audio.SessionNonActiveException;
 import com.memoria.core.resume.ResumeNotFoundException;
 import com.memoria.core.session.SessionNotFoundException;
@@ -19,6 +20,11 @@ public class GestionnaireExceptionsApi {
     @ExceptionHandler(SessionNonActiveException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererSessionNonActive() {
+    }
+
+    @ExceptionHandler(AudioChunkNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererAudioChunkIntrouvable() {
     }
 
     @ExceptionHandler(ResumeNotFoundException.class)

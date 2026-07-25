@@ -100,6 +100,15 @@ export async function listerNumerosChunksRecus(id: string): Promise<number[]> {
   return reponse.json()
 }
 
+// Drill-down resume/compte-rendu -> transcription -> audio. Meme motif que
+// obtenirAudioTutorat : fetch authentifie + URL de blob, jamais un
+// <audio src=...> direct (le navigateur n'attache pas l'en-tete
+// Authorization a une requete declenchee par une balise media).
+export async function obtenirAudioChunk(id: string, numeroSequence: number): Promise<Blob> {
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/chunks/${numeroSequence}/audio`))
+  return reponse.blob()
+}
+
 export async function obtenirTranscriptions(id: string): Promise<TranscriptionSegment[]> {
   const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/transcriptions`))
   return reponse.json()

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import {
   genererResume,
   obtenirAdresseLocaleServeur,
+  obtenirAudioChunk,
   obtenirDocuments,
   obtenirResume,
   obtenirSession,
@@ -52,7 +53,12 @@ export function BoutonSecondaire(props: React.ButtonHTMLAttributes<HTMLButtonEle
   )
 }
 
-function ContenuResume({ resume }: { resume: Resume }) {
+// segmentsSources est une tracabilite au niveau du resume entier (tous les
+// chunks transcrits ayant servi a la generation), pas une citation par point
+// cle individuel -- voir docs/phases/phase-14-drilldown-source-audio.md. Le
+// lien renvoie donc a "voir les passages source de ce resume", pas a un
+// passage precis par puce.
+function ContenuResume({ resume, onVoirSources }: { resume: Resume; onVoirSources: (numeros: number[]) => void }) {
   if (resume.statut === 'ECHEC') {
     return <p className="text-sm" style={{ color: '#B02631' }}>La generation du resume a echoue.</p>
   }
@@ -68,6 +74,15 @@ function ContenuResume({ resume }: { resume: Resume }) {
             <li key={index}>{point}</li>
           ))}
         </ul>
+      )}
+      {resume.segmentsSources.length > 0 && (
+        <button
+          onClick={() => onVoirSources(resume.segmentsSources)}
+          className="mt-3 text-xs font-semibold"
+          style={{ color: 'var(--color-brand)' }}
+        >
+          Voir les {resume.segmentsSources.length} passage{resume.segmentsSources.length > 1 ? 's' : ''} source
+        </button>
       )}
     </div>
   )
@@ -96,6 +111,9 @@ export function SessionDetailPage() {
   const [adresseReseau, setAdresseReseau] = useState(() =>
     /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) ? '' : window.location.host,
   )
+  const [segmentsEnSurbrillance, setSegmentsEnSurbrillance] = useState<Set<number>>(new Set())
+  const refsSegments = useRef<Map<number, HTMLDivElement>>(new Map())
+  const lecteurAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -158,6 +176,33 @@ export function SessionDetailPage() {
       setErreurGeneration("Impossible de generer ce resume (aucune transcription disponible pour le moment ?).")
     } finally {
       setGenerationEnCours(null)
+    }
+  }
+
+  // Drill-down resume/compte-rendu -> transcription : la page est un scroll
+  // continu (pas d'onglets routes entre Resume/Compte-rendu/Transcription),
+  // un simple scroll + surbrillance temporaire suffit.
+  function voirPassagesSource(numeros: number[]) {
+    if (numeros.length === 0) return
+    setSegmentsEnSurbrillance(new Set(numeros))
+    refsSegments.current.get(numeros[0])?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    window.setTimeout(() => setSegmentsEnSurbrillance(new Set()), 3000)
+  }
+
+  // Drill-down transcription -> audio : meme motif que TuteurVocalPage
+  // (fetch authentifie + URL de blob jouee sur un <audio> cache).
+  async function jouerAudioSegment(numeroSequence: number) {
+    if (!id) return
+    try {
+      const blob = await obtenirAudioChunk(id, numeroSequence)
+      const url = URL.createObjectURL(blob)
+      if (lecteurAudioRef.current) {
+        lecteurAudioRef.current.src = url
+        void lecteurAudioRef.current.play().catch(() => {})
+      }
+    } catch {
+      // Chunk audio indisponible (ex: instance de stockage remplacee) --
+      // pas d'etat d'erreur dedie, la lecture reste simplement muette.
     }
   }
 
@@ -224,6 +269,7 @@ export function SessionDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-9">
+      <audio ref={lecteurAudioRef} />
       <Link to="/" className="text-[13px]" style={{ color: 'var(--color-ink-faint)' }}>
         &larr; Sessions
       </Link>
@@ -280,11 +326,11 @@ export function SessionDetailPage() {
               !erreurGeneration &&
               resumeOnglet === undefined && <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>}
 
-            {resumeOnglet && <ContenuResume resume={resumeOnglet} />}
+            {resumeOnglet && <ContenuResume resume={resumeOnglet} onVoirSources={voirPassagesSource} />}
           </section>
 
-          {module === 'ENTREPRISE' && <SessionDetailEntreprise sessionId={id!} />}
-          {module === 'ECOLE' && <SessionDetailEcole sessionId={id!} />}
+          {module === 'ENTREPRISE' && <SessionDetailEntreprise sessionId={id!} onVoirSources={voirPassagesSource} />}
+          {module === 'ECOLE' && <SessionDetailEcole sessionId={id!} onVoirSources={voirPassagesSource} />}
 
           <section>
             <SectionTitre>Transcription</SectionTitre>
@@ -295,12 +341,29 @@ export function SessionDetailPage() {
               {transcriptions.map((segment, index) => (
                 <div
                   key={segment.numeroSequence}
-                  className="p-3.5 text-sm"
-                  style={index > 0 ? { borderTop: '1px solid var(--color-border-softer)' } : undefined}
+                  ref={(el) => {
+                    if (el) refsSegments.current.set(segment.numeroSequence, el)
+                  }}
+                  className="p-3.5 text-sm transition-colors"
+                  style={{
+                    ...(index > 0 ? { borderTop: '1px solid var(--color-border-softer)' } : undefined),
+                    ...(segmentsEnSurbrillance.has(segment.numeroSequence) ? { background: 'var(--color-brand-wash)' } : undefined),
+                  }}
                 >
                   <span className="mr-2 text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>
                     #{segment.numeroSequence}
                   </span>
+                  {segment.statut === 'REUSSIE' && (
+                    <button
+                      onClick={() => void jouerAudioSegment(segment.numeroSequence)}
+                      className="mr-2 text-xs"
+                      style={{ color: 'var(--color-ink-faint)' }}
+                      aria-label="Ecouter ce passage"
+                      title="Ecouter ce passage"
+                    >
+                      &#128266;
+                    </button>
+                  )}
                   {segment.statut !== 'REUSSIE' ? (
                     <span className="italic" style={{ color: '#B02631' }}>Echec de la transcription</span>
                   ) : segment.segmentsLocuteur.length > 0 ? (

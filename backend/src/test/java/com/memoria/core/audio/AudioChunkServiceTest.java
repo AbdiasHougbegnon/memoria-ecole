@@ -125,4 +125,26 @@ class AudioChunkServiceTest {
         assertThatThrownBy(() -> audioChunkService.listerNumerosRecus(idInconnu))
                 .isInstanceOf(SessionNotFoundException.class);
     }
+
+    @Test
+    void obtenirAudio_relit_le_chunk_via_le_chemin_de_stockage() {
+        UUID sessionId = UUID.randomUUID();
+        AudioChunk chunk = new AudioChunk(sessionId, 2, "/data/audio/x/2.chunk", 3);
+        when(audioChunkRepository.findBySessionIdAndNumeroSequence(sessionId, 2)).thenReturn(Optional.of(chunk));
+        when(stockageAudio.lire("/data/audio/x/2.chunk")).thenReturn(new byte[]{4, 5, 6});
+
+        byte[] resultat = audioChunkService.obtenirAudio(sessionId, 2);
+
+        assertThat(resultat).containsExactly(4, 5, 6);
+    }
+
+    @Test
+    void obtenirAudio_leve_une_exception_quand_le_chunk_est_introuvable() {
+        UUID sessionId = UUID.randomUUID();
+        when(audioChunkRepository.findBySessionIdAndNumeroSequence(sessionId, 9)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> audioChunkService.obtenirAudio(sessionId, 9))
+                .isInstanceOf(AudioChunkNotFoundException.class);
+        verify(stockageAudio, never()).lire(any());
+    }
 }

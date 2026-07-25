@@ -29,7 +29,12 @@ function initiales(nom: string | null): string {
   return nom.trim().split(/\s+/).map((m) => m[0]).slice(0, 2).join('').toUpperCase()
 }
 
-export function SessionDetailEntreprise({ sessionId }: { sessionId: string }) {
+interface SessionDetailEntrepriseProps {
+  sessionId: string
+  onVoirSources: (numeros: number[]) => void
+}
+
+export function SessionDetailEntreprise({ sessionId, onVoirSources }: SessionDetailEntrepriseProps) {
   const [compteRendu, setCompteRendu] = useState<CompteRendu | null>(null)
   const [compteRenduEnCours, setCompteRenduEnCours] = useState(false)
   const [erreurCompteRendu, setErreurCompteRendu] = useState<string | null>(null)
@@ -96,6 +101,15 @@ export function SessionDetailEntreprise({ sessionId }: { sessionId: string }) {
             style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
           >
             <p className="text-sm leading-relaxed">{compteRendu.synthese}</p>
+            {compteRendu.segmentsSources.length > 0 && (
+              <button
+                onClick={() => onVoirSources(compteRendu.segmentsSources)}
+                className="mt-3 text-xs font-semibold"
+                style={{ color: 'var(--color-brand)' }}
+              >
+                Voir les {compteRendu.segmentsSources.length} passage{compteRendu.segmentsSources.length > 1 ? 's' : ''} source
+              </button>
+            )}
           </div>
         </section>
       )}
