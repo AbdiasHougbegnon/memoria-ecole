@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   enregistrerEmpreinteVocale,
+  exporterDonnees,
   obtenirEmpreinteVocale,
   obtenirMonCompte,
   renseignerNom,
   revoquerEmpreinteVocale,
+  supprimerCompte,
 } from '../api'
 import { deconnecter, obtenirEmailConnecte } from '../auth'
 import { convertirBlobEnWav } from '../audioWav'
@@ -30,6 +32,7 @@ export function ParametresCompteePage() {
   const [secondesRestantes, setSecondesRestantes] = useState(0)
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
+  const [erreurDonnees, setErreurDonnees] = useState<string | null>(null)
   const navigate = useNavigate()
   const email = obtenirEmailConnecte() ?? ''
 
@@ -116,6 +119,39 @@ export function ParametresCompteePage() {
     if (!window.confirm('Supprimer definitivement ton empreinte vocale ?')) return
     await revoquerEmpreinteVocale()
     setEmpreinte({ id: null, statut: null, dateConsentement: null })
+  }
+
+  async function gererExport() {
+    setErreurDonnees(null)
+    try {
+      const donnees = await exporterDonnees()
+      const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const lien = document.createElement('a')
+      lien.href = url
+      lien.download = 'memoria-mes-donnees.json'
+      lien.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setErreurDonnees("Impossible d'exporter tes donnees pour le moment.")
+    }
+  }
+
+  async function gererSuppressionCompte() {
+    if (
+      !window.confirm(
+        'Supprimer definitivement ton compte ? Tes sessions personnelles, transcriptions, resumes et ton empreinte vocale seront effaces. Cette action est irreversible.',
+      )
+    ) {
+      return
+    }
+    try {
+      await supprimerCompte()
+      deconnecter()
+      navigate('/choix-module')
+    } catch {
+      setErreurDonnees('Impossible de supprimer ton compte pour le moment.')
+    }
   }
 
   const empreinteActive = empreinte?.statut != null
@@ -247,6 +283,35 @@ export function ParametresCompteePage() {
           )}
 
           {envoiEnCours && <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Envoi de l'echantillon...</p>}
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="mb-3 text-sm font-bold">Mes donnees</h2>
+        <div className="rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)' }}>
+          <p className="mb-3 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+            Exporte une copie de tes donnees (profil, sessions que tu as creees, transcriptions, resumes,
+            engagements dont tu es responsable, tutorat, empreinte vocale) ou supprime definitivement ton compte.
+            Une session partagee dans un couloir n'est jamais supprimee (elle appartient aussi aux autres membres) :
+            ton nom y est simplement retire.
+          </p>
+          {erreurDonnees && <p className="mb-3 text-sm" style={{ color: '#B02631' }}>{erreurDonnees}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void gererExport()}
+              className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+              style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}
+            >
+              Exporter mes donnees
+            </button>
+            <button
+              onClick={() => void gererSuppressionCompte()}
+              className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+              style={{ borderColor: '#F1D4D4', color: '#B02631' }}
+            >
+              Supprimer mon compte
+            </button>
+          </div>
         </div>
       </div>
 

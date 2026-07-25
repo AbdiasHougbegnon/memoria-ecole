@@ -28,4 +28,6 @@ public interface AudioChunkRepository extends JpaRepository<AudioChunk, UUID> {
     @Query("select c from AudioChunk c where c.dateReception < :avant "
             + "and not exists (select 1 from Transcription t where t.sessionId = c.sessionId and t.numeroSequence = c.numeroSequence)")
     List<AudioChunk> findChunksSansTranscriptionAvant(@Param("avant") Instant avant);
+
+    void deleteBySessionId(UUID sessionId);
 }

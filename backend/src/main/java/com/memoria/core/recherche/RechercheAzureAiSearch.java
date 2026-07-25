@@ -249,6 +249,81 @@ public class RechercheAzureAiSearch implements RecherchePort {
         }
     }
 
+    @Override
+    public void supprimerDocumentsSession(UUID sessionId) {
+        List<String> idsATrouver = rechercherIdsDocuments(sessionId);
+        if (idsATrouver.isEmpty()) {
+            return;
+        }
+
+        ObjectNode corps = JSON.createObjectNode();
+        ArrayNode value = corps.putArray("value");
+        for (String id : idsATrouver) {
+            ObjectNode doc = JSON.createObjectNode();
+            doc.put("@search.action", "delete");
+            doc.put("id", id);
+            value.add(doc);
+        }
+
+        try {
+            HttpRequest requete = HttpRequest.newBuilder(
+                            URI.create(endpoint + "/indexes/" + index + "/docs/index?api-version=" + API_VERSION))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("api-key", cle)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(corps)))
+                    .build();
+            HttpResponse<String> reponse = httpClient.send(requete, HttpResponse.BodyHandlers.ofString());
+            if (reponse.statusCode() != 200 && reponse.statusCode() != 201) {
+                throw new RechercheException(
+                        "Azure AI Search a repondu avec le statut " + reponse.statusCode() + " lors de la suppression : " + reponse.body()
+                );
+            }
+        } catch (IOException e) {
+            throw new RechercheException("Echec de la suppression des documents de la session " + sessionId + " dans Azure AI Search", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RechercheException("Suppression des documents de la session " + sessionId + " interrompue", e);
+        }
+    }
+
+    // Azure AI Search n'offre pas de "delete by query" : il faut d'abord
+    // retrouver les identifiants des documents correspondants, puis les
+    // supprimer par lot (voir supprimerDocumentsSession ci-dessus).
+    private List<String> rechercherIdsDocuments(UUID sessionId) {
+        ObjectNode corps = JSON.createObjectNode();
+        corps.put("search", "*");
+        corps.put("filter", "sessionId eq '" + sessionId + "'");
+        corps.put("select", "id");
+        corps.put("top", 1000);
+
+        try {
+            HttpRequest requete = HttpRequest.newBuilder(
+                            URI.create(endpoint + "/indexes/" + index + "/docs/search?api-version=" + API_VERSION))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("api-key", cle)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(corps)))
+                    .build();
+            HttpResponse<String> reponse = httpClient.send(requete, HttpResponse.BodyHandlers.ofString());
+            if (reponse.statusCode() != 200) {
+                throw new RechercheException(
+                        "Azure AI Search a repondu avec le statut " + reponse.statusCode() + " lors de la recherche des documents a supprimer : " + reponse.body()
+                );
+            }
+            List<String> ids = new ArrayList<>();
+            for (JsonNode doc : JSON.readTree(reponse.body()).path("value")) {
+                ids.add(doc.path("id").asText());
+            }
+            return ids;
+        } catch (IOException e) {
+            throw new RechercheException("Echec de la recherche des documents a supprimer pour la session " + sessionId, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RechercheException("Recherche des documents a supprimer pour la session " + sessionId + " interrompue", e);
+        }
+    }
+
     private List<ResultatRecherche> extraireResultats(JsonNode corpsReponse) {
         List<ResultatRecherche> resultats = new ArrayList<>();
         for (JsonNode doc : corpsReponse.path("value")) {

@@ -18,4 +18,9 @@ public interface MembreCouloirRepository extends JpaRepository<MembreCouloir, UU
     void deleteByCouloirId(UUID couloirId);
 
     void deleteByCouloirIdAndUtilisateurId(UUID couloirId, UUID utilisateurId);
+
+    // Droit a l'effacement (voir GouvernanceDonneesService) : quitte tous les
+    // couloirs restants (les couloirs dont l'utilisateur est proprietaire
+    // sont deja transferes/supprimes avant cet appel).
+    void deleteByUtilisateurId(UUID utilisateurId);
 }

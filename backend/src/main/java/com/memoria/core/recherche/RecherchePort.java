@@ -16,4 +16,9 @@ public interface RecherchePort {
     );
 
     List<ResultatRecherche> rechercher(String texteRequete, float[] vecteurRequete, int limite);
+
+    // Supprime tous les documents indexes d'une session (droit a l'effacement,
+    // voir SessionPurgeService). Peut lever RechercheException : c'est
+    // l'appelant qui traite cet appel comme best-effort, pas cette implementation.
+    void supprimerDocumentsSession(UUID sessionId);
 }

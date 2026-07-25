@@ -91,4 +91,14 @@ public class Session {
     public void terminer() {
         this.statut = SessionStatus.TERMINEE;
     }
+
+    // Droit a l'effacement (voir GouvernanceDonneesService) pour une session
+    // rattachee a un couloir : le contenu est partage avec d'autres membres,
+    // donc jamais supprime pour l'effacement d'un seul participant. On
+    // reutilise l'etat "createurId null" deja supporte pour les sessions
+    // anterieures a l'introduction de ce champ (voir commentaire ci-dessus) --
+    // pas une nouvelle semantique.
+    public void anonymiserCreateur() {
+        this.createurId = null;
+    }
 }

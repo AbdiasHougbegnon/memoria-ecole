@@ -72,6 +72,20 @@ public class FilMemoire {
         this.dateMiseAJour = Instant.now();
     }
 
+    // Droit a l'effacement (voir SessionPurgeService) : retire uniquement la
+    // reference a la session supprimee, pour eviter tout pointeur mort dans
+    // la navigation. Le resumeCumulatif deja genere par l'IA n'est PAS
+    // retouche -- le regenerer demanderait une vraie operation de
+    // resumeement, hors de proportion pour une suppression de session (voir
+    // docs/phases/phase-13-gouvernance-donnees.md, limite assumee).
+    public void retirerSession(UUID sessionId) {
+        this.sessionIds.remove(sessionId);
+    }
+
+    public boolean estVide() {
+        return sessionIds.isEmpty();
+    }
+
     public UUID getId() {
         return id;
     }

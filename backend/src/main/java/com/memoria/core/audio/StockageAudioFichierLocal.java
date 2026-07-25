@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Component
 public class StockageAudioFichierLocal implements StockageAudioPort {
@@ -39,6 +41,23 @@ public class StockageAudioFichierLocal implements StockageAudioPort {
             return Files.readAllBytes(Paths.get(cheminStockage));
         } catch (IOException e) {
             throw new StockageAudioException("Echec de la lecture du chunk audio sur le disque", e);
+        }
+    }
+
+    @Override
+    public void supprimerSession(UUID sessionId) {
+        Path repertoireSession = repertoireBase.resolve(sessionId.toString());
+        if (!Files.exists(repertoireSession)) {
+            return;
+        }
+        try (Stream<Path> fichiers = Files.walk(repertoireSession)) {
+            // Ordre inverse (fichiers avant le dossier) pour que Files.delete
+            // reussisse sur un dossier vide a chaque etape.
+            for (Path fichier : fichiers.sorted(Comparator.reverseOrder()).toList()) {
+                Files.delete(fichier);
+            }
+        } catch (IOException e) {
+            throw new StockageAudioException("Echec de la suppression des chunks audio de la session " + sessionId, e);
         }
     }
 }

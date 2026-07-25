@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface CompteRenduRepository extends JpaRepository<CompteRendu, UUID> {
 
     Optional<CompteRendu> findBySessionId(UUID sessionId);
+
+    void deleteBySessionId(UUID sessionId);
 }

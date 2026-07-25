@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface IndexRechercheRepository extends JpaRepository<IndexRecherche, UUID> {
 
     Optional<IndexRecherche> findBySessionId(UUID sessionId);
+
+    void deleteBySessionId(UUID sessionId);
 }

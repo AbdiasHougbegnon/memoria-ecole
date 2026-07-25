@@ -318,6 +318,15 @@ export async function revoquerEmpreinteVocale(): Promise<void> {
   await verifierReponse(await appelApi('/api/v1/utilisateurs/moi/empreinte-vocale', { method: 'DELETE' }))
 }
 
+export async function exporterDonnees(): Promise<unknown> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/utilisateurs/moi/export'))
+  return reponse.json()
+}
+
+export async function supprimerCompte(): Promise<void> {
+  await verifierReponse(await appelApi('/api/v1/utilisateurs/moi', { method: 'DELETE' }))
+}
+
 export async function quitterCouloir(id: string): Promise<void> {
   await verifierReponse(await appelApi(`/api/v1/couloirs/${id}/quitter`, { method: 'POST' }))
 }

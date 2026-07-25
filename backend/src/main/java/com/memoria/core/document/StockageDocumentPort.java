@@ -6,4 +6,9 @@ import java.util.UUID;
 public interface StockageDocumentPort {
 
     String sauvegarder(UUID sessionId, String nomFichier, byte[] contenu);
+
+    // Supprime tous les documents d'une session. Peut lever
+    // StockageDocumentException : c'est l'appelant (SessionPurgeService.nettoyerDependancesExternes)
+    // qui traite cet appel comme best-effort, pas cette implementation.
+    void supprimerSession(UUID sessionId);
 }

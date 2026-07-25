@@ -10,4 +10,9 @@ public interface StockageAudioPort {
     // Relit un chunk deja sauvegarde (ex: extraction audio pour la
     // reconnaissance de locuteur recurrente, voir IdentificationLocuteurService).
     byte[] lire(String cheminStockage);
+
+    // Supprime tous les chunks d'une session. Peut lever StockageAudioException :
+    // c'est l'appelant (SessionPurgeService.nettoyerDependancesExternes) qui
+    // traite cet appel comme best-effort, pas cette implementation.
+    void supprimerSession(UUID sessionId);
 }

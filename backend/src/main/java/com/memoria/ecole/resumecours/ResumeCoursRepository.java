@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface ResumeCoursRepository extends JpaRepository<ResumeCours, UUID> {
 
     Optional<ResumeCours> findBySessionId(UUID sessionId);
+
+    void deleteBySessionId(UUID sessionId);
 }

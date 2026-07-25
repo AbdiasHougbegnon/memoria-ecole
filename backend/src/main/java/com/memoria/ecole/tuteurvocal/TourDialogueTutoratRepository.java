@@ -10,4 +10,6 @@ public interface TourDialogueTutoratRepository extends JpaRepository<TourDialogu
     List<TourDialogueTutorat> findBySeanceTutoratIdOrderByDateCreationAsc(UUID seanceTutoratId);
 
     List<TourDialogueTutorat> findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(UUID seanceTutoratId, UUID notionId);
+
+    void deleteBySeanceTutoratId(UUID seanceTutoratId);
 }
