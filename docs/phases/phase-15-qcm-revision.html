@@ -1,0 +1,352 @@
+<title>Memoria — Dossier technique Phase 15 (École) : QCM de révision</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #e0973f; --accent-strong: #f2ab5c; --accent-wash: #3a2c17; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #c97a2e; --accent-strong: #9c5f22; --accent-wash: #f6e6d3; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: ui-monospace, monospace; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+  .codecap { font-size: 0.74rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -6px; }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 14px; }
+  .fstep { flex: 1 0 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px; }
+  .fstep .plabel { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+  .fstep .pname { font-weight: 600; }
+  .fstep .pdesc { font-size: 0.78rem; color: var(--text-muted); }
+  .farrow { flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 1.1rem; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n { font-family: ui-monospace, monospace; color: var(--accent-strong); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+  .step h4 { font-size: 0.96rem; grid-column: 2; }
+  .step p { grid-column: 2; margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+  .step pre { grid-column: 2; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  details.filecard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  details.filecard > summary { cursor: pointer; list-style: none; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, monospace; font-weight: 600; font-size: 0.92rem; }
+  details.filecard > summary::-webkit-details-marker { display: none; }
+  details.filecard > summary::before { content: "▸"; color: var(--text-faint); transition: transform 0.15s ease; }
+  details.filecard[open] > summary::before { transform: rotate(90deg); }
+  details.filecard > summary .desc { font-family: system-ui, sans-serif; font-weight: 400; color: var(--text-muted); font-size: 0.85rem; }
+  details.filecard .filebody { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  details.filecard .filebody p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Phase 15 · École</span>
+    <h1 class="title">QCM de révision auto-générés</h1>
+    <p class="dek">Dossier de référence complet : pourquoi le QCM se génère depuis le résumé de cours (pas la transcription brute), les deux couches (génération/cache mirroir <code>resumecours</code>, état par utilisateur mirroir <code>MaitriseNotion</code>), chaque fichier backend et frontend, les tests, le wiring RGPD, et la vérification avec un vrai appel Azure OpenAI.</p>
+    <div class="factrow">
+      <span class="fact"><strong>Dernier morceau</strong>&nbsp;de "résumés adaptés au cours" restant à zéro</span>
+      <span class="fact"><strong>241</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">tag <code>phase-15-qcm-revision</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi ce chantier maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les decisions de conception</a>
+    <span class="toc-label">Backend</span>
+    <a href="#fichiers">Les fichiers, un par un</a>
+    <span class="toc-label">Frontend</span>
+    <a href="#frontend">La section QCM interactive</a>
+    <span class="toc-label">Qualite</span>
+    <a href="#tests">Les tests</a>
+    <a href="#verification">Comment on a verifie</a>
+    <span class="toc-label">Reference</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead"><code>phase-5-ecole-resume-cours</code> a délibérément limité son périmètre à synthèse + notions/définitions + points à réviser, en notant explicitement que les QCM sont un chantier à part : ils ont besoin d'un <strong style="color:var(--text)">état de réponse par utilisateur</strong> et d'une <strong style="color:var(--text)">UI interactive de quiz distincte</strong>. C'est ce chantier qu'on ouvre ici — dernier morceau de "résumés adaptés au cours" (master prompt) qui restait entièrement à zéro côté École (avec exercices/corrections et annonces, non traités ici).</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+
+      <div class="card">
+        <h4 style="margin-bottom:10px">Source de génération : le résumé de cours, pas la transcription brute</h4>
+        <p style="margin:0; font-size:0.9rem; color:var(--text-muted)">Plutôt que de mirroirer <code>ResumeCoursService</code> à l'identique (génération depuis la transcription complète), le QCM se génère à partir du <strong style="color:var(--text)">résumé de cours déjà produit</strong> (synthèse + notions). Ça respecte la règle de discipline de coûts du projet ("reuse existing summaries instead of regenerating") : le texte d'entrée est plus court, et un <code>ResumeCours</code> <code>REUSSI</code> doit exister avant de pouvoir générer un QCM (<code>AucunResumeCoursDisponibleException</code>, 409, sinon). Traçabilité en chaîne : QCM → résumé de cours → segments → transcription → audio.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Génération/cache (<code>Qcm</code>)</th><th>État par utilisateur (<code>TentativeQcm</code>)</th></tr></thead>
+          <tbody>
+            <tr><td>Un seul QCM par session, généré à la demande, mis en cache</td><td>Une ligne par <code>(qcm_id, utilisateur_id)</code>, contrainte d'unicité</td></tr>
+            <tr><td>Mirroir <code>ResumeCours</code>/<code>ResumeCoursService</code>/<code>ResumeCoursController</code></td><td>Mirroir <code>MaitriseNotion</code> — <code>nombreTentatives</code> incrémental, pas d'historique complet</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0 0 8px; font-size:0.9rem"><strong>Correction renvoyée intégralement par l'API</strong> — <code>GET</code>/<code>POST /qcm</code> renvoient la bonne réponse et l'explication dès le chargement ; le front-end les masque visuellement tant que l'utilisateur n'a pas validé. Pas d'utilisateur adversarial à bloquer ici (outil de révision personnelle, doctrine "outil d'aide, pas de surveillance" déjà en place ailleurs). Un seul DTO à maintenir plutôt que deux formes de réponse.</p>
+        <p style="margin:0; font-size:0.9rem"><strong>Scoring déterministe, pas d'appel IA</strong> — <code>soumettreTentative</code> compare les index choisis aux <code>indexReponseCorrecte</code> de chaque question, aucun appel Azure OpenAI supplémentaire pour noter.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers backend, un par un</h2>
+
+      <details class="filecard" open>
+        <summary><span>Qcm / QuestionQcm</span><span class="desc">entite <span class="pill entity">JPA</span> — un seul QCM par session</span></summary>
+        <div class="filebody">
+          <pre><code>@Entity @Table(name = "qcms")
+public class Qcm {
+    private UUID sessionId;              // unique
+    private List&lt;QuestionQcm&gt; questions; // qcm_questions
+    private List&lt;Integer&gt; segmentsSources;
+    private StatutQcm statut;
+}</code></pre>
+          <p><code>QuestionQcm</code> (<code>@Embeddable</code>) : <code>enonce</code>, <code>choixA/B/C/D</code> (4 choix fixes, pas de collection imbriquée), <code>indexReponseCorrecte</code>, <code>explication</code>. Tables auto-créées par Hibernate (<code>ddl-auto=update</code>).</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>QcmService</span><span class="desc">genere depuis le resume de cours, pas la transcription</span></summary>
+        <div class="filebody">
+          <pre><code>public Qcm obtenirOuGenererQcm(UUID sessionId) {
+    sessionService.obtenirSession(sessionId);
+    Optional&lt;Qcm&gt; existant = qcmRepository.findBySessionId(sessionId);
+    if (existant.isPresent()) return existant.get();
+
+    ResumeCours resumeCours = resumeCoursRepository.findBySessionId(sessionId)
+            .filter(rc -&gt; rc.getStatut() == StatutResumeCours.REUSSI)
+            .orElseThrow(() -&gt; new AucunResumeCoursDisponibleException(sessionId));
+
+    String contenuCours = synthese + "\n\n" + notions;
+    try {
+        QcmGenere genere = generateurQcm.genererQcm(contenuCours);
+        return enregistrerSiAbsent(sessionId, questions, resumeCours.getSegmentsSources(), REUSSI);
+    } catch (Exception e) {
+        return enregistrerSiAbsent(sessionId, List.of(), resumeCours.getSegmentsSources(), ECHEC);
+    }
+}</code></pre>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>GenerateurQcmAzureOpenAI</span><span class="desc">meme squelette HTTP, nouveau prompt</span></summary>
+        <div class="filebody">
+          <pre><code>Tu es un assistant pedagogique qui construit un QCM de revision a partir de la synthese
+et des notions d'un cours, en francais. Genere exactement 5 questions a choix multiple,
+chacune avec exactement 4 propositions dont une seule est correcte.
+Reponds UNIQUEMENT avec un objet JSON valide :
+{
+  "questions": [{"enonce": "...", "choix": ["...","...","...","..."],
+                 "reponse_correcte": 0, "explication": "..."}]
+}</code></pre>
+          <p>Même ressource Azure OpenAI (Responses API), mêmes propriétés <code>azure.openai.*</code>, même timeout 120s, même <code>CoutAzureService.enregistrerAppel(OPENAI_CHAT, ...)</code> que <code>GenerateurResumeCoursAzureOpenAI</code>.</p>
+        </div>
+      </details>
+
+      <details class="filecard">
+        <summary><span>TentativeQcm</span><span class="desc">etat par utilisateur, mirroir MaitriseNotion</span></summary>
+        <div class="filebody">
+          <pre><code>@Entity @Table(name = "tentatives_qcm",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"qcm_id", "utilisateur_id"}))
+public class TentativeQcm {
+    private UUID qcmId;
+    private UUID utilisateurId;
+    private List&lt;Integer&gt; reponsesChoisies;
+    private int score;
+    private int nombreQuestions;
+    private int nombreTentatives;   // incremente a chaque soumission, comme MaitriseNotion
+}</code></pre>
+        </div>
+      </details>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Comportement</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GET /sessions/{id}/qcm</td><td>200 + body, ou 204 si absent</td></tr>
+            <tr><td class="mono">POST /sessions/{id}/qcm</td><td>get-or-generate, <span class="pill warn">409</span> si pas de résumé de cours REUSSI</td></tr>
+            <tr><td class="mono">POST /sessions/{id}/qcm/tentatives</td><td>soumet les réponses, renvoie score/nombreTentatives</td></tr>
+            <tr><td class="mono">GET /sessions/{id}/qcm/tentatives/moi</td><td>dernière tentative de l'utilisateur, 204 si absente</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card" style="background:var(--accent-wash); border-color:var(--accent)">
+        <p style="margin:0; font-size:0.9rem"><strong>Wiring RGPD</strong> (repéré en lisant le code existant, pas dans le plan initial) — <code>TentativeQcm</code> est une donnée personnelle au même titre que <code>MaitriseNotion</code> : <code>SessionPurgeService</code> purge les tentatives avant de supprimer le QCM de la session, <code>GouvernanceDonneesService.effacerCompte</code> les efface par utilisateur, <code>exporterDonnees</code>/<code>ExportDonneesUtilisateur</code> gagnent un champ <code>tentativesQcm</code>.</p>
+      </div>
+    </section>
+
+    <section id="frontend">
+      <h2><span class="num">§</span> La section QCM interactive</h2>
+      <p class="lead"><code>types.ts</code>/<code>api.ts</code> : <code>Qcm</code>/<code>QuestionQcm</code>/<code>TentativeQcm</code> recopiés à la main, <code>obtenirQcm</code>/<code>genererQcm</code>/<code>soumettreTentativeQcm</code>/<code>obtenirMaTentativeQcm</code>, même traitement 204/404 → <code>null</code> que le résumé de cours.</p>
+      <p class="lead"><code>SessionDetailEcole.tsx</code> gagne une section <strong style="color:var(--text)">interactive</strong> "QCM de révision" (contrairement aux autres sections, purement passives) : formulaire avec 4 choix par question (radio), bouton "Valider mes réponses" désactivé tant que toutes les questions n'ont pas de réponse, puis affichage ✓/✗ + explication par question et score global après soumission ; au chargement, si une tentative existe déjà, l'état corrigé se recharge directement ; bouton "Recommencer" pour repasser en mode réponse.</p>
+    </section>
+
+    <section id="tests">
+      <h2><span class="num">§</span> Les tests</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Ce qu'il prouve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">genere_et_sauvegarde_a_partir_du_resume_de_cours</td><td>cas nominal — contenu transmis au générateur, segments copiés</td></tr>
+            <tr><td class="mono">marque_echec_quand_le_generateur_echoue</td><td>ECHEC persisté, pas d'exception propagée</td></tr>
+            <tr><td class="mono">renvoie_le_qcm_deja_en_cache_sans_regenerer</td><td>garde d'idempotence</td></tr>
+            <tr><td class="mono">leve_une_exception_si_aucun_resume_de_cours_nexiste / _est_en_echec</td><td>AucunResumeCoursDisponibleException</td></tr>
+            <tr><td class="mono">leve_une_exception_si_la_session_est_introuvable</td><td>propage SessionNotFoundException</td></tr>
+            <tr><td class="mono">soumettreTentative_calcule_le_score_et_cree_une_tentative</td><td>scoring déterministe correct</td></tr>
+            <tr><td class="mono">soumettreTentative_met_a_jour_une_tentative_existante</td><td>ré-soumission, nombreTentatives incrémenté</td></tr>
+            <tr><td class="mono">obtenirMaTentative_* / obtenirQcm_*</td><td>trouvé/absent</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lead">13 tests <code>QcmServiceTest</code> + mises à jour de <code>GouvernanceDonneesServiceTest</code>/<code>SessionPurgeServiceTest</code>. <code>cd backend &amp;&amp; mvn test</code> — <strong style="color:var(--text)">241/241 tests</strong> passent au total.</p>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="step">
+          <span class="n">1</span>
+          <h4>Garde 409 confirmée</h4>
+          <p><code>POST /qcm</code> sur une session sans résumé de cours → <span class="pill warn">409</span>, comme prévu. <code>GET /qcm</code> avant génération → <span class="pill warn">204</span>.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h4>Vrai appel Azure OpenAI</h4>
+          <p>Résumé de cours généré (photosynthèse), puis <code>POST /qcm</code> → 5 questions à 4 choix fidèles au résumé (photosynthèse, chlorophylle, chloroplastes, cycle de Calvin, stroma).</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h4>Scoring et tentatives</h4>
+          <p><code>POST /qcm/tentatives</code> avec un mélange de bonnes/mauvaises réponses → score exact (3/5) ; <code>GET /qcm/tentatives/moi</code> → même tentative ; seconde soumission → <code>nombreTentatives</code> = 2.</p>
+        </div>
+        <div class="step">
+          <span class="n">4</span>
+          <h4>Vérifié dans un vrai navigateur</h4>
+          <p>Playwright : génération, sélection des réponses, validation, ✓ vert sur les bonnes réponses avec explication, score affiché, "Recommencer" ; rechargement → l'état corrigé se recharge directement, aucune erreur console. Infrastructure et données de test nettoyées ensuite.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Dépendance dure au résumé de cours</strong> — pas de génération possible avant que la synthèse + notions existent.</li>
+        <li><strong>Une seule tentative "active" par utilisateur</strong> — pas d'historique des tentatives précédentes, seule la dernière est conservée (même compromis que <code>MaitriseNotion</code>).</li>
+        <li><strong>Nombre de questions fixe (5)</strong>, non paramétrable.</li>
+        <li><strong>Traçabilité au niveau du document</strong>, pas par question individuelle.</li>
+        <li><strong>Pas de couloirs/promotions</strong> — le QCM reste attaché à une session individuelle.</li>
+        <li><strong>Correction non protégée côté serveur</strong> — la bonne réponse est visible dans la réponse HTTP dès le chargement (décision assumée), pas adapté à un usage type examen surveillé.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Chemin de bout en bout : bouton "Générer le QCM" → <code>QcmController</code> → <code>QcmService</code> → <code>GenerateurQcmAzureOpenAI</code> → <code>QcmRepository</code> → section "QCM de révision" de <code>SessionDetailEcole.tsx</code> ; soumission → <code>QcmController.soumettreTentative</code> → <code>QcmService</code> → <code>TentativeQcmRepository</code>.</li>
+          <li>Pour ajouter les exercices/corrections ou les annonces (derniers morceaux de "résumés adaptés au cours") : même squelette que <code>resumecours</code>/<code>qcm</code>, nouveau prompt, nouvelle entité dédiée si un état par utilisateur est nécessaire.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-15-qcm-revision</code> — vérifiée end-to-end avec un vrai appel Azure OpenAI et un vrai navigateur.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail Phase 15 (QCM de révision, dernier morceau de "résumés adaptés au cours" côté École).
+    </footer>
+  </main>
+</div>
