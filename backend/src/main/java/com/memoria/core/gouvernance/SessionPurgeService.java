@@ -11,6 +11,8 @@ import com.memoria.core.recherche.RecherchePort;
 import com.memoria.core.resume.ResumeRepository;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
+import com.memoria.ecole.qcm.QcmRepository;
+import com.memoria.ecole.qcm.TentativeQcmRepository;
 import com.memoria.ecole.resumecours.ResumeCoursRepository;
 import com.memoria.entreprise.compterendu.CompteRenduRepository;
 import com.memoria.entreprise.engagement.EngagementRepository;
@@ -36,6 +38,8 @@ public class SessionPurgeService {
     private final ResumeRepository resumeRepository;
     private final CompteRenduRepository compteRenduRepository;
     private final ResumeCoursRepository resumeCoursRepository;
+    private final QcmRepository qcmRepository;
+    private final TentativeQcmRepository tentativeQcmRepository;
     private final IndexRechercheRepository indexRechercheRepository;
     private final AudioChunkRepository audioChunkRepository;
     private final EngagementRepository engagementRepository;
@@ -51,6 +55,8 @@ public class SessionPurgeService {
             ResumeRepository resumeRepository,
             CompteRenduRepository compteRenduRepository,
             ResumeCoursRepository resumeCoursRepository,
+            QcmRepository qcmRepository,
+            TentativeQcmRepository tentativeQcmRepository,
             IndexRechercheRepository indexRechercheRepository,
             AudioChunkRepository audioChunkRepository,
             EngagementRepository engagementRepository,
@@ -65,6 +71,8 @@ public class SessionPurgeService {
         this.resumeRepository = resumeRepository;
         this.compteRenduRepository = compteRenduRepository;
         this.resumeCoursRepository = resumeCoursRepository;
+        this.qcmRepository = qcmRepository;
+        this.tentativeQcmRepository = tentativeQcmRepository;
         this.indexRechercheRepository = indexRechercheRepository;
         this.audioChunkRepository = audioChunkRepository;
         this.engagementRepository = engagementRepository;
@@ -82,6 +90,8 @@ public class SessionPurgeService {
         resumeRepository.deleteBySessionId(sessionId);
         compteRenduRepository.deleteBySessionId(sessionId);
         resumeCoursRepository.deleteBySessionId(sessionId);
+        qcmRepository.findBySessionId(sessionId).ifPresent(qcm -> tentativeQcmRepository.deleteByQcmId(qcm.getId()));
+        qcmRepository.deleteBySessionId(sessionId);
         indexRechercheRepository.deleteBySessionId(sessionId);
         audioChunkRepository.deleteBySessionId(sessionId);
         engagementRepository.deleteBySessionId(sessionId);

@@ -1,7 +1,164 @@
 import { useEffect, useState } from 'react'
-import { genererResumeCours, obtenirResumeCours } from '../api'
-import type { ResumeCours } from '../types'
-import { BoutonSecondaire, SectionTitre } from './SessionDetailPage'
+import {
+  genererQcm,
+  genererResumeCours,
+  obtenirMaTentativeQcm,
+  obtenirQcm,
+  obtenirResumeCours,
+  soumettreTentativeQcm,
+} from '../api'
+import type { Qcm, ResumeCours, TentativeQcm } from '../types'
+import { BoutonSecondaire, Carte, SectionTitre } from './SessionDetailPage'
+
+function SectionQcm({ sessionId }: { sessionId: string }) {
+  const [qcm, setQcm] = useState<Qcm | null>(null)
+  const [qcmEnCours, setQcmEnCours] = useState(false)
+  const [erreurQcm, setErreurQcm] = useState<string | null>(null)
+  const [reponses, setReponses] = useState<(number | null)[]>([])
+  const [tentative, setTentative] = useState<TentativeQcm | null>(null)
+  const [modeCorrige, setModeCorrige] = useState(false)
+  const [validationEnCours, setValidationEnCours] = useState(false)
+
+  useEffect(() => {
+    let annule = false
+    void Promise.all([obtenirQcm(sessionId), obtenirMaTentativeQcm(sessionId)]).then(([q, t]) => {
+      if (annule) return
+      setQcm(q)
+      setTentative(t)
+      if (q && t) {
+        setReponses(t.reponsesChoisies)
+        setModeCorrige(true)
+      } else if (q) {
+        setReponses(new Array(q.questions.length).fill(null))
+      }
+    })
+    return () => {
+      annule = true
+    }
+  }, [sessionId])
+
+  async function genererLeQcm() {
+    if (qcmEnCours) return
+    setErreurQcm(null)
+    setQcmEnCours(true)
+    try {
+      const genere = await genererQcm(sessionId)
+      setQcm(genere)
+      setReponses(new Array(genere.questions.length).fill(null))
+      setModeCorrige(false)
+    } catch {
+      setErreurQcm('Impossible de generer le QCM (le resume de cours doit etre genere en premier).')
+    } finally {
+      setQcmEnCours(false)
+    }
+  }
+
+  function selectionnerReponse(indexQuestion: number, indexChoix: number) {
+    if (modeCorrige) return
+    setReponses((precedent) => precedent.map((reponse, i) => (i === indexQuestion ? indexChoix : reponse)))
+  }
+
+  async function valider() {
+    if (validationEnCours || reponses.some((reponse) => reponse === null)) return
+    setValidationEnCours(true)
+    try {
+      setTentative(await soumettreTentativeQcm(sessionId, reponses as number[]))
+      setModeCorrige(true)
+    } finally {
+      setValidationEnCours(false)
+    }
+  }
+
+  function recommencer() {
+    if (!qcm) return
+    setReponses(new Array(qcm.questions.length).fill(null))
+    setModeCorrige(false)
+  }
+
+  if (!qcm) {
+    return (
+      <section>
+        <SectionTitre>QCM de revision</SectionTitre>
+        <BoutonSecondaire onClick={() => void genererLeQcm()} disabled={qcmEnCours}>
+          {qcmEnCours ? 'Generation en cours...' : 'Generer le QCM'}
+        </BoutonSecondaire>
+        {erreurQcm && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurQcm}</p>}
+      </section>
+    )
+  }
+
+  if (qcm.statut === 'ECHEC') {
+    return (
+      <section>
+        <SectionTitre>QCM de revision</SectionTitre>
+        <p className="text-sm" style={{ color: '#B02631' }}>La generation du QCM a echoue.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section>
+      <SectionTitre>QCM de revision</SectionTitre>
+      {modeCorrige && tentative && (
+        <p className="mb-3 text-sm font-semibold">Score : {tentative.score}/{tentative.nombreQuestions}</p>
+      )}
+      <div className="flex flex-col gap-3">
+        {qcm.questions.map((question, indexQuestion) => (
+          <Carte key={indexQuestion}>
+            <p className="mb-2 text-sm font-semibold">{question.enonce}</p>
+            <div className="flex flex-col gap-1.5">
+              {question.choix.map((choix, indexChoix) => {
+                const selectionne = reponses[indexQuestion] === indexChoix
+                const estCorrect = indexChoix === question.reponseCorrecte
+                let couleur: string | undefined
+                let suffixe = ''
+                if (modeCorrige) {
+                  if (estCorrect) {
+                    couleur = '#2E9E6B'
+                    suffixe = ' ✓'
+                  } else if (selectionne) {
+                    couleur = '#B02631'
+                    suffixe = ' ✗'
+                  }
+                }
+                return (
+                  <label key={indexChoix} className="flex items-center gap-2 text-sm" style={{ color: couleur }}>
+                    <input
+                      type="radio"
+                      name={`qcm-${sessionId}-${indexQuestion}`}
+                      checked={selectionne}
+                      disabled={modeCorrige}
+                      onChange={() => selectionnerReponse(indexQuestion, indexChoix)}
+                    />
+                    {choix}
+                    {suffixe}
+                  </label>
+                )
+              })}
+            </div>
+            {modeCorrige && (
+              <p className="mt-2 text-sm" style={{ color: 'var(--color-ink-muted)' }}>{question.explication}</p>
+            )}
+          </Carte>
+        ))}
+      </div>
+      <div className="mt-3">
+        {modeCorrige ? (
+          <BoutonSecondaire onClick={recommencer}>Recommencer</BoutonSecondaire>
+        ) : (
+          <button
+            onClick={() => void valider()}
+            disabled={validationEnCours || reponses.some((reponse) => reponse === null)}
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            {validationEnCours ? 'Validation en cours...' : 'Valider mes reponses'}
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}
 
 export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
   const [resumeCours, setResumeCours] = useState<ResumeCours | null>(null)
@@ -86,6 +243,8 @@ export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
               </ul>
             </section>
           )}
+
+          <SectionQcm sessionId={sessionId} />
         </>
       )}
     </>

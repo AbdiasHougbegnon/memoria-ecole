@@ -11,6 +11,10 @@ import com.memoria.core.recherche.RecherchePort;
 import com.memoria.core.resume.ResumeRepository;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
+import com.memoria.ecole.qcm.Qcm;
+import com.memoria.ecole.qcm.QcmRepository;
+import com.memoria.ecole.qcm.StatutQcm;
+import com.memoria.ecole.qcm.TentativeQcmRepository;
 import com.memoria.ecole.resumecours.ResumeCoursRepository;
 import com.memoria.entreprise.compterendu.CompteRenduRepository;
 import com.memoria.entreprise.engagement.EngagementRepository;
@@ -37,6 +41,8 @@ class SessionPurgeServiceTest {
     @Mock private ResumeRepository resumeRepository;
     @Mock private CompteRenduRepository compteRenduRepository;
     @Mock private ResumeCoursRepository resumeCoursRepository;
+    @Mock private QcmRepository qcmRepository;
+    @Mock private TentativeQcmRepository tentativeQcmRepository;
     @Mock private IndexRechercheRepository indexRechercheRepository;
     @Mock private AudioChunkRepository audioChunkRepository;
     @Mock private EngagementRepository engagementRepository;
@@ -52,7 +58,7 @@ class SessionPurgeServiceTest {
     void setUp() {
         sessionPurgeService = new SessionPurgeService(
                 documentRepository, transcriptionRepository, resumeRepository, compteRenduRepository,
-                resumeCoursRepository, indexRechercheRepository, audioChunkRepository, engagementRepository,
+                resumeCoursRepository, qcmRepository, tentativeQcmRepository, indexRechercheRepository, audioChunkRepository, engagementRepository,
                 filMemoireRepository, sessionRepository, stockageAudio, stockageDocument, recherche
         );
     }
@@ -69,10 +75,24 @@ class SessionPurgeServiceTest {
         verify(resumeRepository).deleteBySessionId(sessionId);
         verify(compteRenduRepository).deleteBySessionId(sessionId);
         verify(resumeCoursRepository).deleteBySessionId(sessionId);
+        verify(qcmRepository).deleteBySessionId(sessionId);
         verify(indexRechercheRepository).deleteBySessionId(sessionId);
         verify(audioChunkRepository).deleteBySessionId(sessionId);
         verify(engagementRepository).deleteBySessionId(sessionId);
         verify(sessionRepository).deleteById(sessionId);
+    }
+
+    @Test
+    void purgerSessionCompletement_supprime_les_tentatives_du_qcm_de_la_session() {
+        UUID sessionId = UUID.randomUUID();
+        Qcm qcm = new Qcm(sessionId, List.of(), List.of(0), StatutQcm.REUSSI);
+        when(filMemoireRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
+        when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.of(qcm));
+
+        sessionPurgeService.purgerSessionCompletement(sessionId);
+
+        verify(tentativeQcmRepository).deleteByQcmId(qcm.getId());
+        verify(qcmRepository).deleteBySessionId(sessionId);
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.ecole.notion.MaitriseNotionRepository;
+import com.memoria.ecole.qcm.TentativeQcmRepository;
 import com.memoria.ecole.resumecours.ResumeCoursRepository;
 import com.memoria.ecole.tuteurvocal.SeanceTutoratRepository;
 import com.memoria.ecole.tuteurvocal.TourDialogueTutoratRepository;
@@ -51,6 +52,7 @@ class GouvernanceDonneesServiceTest {
     @Mock private SeanceTutoratRepository seanceTutoratRepository;
     @Mock private TourDialogueTutoratRepository tourDialogueTutoratRepository;
     @Mock private MaitriseNotionRepository maitriseNotionRepository;
+    @Mock private TentativeQcmRepository tentativeQcmRepository;
     @Mock private CouloirRepository couloirRepository;
     @Mock private CouloirService couloirService;
     @Mock private MembreCouloirRepository membreCouloirRepository;
@@ -69,7 +71,7 @@ class GouvernanceDonneesServiceTest {
     void setUp() {
         gouvernanceDonneesService = new GouvernanceDonneesService(
                 utilisateurRepository, empreinteVocaleService, empreinteVocaleRepository, seanceTutoratRepository,
-                tourDialogueTutoratRepository, maitriseNotionRepository, couloirRepository, couloirService,
+                tourDialogueTutoratRepository, maitriseNotionRepository, tentativeQcmRepository, couloirRepository, couloirService,
                 membreCouloirRepository, sessionRepository, engagementRepository, transcriptionRepository,
                 resumeRepository, compteRenduRepository, resumeCoursRepository, sessionPurgeService, journalRgpdRepository
         );
@@ -96,6 +98,7 @@ class GouvernanceDonneesServiceTest {
 
         verify(empreinteVocaleService).revoquer(utilisateurId);
         verify(maitriseNotionRepository).deleteByUtilisateurId(utilisateurId);
+        verify(tentativeQcmRepository).deleteByUtilisateurId(utilisateurId);
         verify(membreCouloirRepository).deleteByUtilisateurId(utilisateurId);
         verify(engagementRepository).anonymiserResponsable(utilisateurId);
         verify(transcriptionRepository).anonymiserSegmentsLocuteur(utilisateurId);
@@ -218,6 +221,7 @@ class GouvernanceDonneesServiceTest {
         when(empreinteVocaleRepository.findByUtilisateurId(utilisateurId)).thenReturn(Optional.empty());
         when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(maitriseNotionRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
+        when(tentativeQcmRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
 
         ExportDonneesUtilisateur export = gouvernanceDonneesService.exporterDonnees(utilisateurId);

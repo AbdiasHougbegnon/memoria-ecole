@@ -150,4 +150,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public void gererTraitementTourTutoratEnEchec() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.qcm.QcmNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererQcmIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.qcm.AucunResumeCoursDisponibleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererAucunResumeCoursDisponiblePourQcm() {
+    }
 }
