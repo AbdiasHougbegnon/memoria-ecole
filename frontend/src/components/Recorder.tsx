@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { creerSession, envoyerChunk, listerCouloirs, listerNumerosChunksRecus, obtenirSession, terminerSession } from '../api'
+import { creerSession, envoyerChunk, listerCouloirs, listerNumerosChunksRecus, obtenirSession, obtenirTranscriptions, terminerSession } from '../api'
 import { convertirBlobEnWav } from '../audioWav'
-import type { Couloir } from '../types'
+import { TranscriptionListe } from './TranscriptionListe'
+import type { Couloir, TranscriptionSegment } from '../types'
 
 const DUREE_SEGMENT_MS = 30_000
 const TYPE_MIME_PREFERE = 'audio/webm;codecs=opus'
 const CLE_SESSION_ACTIVE = 'memoria_session_active'
 const MAX_TENTATIVES_ENVOI = 5
 const DELAIS_BACKOFF_MS = [1000, 2000, 4000, 8000, 16000]
+const INTERVALLE_POLLING_TRANSCRIPTION_MS = 4000
 
 interface RecorderProps {
   onSessionTerminee: (sessionId: string) => void
@@ -37,6 +39,8 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   const [couloirId, setCouloirId] = useState('')
   const [connexionInstable, setConnexionInstable] = useState(false)
   const [sessionInterrompue, setSessionInterrompue] = useState<SessionActiveSauvegardee | null>(null)
+  const [transcriptions, setTranscriptions] = useState<TranscriptionSegment[]>([])
+  const derouleurTranscriptionRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     listerCouloirs().then(setCouloirs).catch(() => {})
@@ -81,6 +85,36 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   const minuteurRef = useRef<number | null>(null)
   const arretDemandeRef = useRef(false)
   const dernierEnvoiRef = useRef<Promise<void>>(Promise.resolve())
+
+  // Affichage en direct : le moteur transcrit deja chaque chunk en tache de
+  // fond des sa reception, on interroge donc periodiquement l'endpoint
+  // existant plutot que d'attendre la fin de session pour tout afficher.
+  useEffect(() => {
+    if (!enregistrement) return
+    const sessionId = sessionIdRef.current
+    if (!sessionId) return
+
+    let annule = false
+    const charger = () => {
+      obtenirTranscriptions(sessionId)
+        .then((t) => {
+          if (!annule) setTranscriptions(t)
+        })
+        .catch(() => {})
+    }
+
+    charger()
+    const intervalle = window.setInterval(charger, INTERVALLE_POLLING_TRANSCRIPTION_MS)
+    return () => {
+      annule = true
+      window.clearInterval(intervalle)
+    }
+  }, [enregistrement])
+
+  useEffect(() => {
+    const derouleur = derouleurTranscriptionRef.current
+    if (derouleur) derouleur.scrollTop = derouleur.scrollHeight
+  }, [transcriptions])
 
   async function attendreReconnexion(): Promise<void> {
     if (navigator.onLine) return
@@ -186,6 +220,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
       numeroChunkRef.current = 0
       streamRef.current = stream
       arretDemandeRef.current = false
+      setTranscriptions([])
       setEnregistrement(true)
       demarrerNouveauSegment()
     } catch {
@@ -201,7 +236,10 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
     const { sessionId, titre: titreSauve, couloirId: couloirSauve } = sessionInterrompue
     setErreur(null)
     try {
-      const numeros = await listerNumerosChunksRecus(sessionId)
+      const [numeros, transcriptionsExistantes] = await Promise.all([
+        listerNumerosChunksRecus(sessionId),
+        obtenirTranscriptions(sessionId),
+      ])
       numeroChunkRef.current = numeros.length ? Math.max(...numeros) + 1 : 0
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       sessionIdRef.current = sessionId
@@ -210,6 +248,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
       setTitre(titreSauve)
       setCouloirId(couloirSauve ?? '')
       setSessionInterrompue(null)
+      setTranscriptions(transcriptionsExistantes)
       setEnregistrement(true)
       demarrerNouveauSegment()
     } catch {
@@ -320,6 +359,17 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
         <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--color-warn)' }}>
           Connexion instable - les segments sont mis en attente et seront renvoyes automatiquement.
         </p>
+      )}
+      {enregistrement && (
+        <div ref={derouleurTranscriptionRef} className="mt-3 max-h-72 overflow-y-auto">
+          {transcriptions.length === 0 ? (
+            <p className="text-sm italic" style={{ color: 'var(--color-ink-muted)' }}>
+              En attente de la premiere transcription...
+            </p>
+          ) : (
+            <TranscriptionListe segments={transcriptions} />
+          )}
+        </div>
       )}
       {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
     </div>

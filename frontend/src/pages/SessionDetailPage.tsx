@@ -16,6 +16,7 @@ import { redimensionnerImageSiNecessaire } from '../redimensionnerImage'
 import type { DocumentItem, Resume, ResumeType, Session, TranscriptionSegment } from '../types'
 import { SessionDetailEntreprise } from './SessionDetailEntreprise'
 import { SessionDetailEcole } from './SessionDetailEcole'
+import { TranscriptionListe } from '../components/TranscriptionListe'
 
 // Nombre de relectures tentees apres la fin de la session avant d'abandonner
 // l'attente d'un resume (environ 15s a raison d'une tentative toutes les 3s).
@@ -337,53 +338,14 @@ export function SessionDetailPage() {
             {transcriptions.length === 0 && (
               <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun segment transcrit pour le moment.</p>
             )}
-            <div className="rounded-2xl border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
-              {transcriptions.map((segment, index) => (
-                <div
-                  key={segment.numeroSequence}
-                  ref={(el) => {
-                    if (el) refsSegments.current.set(segment.numeroSequence, el)
-                  }}
-                  className="p-3.5 text-sm transition-colors"
-                  style={{
-                    ...(index > 0 ? { borderTop: '1px solid var(--color-border-softer)' } : undefined),
-                    ...(segmentsEnSurbrillance.has(segment.numeroSequence) ? { background: 'var(--color-brand-wash)' } : undefined),
-                  }}
-                >
-                  <span className="mr-2 text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>
-                    #{segment.numeroSequence}
-                  </span>
-                  {segment.statut === 'REUSSIE' && (
-                    <button
-                      onClick={() => void jouerAudioSegment(segment.numeroSequence)}
-                      className="mr-2 text-xs"
-                      style={{ color: 'var(--color-ink-faint)' }}
-                      aria-label="Ecouter ce passage"
-                      title="Ecouter ce passage"
-                    >
-                      &#128266;
-                    </button>
-                  )}
-                  {segment.statut !== 'REUSSIE' ? (
-                    <span className="italic" style={{ color: '#B02631' }}>Echec de la transcription</span>
-                  ) : segment.segmentsLocuteur.length > 0 ? (
-                    <div className="mt-1 flex flex-col gap-1">
-                      {segment.segmentsLocuteur.map((locuteur, i) => (
-                        <p key={i}>
-                          <span className="mr-2 font-medium" style={{ color: 'var(--color-ink-muted)' }}>
-                            Intervenant {locuteur.locuteur}
-                            {locuteur.nomUtilisateurIdentifie && ` (${locuteur.nomUtilisateurIdentifie})`}
-                          </span>
-                          <span>{locuteur.texte}</span>
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <span>{segment.texte}</span>
-                  )}
-                </div>
-              ))}
-            </div>
+            <TranscriptionListe
+              segments={transcriptions}
+              segmentsEnSurbrillance={segmentsEnSurbrillance}
+              onRefSegment={(numero, el) => {
+                if (el) refsSegments.current.set(numero, el)
+              }}
+              onEcouterSegment={(numero) => void jouerAudioSegment(numero)}
+            />
           </section>
         </div>
 
