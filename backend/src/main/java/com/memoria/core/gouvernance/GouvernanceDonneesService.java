@@ -17,6 +17,8 @@ import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
 import com.memoria.ecole.notion.MaitriseNotion;
 import com.memoria.ecole.notion.MaitriseNotionRepository;
+import com.memoria.ecole.qcm.TentativeQcm;
+import com.memoria.ecole.qcm.TentativeQcmRepository;
 import com.memoria.ecole.resumecours.ResumeCours;
 import com.memoria.ecole.resumecours.ResumeCoursRepository;
 import com.memoria.ecole.tuteurvocal.SeanceTutorat;
@@ -56,6 +58,7 @@ public class GouvernanceDonneesService {
     private final SeanceTutoratRepository seanceTutoratRepository;
     private final TourDialogueTutoratRepository tourDialogueTutoratRepository;
     private final MaitriseNotionRepository maitriseNotionRepository;
+    private final TentativeQcmRepository tentativeQcmRepository;
     private final CouloirRepository couloirRepository;
     private final CouloirService couloirService;
     private final MembreCouloirRepository membreCouloirRepository;
@@ -75,6 +78,7 @@ public class GouvernanceDonneesService {
             SeanceTutoratRepository seanceTutoratRepository,
             TourDialogueTutoratRepository tourDialogueTutoratRepository,
             MaitriseNotionRepository maitriseNotionRepository,
+            TentativeQcmRepository tentativeQcmRepository,
             CouloirRepository couloirRepository,
             CouloirService couloirService,
             MembreCouloirRepository membreCouloirRepository,
@@ -93,6 +97,7 @@ public class GouvernanceDonneesService {
         this.seanceTutoratRepository = seanceTutoratRepository;
         this.tourDialogueTutoratRepository = tourDialogueTutoratRepository;
         this.maitriseNotionRepository = maitriseNotionRepository;
+        this.tentativeQcmRepository = tentativeQcmRepository;
         this.couloirRepository = couloirRepository;
         this.couloirService = couloirService;
         this.membreCouloirRepository = membreCouloirRepository;
@@ -124,6 +129,7 @@ public class GouvernanceDonneesService {
         }
 
         maitriseNotionRepository.deleteByUtilisateurId(utilisateurId);
+        tentativeQcmRepository.deleteByUtilisateurId(utilisateurId);
 
         for (Couloir couloir : couloirRepository.findByProprietaireId(utilisateurId)) {
             List<MembreCouloir> autresMembres = membreCouloirRepository.findByCouloirId(couloir.getId()).stream()
@@ -201,6 +207,10 @@ public class GouvernanceDonneesService {
                 .map(m -> new ExportDonneesUtilisateur.MaitriseNotionExportee(m.getNotionId(), m.getNiveau().name(), m.getNombreTentatives()))
                 .toList();
 
+        List<ExportDonneesUtilisateur.TentativeQcmExportee> tentativesQcm = tentativeQcmRepository.findByUtilisateurId(utilisateurId).stream()
+                .map(t -> new ExportDonneesUtilisateur.TentativeQcmExportee(t.getQcmId(), t.getScore(), t.getNombreQuestions(), t.getNombreTentatives()))
+                .toList();
+
         List<ExportDonneesUtilisateur.CouloirExporte> couloirs = membreCouloirRepository.findByUtilisateurId(utilisateurId).stream()
                 .map(membre -> {
                     Couloir couloir = couloirRepository.findById(membre.getCouloirId()).orElse(null);
@@ -215,7 +225,7 @@ public class GouvernanceDonneesService {
 
         return new ExportDonneesUtilisateur(
                 utilisateur.getId(), utilisateur.getEmail(), utilisateur.getNom(), utilisateur.getDateCreation(),
-                utilisateur.getModule(), sessions, engagements, empreinte, seancesTutorat, maitrises, couloirs
+                utilisateur.getModule(), sessions, engagements, empreinte, seancesTutorat, maitrises, tentativesQcm, couloirs
         );
     }
 

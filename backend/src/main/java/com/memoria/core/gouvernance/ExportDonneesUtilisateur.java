@@ -22,6 +22,7 @@ public record ExportDonneesUtilisateur(
         EmpreinteVocaleExportee empreinteVocale,
         List<SeanceTutoratExportee> seancesTutorat,
         List<MaitriseNotionExportee> maitrisesNotions,
+        List<TentativeQcmExportee> tentativesQcm,
         List<CouloirExporte> couloirs
 ) {
     public record SessionExportee(
@@ -60,6 +61,9 @@ public record ExportDonneesUtilisateur(
     }
 
     public record MaitriseNotionExportee(UUID notionId, String niveau, int nombreTentatives) {
+    }
+
+    public record TentativeQcmExportee(UUID qcmId, int score, int nombreQuestions, int nombreTentatives) {
     }
 
     public record CouloirExporte(UUID id, String nom, boolean proprietaire) {

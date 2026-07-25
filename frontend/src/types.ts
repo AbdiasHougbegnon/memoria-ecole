@@ -130,6 +130,30 @@ export interface ResumeCours {
   dateCreation: string
 }
 
+export type StatutQcm = 'REUSSI' | 'ECHEC'
+
+export interface QuestionQcm {
+  enonce: string
+  choix: string[]
+  reponseCorrecte: number
+  explication: string
+}
+
+export interface Qcm {
+  questions: QuestionQcm[]
+  segmentsSources: number[]
+  statut: StatutQcm
+  dateCreation: string
+}
+
+export interface TentativeQcm {
+  reponsesChoisies: number[]
+  score: number
+  nombreQuestions: number
+  nombreTentatives: number
+  dateMiseAJour: string
+}
+
 export type ModuleMemoria = 'ECOLE' | 'ENTREPRISE'
 
 export interface AuthResponse {

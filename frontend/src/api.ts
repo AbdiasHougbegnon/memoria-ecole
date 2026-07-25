@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, Qcm, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -171,6 +171,40 @@ export async function genererResumeCours(id: string): Promise<ResumeCours> {
     await appelApi(`${BASE}/${id}/resume-cours`, { method: 'POST' }),
   )
   return reponse.json()
+}
+
+export async function obtenirQcm(id: string): Promise<Qcm | null> {
+  const reponse = await appelApi(`${BASE}/${id}/qcm`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function genererQcm(id: string): Promise<Qcm> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE}/${id}/qcm`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
+export async function soumettreTentativeQcm(id: string, reponses: number[]): Promise<TentativeQcm> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE}/${id}/qcm/tentatives`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reponses }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirMaTentativeQcm(id: string): Promise<TentativeQcm | null> {
+  const reponse = await appelApi(`${BASE}/${id}/qcm/tentatives/moi`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
 }
 
 export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {
