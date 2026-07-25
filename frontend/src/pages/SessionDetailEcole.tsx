@@ -3,7 +3,12 @@ import { genererResumeCours, obtenirResumeCours } from '../api'
 import type { ResumeCours } from '../types'
 import { BoutonSecondaire, SectionTitre } from './SessionDetailPage'
 
-export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
+interface SessionDetailEcoleProps {
+  sessionId: string
+  onVoirSources: (numeros: number[]) => void
+}
+
+export function SessionDetailEcole({ sessionId, onVoirSources }: SessionDetailEcoleProps) {
   const [resumeCours, setResumeCours] = useState<ResumeCours | null>(null)
   const [resumeCoursEnCours, setResumeCoursEnCours] = useState(false)
   const [erreurResumeCours, setErreurResumeCours] = useState<string | null>(null)
@@ -58,6 +63,15 @@ export function SessionDetailEcole({ sessionId }: { sessionId: string }) {
                 style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
               >
                 <p className="text-sm leading-relaxed">{resumeCours.synthese}</p>
+                {resumeCours.segmentsSources.length > 0 && (
+                  <button
+                    onClick={() => onVoirSources(resumeCours.segmentsSources)}
+                    className="mt-3 text-xs font-semibold"
+                    style={{ color: 'var(--color-brand)' }}
+                  >
+                    Voir les {resumeCours.segmentsSources.length} passage{resumeCours.segmentsSources.length > 1 ? 's' : ''} source
+                  </button>
+                )}
               </div>
             </section>
           )}
