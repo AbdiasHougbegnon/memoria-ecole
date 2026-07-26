@@ -101,25 +101,35 @@ export function TuteurVocalPage() {
 
       <div>
         <h1 className="text-[22px] font-bold tracking-tight">Tuteur vocal</h1>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {notions.map((notion) => (
-            <li
-              key={notion.id}
-              className="rounded-full px-3 py-1 text-xs font-semibold"
-              style={{
-                background: notion.id === etat.notionCouranteId ? '#EDEBFB' : '#F4F2EE',
-                color: COULEUR_MAITRISE[maitrise[notion.id] ?? 'NON_ABORDEE'],
-              }}
-            >
-              {notion.terme} &middot; {LIBELLE_MAITRISE[maitrise[notion.id] ?? 'NON_ABORDEE']}
-            </li>
-          ))}
-        </ul>
+        {notions.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {notions.map((notion) => (
+              <li
+                key={notion.id}
+                className="rounded-full px-3 py-1 text-xs font-semibold"
+                style={{
+                  background: notion.id === etat.notionCouranteId ? '#EDEBFB' : '#F4F2EE',
+                  color: COULEUR_MAITRISE[maitrise[notion.id] ?? 'NON_ABORDEE'],
+                }}
+              >
+                {notion.terme} &middot; {LIBELLE_MAITRISE[maitrise[notion.id] ?? 'NON_ABORDEE']}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs" style={{ color: 'var(--color-ink-faint)' }}>
+            {etat.mode === 'LIBRE' ? 'Discussion libre, sans notion associee.' : 'Aucune notion associee a cette seance.'}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--color-border-soft)', minHeight: 300 }}>
         {etat.tours.length === 0 && (
-          <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Le tuteur va commencer...</p>
+          <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+            {etat.mode === 'LIBRE' && etat.notionCouranteId === null
+              ? 'Pose ta question pour commencer.'
+              : 'Le tuteur va commencer...'}
+          </p>
         )}
         {etat.tours.map((tour) => (
           <div key={tour.id} className={tour.locuteur === 'TUTEUR' ? 'self-start' : 'self-end'}>

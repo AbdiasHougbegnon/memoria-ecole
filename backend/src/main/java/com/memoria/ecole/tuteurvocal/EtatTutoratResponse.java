@@ -9,7 +9,7 @@ public record EtatTutoratResponse(
         UUID seanceId,
         StatutSeanceTutorat statut,
         UUID notionCouranteId,
-        boolean modeExercice,
+        ModeTutorat mode,
         Instant dateDebut,
         Instant dateFin,
         List<TourResponse> tours
@@ -21,7 +21,7 @@ public record EtatTutoratResponse(
                 seanceTutorat.getSeanceId(),
                 seanceTutorat.getStatut(),
                 seanceTutorat.getNotionCouranteId(),
-                seanceTutorat.isModeExercice(),
+                seanceTutorat.getMode(),
                 seanceTutorat.getDateDebut(),
                 seanceTutorat.getDateFin(),
                 tours.stream().map(TourResponse::depuis).toList()

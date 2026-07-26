@@ -250,6 +250,7 @@ export interface Seance {
 
 export type StatutSeanceTutorat = 'EN_COURS' | 'TERMINEE'
 export type LocuteurTutorat = 'ETUDIANT' | 'TUTEUR'
+export type ModeTutorat = 'EXPLICATION' | 'EXERCICE' | 'LIBRE'
 
 export interface TourDialogue {
   id: string
@@ -264,7 +265,7 @@ export interface EtatTutorat {
   seanceId: string
   statut: StatutSeanceTutorat
   notionCouranteId: string | null
-  modeExercice: boolean
+  mode: ModeTutorat
   dateDebut: string
   dateFin: string | null
   tours: TourDialogue[]
@@ -276,6 +277,6 @@ export interface ResultatTour {
   texteTuteur: string
   audioUrl: string | null
   notionCouranteId: string | null
-  niveauMaitrise: NiveauMaitrise
+  niveauMaitrise: NiveauMaitrise | null
   seanceTerminee: boolean
 }

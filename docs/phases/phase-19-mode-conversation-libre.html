@@ -1,0 +1,231 @@
+<title>Memoria — Dossier technique : mode conversation libre</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École · Tuteur vocal (19/4)</span>
+    <h1 class="title">Mode conversation libre</h1>
+    <p class="dek">L'étudiant allume le tuteur et lui pose directement ses questions, sans que le tuteur n'initie — en coexistence avec le mode guidé par notion existant. Contexte minimal pour cet incrément : le nom de la matière.</p>
+    <div class="factrow">
+      <span class="fact"><strong>264</strong>&nbsp;tests backend, tous verts (+2)</span>
+      <span class="fact">3e mode dans le flux existant, pas un nouveau service</span>
+      <span class="fact">contrat JSON allégé, aucune évaluation forcée</span>
+      <span class="fact">backfill SQL manuel requis avant déploiement</span>
+      <span class="fact">tag <code>phase-19-mode-conversation-libre</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Quatrième et dernière brique de l'épopée tuteur vocal. Livrée sans attendre la phase 18 (contenu piloté par documents, développée en parallèle sur une autre branche) : le mode libre fonctionne dès aujourd'hui avec le contexte minimal disponible — le nom de la matière — l'intégration documentaire viendra dans un incrément séparé après fusion des deux branches.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Un troisième mode dans le flux existant</strong> — <code>ModeTutorat.LIBRE</code> vient s'ajouter à <code>EXPLICATION</code>/<code>EXERCICE</code> ; <code>TuteurVocalService</code> branche dessus plutôt que d'introduire un service ou un contrôleur séparé.</li>
+          <li><strong><code>modeExercice</code> (boolean) devient <code>mode</code> (enum)</strong> sur <code>SeanceTutorat</code> — migration en place, tous les usages (y compris dans l'export RGPD de <code>core/gouvernance</code>) retrouvés et mis à jour, nul-safe pour les lignes non backfillées.</li>
+          <li><strong><code>TourDialogueTutorat.notionId</code> devient nullable</strong> — en LIBRE, un tour de dialogue n'est rattaché à aucune notion précise.</li>
+          <li><strong>Migration Hibernate <code>ddl-auto=update</code> + backfill SQL manuel</strong> — Hibernate crée la colonne <code>mode</code> seule, mais ne backfille jamais les lignes existantes ; script fourni (§7) à exécuter une fois en base au moment de la fusion.</li>
+          <li><strong>Pas de premier tour du tuteur en LIBRE</strong> — <code>demarrerTutorat</code> crée la séance et s'arrête là : le tuteur attend que l'étudiant parle en premier.</li>
+          <li><strong>Contexte IA minimal</strong> — le nom de la matière fait office de "notionTerme", une consigne fixe de "notionDefinition" ; pas de fil de mémoire ni de document injecté pour cet incrément.</li>
+          <li><strong>Contrat JSON allégé</strong> — le mode LIBRE ne demande que <code>{"texte_tuteur": "..."}</code> ; <code>extraireTour</code> tolère l'absence des champs d'évaluation de maîtrise.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>ModeTutorat.java + SeanceTutorat.java + TourDialogueTutorat.java (édités)</h4>
+          <p class="why" style="margin-top:0">Ajout de <code>LIBRE</code> ; <code>modeExercice</code> → <code>mode</code> (enum) ; <code>notion_id</code> nullable.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>TuteurVocalService.java (édité)</h4>
+          <pre><code>demarrerTutorat(seanceId, utilisateurId, ModeTutorat mode)  -&gt; branche LIBRE dediee
+soumettreReponse(...)                                       -&gt; soumettreReponseLibre(...)</code></pre>
+          <p class="why">Injection de <code>MatiereService</code> pour resoudre le nom de la matiere via <code>seance.getMatiereId()</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>GenerateurTourTuteurAzureOpenAI.java (édité)</h4>
+          <p class="why" style="margin-top:0">Nouveau template <code>CONSIGNE_LIBRE</code>, variante <code>construireInputLibre</code>, <code>extraireTour</code> tolerant a l'absence d'evaluation de maitrise.</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>TuteurVocalController.java + EtatTutoratResponse.java (édités)</h4>
+          <p class="why" style="margin-top:0"><code>DemarrerTutoratRequest(ModeTutorat mode)</code> remplace le booleen ; <code>EtatTutoratResponse.mode</code> remplace <code>.modeExercice</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">5</span>
+          <h4>core/gouvernance : ExportDonneesUtilisateur.java + GouvernanceDonneesService.java (édités)</h4>
+          <p class="why" style="margin-top:0"><code>SeanceTutoratExportee.mode: String</code>, nul-safe tant que le backfill n'a pas tourne.</p>
+        </div>
+        <div class="bug">
+          <span class="n">6</span>
+          <h4>Frontend : types.ts, api.ts, SeanceDetailPage.tsx, TuteurVocalPage.tsx (édités)</h4>
+          <p class="why" style="margin-top:0">Bouton "Discussion libre" (sans garde sur les notions rattachees) ; message "Pose ta question pour commencer" ; badges de notions tolerants a une liste vide.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B verify -- 264 tests (+2), 0 finding SpotBugs/FindSecBugs, couverture maintenue</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Backend reel / Postgres partage / Playwright</span><span class="warn-txt">non fait ici -- autre agent en parallele, backfill non execute</span></div>
+      </div>
+      <p class="lead">Vérification en conditions réelles laissée à l'orchestrateur après fusion des deux branches et exécution du backfill SQL (§7).</p>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Contexte limité au nom de la matière</strong> — aucun document de cours ni fil de mémoire injecté en mode LIBRE pour cet incrément ; prévu après fusion avec la phase 18 (contenu piloté par documents, développée en parallèle).</li>
+        <li><strong>Backfill SQL manuel non exécuté</strong> — la colonne <code>mode</code> reste <code>NULL</code> pour les <code>seances_tutorat</code> antérieures à cet incrément tant que le script du §7 n'a pas tourné en base.</li>
+        <li><strong>Pas de changement de mode en cours de conversation</strong> — fixé au démarrage, comme pour EXPLICATION/EXERCICE.</li>
+        <li><strong>Pas de fin automatique en LIBRE</strong> — cohérent avec l'esprit du mode, mais une séance oubliée reste <code>EN_COURS</code> tant que l'étudiant ne clique pas sur "Terminer".</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-19-mode-conversation-libre</code></li>
+          <li><strong>Avant tout déploiement</strong>, exécuter en base :</li>
+        </ul>
+        <pre><code>UPDATE seances_tutorat SET mode = CASE WHEN mode_exercice THEN 'EXERCICE' ELSE 'EXPLICATION' END WHERE mode IS NULL;</code></pre>
+        <ul class="plain" style="margin-top:12px">
+          <li>Épopée tuteur vocal terminée par cet incrément (17a → 17b → 18 en parallèle → 19). Prochaine étape naturelle : brancher le contexte documentaire de la phase 18 dans <code>ContexteTour</code> du mode LIBRE, une fois les deux branches fusionnées.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-19-mode-conversation-libre</code> — vérifiée par build + tests, vérification en conditions réelles laissée à l'orchestrateur après fusion.</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le mode conversation libre (19/4).
+    </footer>
+  </main>
+</div>

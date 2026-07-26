@@ -263,8 +263,12 @@ public class GouvernanceDonneesService {
                 .map((TourDialogueTutorat t) -> new ExportDonneesUtilisateur.TourExporte(
                         t.getLocuteur().name(), t.getTexte(), t.getDateCreation()))
                 .toList();
+        // getMode() peut etre null tant que le backfill manuel de la colonne
+        // "mode" (voir docs/phases/phase-19-mode-conversation-libre.md) n'a
+        // pas ete execute sur les lignes anterieures a cet increment.
+        String mode = seance.getMode() != null ? seance.getMode().name() : null;
         return new ExportDonneesUtilisateur.SeanceTutoratExportee(
-                seance.getId(), seance.getSeanceId(), seance.getStatut().name(), seance.isModeExercice(),
+                seance.getId(), seance.getSeanceId(), seance.getStatut().name(), mode,
                 seance.getDateDebut(), seance.getDateFin(), tours
         );
     }

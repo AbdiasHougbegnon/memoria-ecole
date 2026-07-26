@@ -3,6 +3,8 @@ package com.memoria.ecole.tuteurvocal;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.transcription.TranscripteurPort;
+import com.memoria.ecole.matiere.Matiere;
+import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.NiveauMaitrise;
 import com.memoria.ecole.notion.Notion;
 import com.memoria.ecole.notion.NotionService;
@@ -25,10 +27,17 @@ import java.util.UUID;
 @Service
 public class TuteurVocalService {
 
+    // Tient lieu de "notionDefinition" en mode LIBRE, ou aucune notion n'est
+    // rattachee -- contexte minimal pour ce premier increment (nom de la
+    // matiere uniquement), voir docs/phases/phase-19-mode-conversation-libre.md.
+    private static final String DEFINITION_MODE_LIBRE =
+            "Discussion libre sur cette matiere, reponds aux questions de l'etudiant en le guidant progressivement.";
+
     private final SeanceTutoratRepository seanceTutoratRepository;
     private final TourDialogueTutoratRepository tourDialogueTutoratRepository;
     private final SeanceService seanceService;
     private final NotionService notionService;
+    private final MatiereService matiereService;
     private final CouloirService couloirService;
     private final TranscripteurPort transcripteur;
     private final SynthetiseurVocalPort synthetiseurVocal;
@@ -39,6 +48,7 @@ public class TuteurVocalService {
             TourDialogueTutoratRepository tourDialogueTutoratRepository,
             SeanceService seanceService,
             NotionService notionService,
+            MatiereService matiereService,
             CouloirService couloirService,
             TranscripteurPort transcripteur,
             SynthetiseurVocalPort synthetiseurVocal,
@@ -48,6 +58,7 @@ public class TuteurVocalService {
         this.tourDialogueTutoratRepository = tourDialogueTutoratRepository;
         this.seanceService = seanceService;
         this.notionService = notionService;
+        this.matiereService = matiereService;
         this.couloirService = couloirService;
         this.transcripteur = transcripteur;
         this.synthetiseurVocal = synthetiseurVocal;
@@ -55,7 +66,7 @@ public class TuteurVocalService {
     }
 
     @Transactional
-    public ResultatTour demarrerTutorat(UUID seanceId, UUID utilisateurId, boolean modeExercice) {
+    public ResultatTour demarrerTutorat(UUID seanceId, UUID utilisateurId, ModeTutorat mode) {
         Seance seance = seanceService.obtenirSeance(seanceId);
         if (!couloirService.estMembre(seance.getCouloirId(), utilisateurId)) {
             throw new PasMembreDuCouloirException(seance.getCouloirId(), utilisateurId);
@@ -68,17 +79,29 @@ public class TuteurVocalService {
         if (existante.isPresent()) {
             SeanceTutorat seanceTutorat = existante.get();
             TourDialogueTutorat dernierTour = dernierTour(seanceTutorat.getId());
-            return versResultat(seanceTutorat, dernierTour, seanceTutorat.getNotionCouranteId() != null
-                    ? notionService.obtenirNiveauMaitrise(seanceTutorat.getNotionCouranteId(), utilisateurId)
-                    : NiveauMaitrise.MAITRISEE);
+            NiveauMaitrise niveauMaitrise = seanceTutorat.getMode() == ModeTutorat.LIBRE
+                    ? null
+                    : seanceTutorat.getNotionCouranteId() != null
+                            ? notionService.obtenirNiveauMaitrise(seanceTutorat.getNotionCouranteId(), utilisateurId)
+                            : NiveauMaitrise.MAITRISEE;
+            return versResultat(seanceTutorat, dernierTour, niveauMaitrise);
+        }
+
+        if (mode == ModeTutorat.LIBRE) {
+            // Pas de notion a resoudre, pas de premier tour genere : le
+            // tuteur attend que l'etudiant parle en premier (voir
+            // docs/phases/phase-19-mode-conversation-libre.md).
+            SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
+                    new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE)
+            );
+            return new ResultatTour(seanceTutorat.getId(), null, "", null, null, false);
         }
 
         List<Notion> notionsOrdonnees = seanceService.listerNotionsDeSeance(seanceId);
-        ModeTutorat mode = modeExercice ? ModeTutorat.EXERCICE : ModeTutorat.EXPLICATION;
         Optional<UUID> premiereNotionId = choisirProchaineNotion(notionsOrdonnees, utilisateurId);
 
         SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
-                new SeanceTutorat(seanceId, utilisateurId, premiereNotionId.orElse(null), modeExercice)
+                new SeanceTutorat(seanceId, utilisateurId, premiereNotionId.orElse(null), mode)
         );
 
         if (premiereNotionId.isEmpty()) {
@@ -108,9 +131,13 @@ public class TuteurVocalService {
             throw new SeanceTutoratNonActiveException(seanceTutoratId);
         }
 
+        if (seanceTutorat.getMode() == ModeTutorat.LIBRE) {
+            return soumettreReponseLibre(seanceTutorat, audioReponse);
+        }
+
         UUID notionCouranteId = seanceTutorat.getNotionCouranteId();
         Notion notionCourante = notionService.obtenirNotion(notionCouranteId);
-        ModeTutorat mode = seanceTutorat.isModeExercice() ? ModeTutorat.EXERCICE : ModeTutorat.EXPLICATION;
+        ModeTutorat mode = seanceTutorat.getMode();
 
         String texteEtudiant = transcrire(audioReponse);
 
@@ -157,6 +184,36 @@ public class TuteurVocalService {
 
         return new ResultatTour(seanceTutoratId, tourTuteur.getId(), texteAEnvoyer, seanceTutorat.getNotionCouranteId(),
                 genere.evaluationMaitrise(), seanceTerminee);
+    }
+
+    // Pas de notion a evaluer : historique complet (pas filtre par notion,
+    // toutes les autres requetes de ce service le sont), aucun appel a
+    // mettreAJourMaitrise, jamais de fin automatique -- voir
+    // docs/phases/phase-19-mode-conversation-libre.md.
+    private ResultatTour soumettreReponseLibre(SeanceTutorat seanceTutorat, byte[] audioReponse) {
+        UUID seanceTutoratId = seanceTutorat.getId();
+        String texteEtudiant = transcrire(audioReponse);
+
+        List<GenerateurTourTuteurPort.TourHistorique> historique = tourDialogueTutoratRepository
+                .findBySeanceTutoratIdOrderByDateCreationAsc(seanceTutoratId).stream()
+                .map(tour -> new GenerateurTourTuteurPort.TourHistorique(tour.getLocuteur(), tour.getTexte()))
+                .toList();
+
+        tourDialogueTutoratRepository.save(new TourDialogueTutorat(seanceTutoratId, null, Locuteur.ETUDIANT, texteEtudiant));
+
+        Seance seance = seanceService.obtenirSeance(seanceTutorat.getSeanceId());
+        Matiere matiere = matiereService.obtenirMatiere(seance.getMatiereId());
+
+        var contexte = new GenerateurTourTuteurPort.ContexteTour(
+                matiere.getNom(), DEFINITION_MODE_LIBRE, historique, texteEtudiant, ModeTutorat.LIBRE
+        );
+        GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
+
+        TourDialogueTutorat tourTuteur = tourDialogueTutoratRepository.save(
+                new TourDialogueTutorat(seanceTutoratId, null, Locuteur.TUTEUR, genere.texteTuteur())
+        );
+
+        return new ResultatTour(seanceTutoratId, tourTuteur.getId(), genere.texteTuteur(), null, null, false);
     }
 
     public SeanceTutorat obtenirEtatTutorat(UUID seanceTutoratId, UUID utilisateurId) {

@@ -24,7 +24,9 @@ public class TourDialogueTutorat {
     @Column(name = "seance_tutorat_id", nullable = false)
     private UUID seanceTutoratId;
 
-    @Column(name = "notion_id", nullable = false)
+    // Nullable en mode LIBRE : un tour de conversation libre n'est rattache a
+    // aucune notion precise (voir docs/phases/phase-19-mode-conversation-libre.md).
+    @Column(name = "notion_id")
     private UUID notionId;
 
     @Enumerated(EnumType.STRING)

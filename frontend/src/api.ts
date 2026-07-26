@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -507,12 +507,12 @@ export async function obtenirMaitriseSeance(seanceId: string): Promise<Record<st
   return reponse.json()
 }
 
-export async function demarrerTutorat(seanceId: string, modeExercice: boolean): Promise<ResultatTour> {
+export async function demarrerTutorat(seanceId: string, mode: ModeTutorat): Promise<ResultatTour> {
   const reponse = await verifierReponse(
     await appelApi(`/api/v1/seances/${seanceId}/tutorat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modeExercice }),
+      body: JSON.stringify({ mode }),
     }),
   )
   return reponse.json()

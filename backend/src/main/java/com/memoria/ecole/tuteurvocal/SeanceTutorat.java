@@ -34,8 +34,12 @@ public class SeanceTutorat {
     @Column(nullable = false)
     private StatutSeanceTutorat statut;
 
-    @Column(name = "mode_exercice", nullable = false)
-    private boolean modeExercice;
+    // nullable de fait malgre l'annotation : ddl-auto=update ne backfille pas
+    // les lignes existantes, voir le script de migration manuel documente
+    // dans docs/phases/phase-19-mode-conversation-libre.md.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ModeTutorat mode;
 
     @Column(name = "date_debut", nullable = false)
     private Instant dateDebut;
@@ -47,13 +51,13 @@ public class SeanceTutorat {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
-    public SeanceTutorat(UUID seanceId, UUID utilisateurId, UUID notionCouranteId, boolean modeExercice) {
+    public SeanceTutorat(UUID seanceId, UUID utilisateurId, UUID notionCouranteId, ModeTutorat mode) {
         this.id = UUID.randomUUID();
         this.seanceId = seanceId;
         this.utilisateurId = utilisateurId;
         this.notionCouranteId = notionCouranteId;
         this.statut = StatutSeanceTutorat.EN_COURS;
-        this.modeExercice = modeExercice;
+        this.mode = mode;
         this.dateDebut = Instant.now();
     }
 
@@ -77,8 +81,8 @@ public class SeanceTutorat {
         return statut;
     }
 
-    public boolean isModeExercice() {
-        return modeExercice;
+    public ModeTutorat getMode() {
+        return mode;
     }
 
     public Instant getDateDebut() {

@@ -58,6 +58,26 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     private static final String MODE_EXPLICATION = "tu expliques la notion et verifies la comprehension par des questions";
     private static final String MODE_EXERCICE = "tu poses des exercices/questions d'application sur cette notion, sans la re-expliquer d'abord";
 
+    // Mode LIBRE : pas de notion a evaluer, contrat JSON allege (un seul
+    // champ) -- l'etudiant parle en premier, le tuteur repond simplement a
+    // ses questions sur la matiere (voir docs/phases/phase-19-mode-conversation-libre.md).
+    private static final String CONSIGNE_LIBRE = """
+            Tu es un tuteur vocal qui discute librement avec un etudiant sur la matiere "%s",
+            en francais, a l'oral (phrases courtes et naturelles, pas de listes a puces, pas de
+            markdown -- ce texte sera lu a voix haute par un synthetiseur vocal).
+
+            L'etudiant pose ses propres questions, dans l'ordre qu'il veut, sur n'importe quel
+            sujet de cette matiere. Reponds-lui de facon conversationnelle et progressive :
+            explique simplement, verifie qu'il suit, propose des exemples concrets si utile.
+            Ne force jamais une evaluation de maitrise, ce n'est pas l'objectif de ce mode.
+
+            Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
+            {
+              "texte_tuteur": "ce que tu dis a l'etudiant maintenant (2-4 phrases orales)"
+            }
+            Aucun texte avant ou apres le JSON, aucun bloc de code markdown.
+            """;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -94,11 +114,13 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
 
     @Override
     public TourTuteurGenere genererTour(ContexteTour contexte) {
-        String consigne = CONSIGNE_TEMPLATE.formatted(
-                contexte.notionTerme(),
-                contexte.notionDefinition(),
-                contexte.mode() == ModeTutorat.EXERCICE ? MODE_EXERCICE : MODE_EXPLICATION
-        );
+        String consigne = contexte.mode() == ModeTutorat.LIBRE
+                ? CONSIGNE_LIBRE.formatted(contexte.notionTerme())
+                : CONSIGNE_TEMPLATE.formatted(
+                        contexte.notionTerme(),
+                        contexte.notionDefinition(),
+                        contexte.mode() == ModeTutorat.EXERCICE ? MODE_EXERCICE : MODE_EXPLICATION
+                );
         String input = construireInput(contexte);
 
         var corpsRequete = JSON.createObjectNode();
@@ -142,6 +164,10 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     }
 
     private String construireInput(ContexteTour contexte) {
+        if (contexte.mode() == ModeTutorat.LIBRE) {
+            return construireInputLibre(contexte);
+        }
+
         StringBuilder input = new StringBuilder();
         if (contexte.historique().isEmpty() && contexte.derniereReponseEtudiant() == null) {
             input.append("C'est le tout premier tour sur cette notion. L'etudiant n'a encore rien dit. "
@@ -157,6 +183,24 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
             input.append("\nDerniere reponse de l'etudiant, a evaluer maintenant : ")
                     .append(contexte.derniereReponseEtudiant());
         }
+        return input.toString();
+    }
+
+    // Pas de distinction "premier tour" : en mode LIBRE, demarrerTutorat ne
+    // genere jamais de premier tour (l'etudiant parle toujours en premier),
+    // donc l'historique complet (potentiellement vide) plus la derniere
+    // question suffisent.
+    private String construireInputLibre(ContexteTour contexte) {
+        StringBuilder input = new StringBuilder();
+        if (!contexte.historique().isEmpty()) {
+            input.append("Historique de la conversation :\n");
+            for (TourHistorique tour : contexte.historique()) {
+                input.append("[").append(tour.locuteur()).append("] ").append(tour.texte()).append("\n");
+            }
+            input.append("\n");
+        }
+        input.append("Derniere question de l'etudiant, a laquelle repondre maintenant : ")
+                .append(contexte.derniereReponseEtudiant());
         return input.toString();
     }
 
@@ -183,7 +227,13 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
         try {
             JsonNode noeud = JSON.readTree(nettoye);
             String texteTuteur = noeud.path("texte_tuteur").asText();
-            NiveauMaitrise evaluation = NiveauMaitrise.valueOf(noeud.path("evaluation_maitrise").asText());
+            // Le mode LIBRE ne demande pas ces deux champs au modele (voir
+            // CONSIGNE_LIBRE) : absents, ils restent null/false plutot que de
+            // faire echouer l'extraction.
+            JsonNode noeudEvaluation = noeud.path("evaluation_maitrise");
+            NiveauMaitrise evaluation = noeudEvaluation.isMissingNode() || noeudEvaluation.isNull()
+                    ? null
+                    : NiveauMaitrise.valueOf(noeudEvaluation.asText());
             boolean notionMaitrisee = noeud.path("notion_maitrisee").asBoolean(false);
             return new TourTuteurGenere(texteTuteur, evaluation, notionMaitrisee);
         } catch (IOException | IllegalArgumentException e) {

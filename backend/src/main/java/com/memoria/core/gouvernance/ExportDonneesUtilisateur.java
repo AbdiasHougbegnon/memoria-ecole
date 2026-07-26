@@ -50,7 +50,7 @@ public record ExportDonneesUtilisateur(
             UUID id,
             UUID seanceId,
             String statut,
-            boolean modeExercice,
+            String mode,
             Instant dateDebut,
             Instant dateFin,
             List<TourExporte> tours

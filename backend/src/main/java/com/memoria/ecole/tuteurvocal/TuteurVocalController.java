@@ -34,7 +34,7 @@ public class TuteurVocalController {
             @RequestBody DemarrerTutoratRequest requete,
             @AuthenticationPrincipal UUID utilisateurId
     ) {
-        return ResultatTourResponse.depuis(tuteurVocalService.demarrerTutorat(seanceId, utilisateurId, requete.modeExercice()));
+        return ResultatTourResponse.depuis(tuteurVocalService.demarrerTutorat(seanceId, utilisateurId, requete.mode()));
     }
 
     @GetMapping("/tutorat/{id}")
@@ -64,6 +64,6 @@ public class TuteurVocalController {
         return ResponseEntity.ok().contentType(MediaType.valueOf("audio/mpeg")).body(audio);
     }
 
-    public record DemarrerTutoratRequest(boolean modeExercice) {
+    public record DemarrerTutoratRequest(ModeTutorat mode) {
     }
 }
