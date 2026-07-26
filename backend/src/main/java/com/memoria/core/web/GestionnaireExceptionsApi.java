@@ -171,4 +171,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererAucunResumeCoursDisponiblePourQcm() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.session.MatiereIncompatibleAvecSessionException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererMatiereIncompatibleAvecSession() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.session.PasCreateurDeLaSessionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererPasCreateurDeLaSession() {
+    }
 }

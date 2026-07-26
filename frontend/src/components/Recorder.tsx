@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { creerSession, envoyerChunk, listerCouloirs, listerNumerosChunksRecus, obtenirSession, obtenirTranscriptions, terminerSession } from '../api'
+import { creerSession, envoyerChunk, listerCouloirs, listerMatieresParCouloir, listerNumerosChunksRecus, obtenirSession, obtenirTranscriptions, rattacherMatiereSession, terminerSession } from '../api'
 import { convertirBlobEnWav } from '../audioWav'
+import { obtenirModuleConnecte } from '../auth'
 import { TranscriptionListe } from './TranscriptionListe'
-import type { Couloir, TranscriptionSegment } from '../types'
+import type { Couloir, Matiere, TranscriptionSegment } from '../types'
 
 const DUREE_SEGMENT_MS = 30_000
 const TYPE_MIME_PREFERE = 'audio/webm;codecs=opus'
@@ -37,6 +38,9 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   const [erreur, setErreur] = useState<string | null>(null)
   const [couloirs, setCouloirs] = useState<Couloir[]>([])
   const [couloirId, setCouloirId] = useState('')
+  const [matieres, setMatieres] = useState<Matiere[]>([])
+  const [matiereId, setMatiereId] = useState('')
+  const estModuleEcole = obtenirModuleConnecte() === 'ECOLE'
   const [connexionInstable, setConnexionInstable] = useState(false)
   const [sessionInterrompue, setSessionInterrompue] = useState<SessionActiveSauvegardee | null>(null)
   const [transcriptions, setTranscriptions] = useState<TranscriptionSegment[]>([])
@@ -45,6 +49,18 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   useEffect(() => {
     listerCouloirs().then(setCouloirs).catch(() => {})
   }, [])
+
+  // Le select matiere n'a de sens qu'en module Ecole : les matieres importees
+  // (voir docs/phases/phase-17a-import-matieres.md) sont deja disponibles des
+  // qu'un couloir est choisi, sans que l'etudiant n'ait a les saisir.
+  useEffect(() => {
+    setMatiereId('')
+    if (!estModuleEcole || !couloirId) {
+      setMatieres([])
+      return
+    }
+    listerMatieresParCouloir(couloirId).then(setMatieres).catch(() => setMatieres([]))
+  }, [couloirId, estModuleEcole])
 
   // Reprise apres fermeture d'onglet/navigateur : une session laissee EN_COURS
   // cote serveur (voir localStorage.setItem dans demarrer()) declenche une
@@ -212,6 +228,9 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const { id } = await creerSession(titre.trim(), couloirId || undefined)
+      if (matiereId) {
+        rattacherMatiereSession(id, matiereId).catch(() => {})
+      }
       localStorage.setItem(
         CLE_SESSION_ACTIVE,
         JSON.stringify({ sessionId: id, titre: titre.trim(), couloirId: couloirId || null }),
@@ -325,6 +344,22 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
             {couloirs.map((couloir) => (
               <option key={couloir.id} value={couloir.id}>
                 {couloir.nom}
+              </option>
+            ))}
+          </select>
+        )}
+        {estModuleEcole && matieres.length > 0 && (
+          <select
+            value={matiereId}
+            disabled={enregistrement}
+            onChange={(e) => setMatiereId(e.target.value)}
+            className="rounded-lg border px-3 py-2.5 text-sm outline-none disabled:opacity-60"
+            style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+          >
+            <option value="">Aucune matiere</option>
+            {matieres.map((matiere) => (
+              <option key={matiere.id} value={matiere.id}>
+                {matiere.nom}
               </option>
             ))}
           </select>

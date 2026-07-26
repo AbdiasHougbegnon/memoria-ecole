@@ -1,0 +1,217 @@
+<title>Memoria — Dossier technique : import en masse de matières</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École · Provisioning (17a/4)</span>
+    <h1 class="title">Importer les classes de l'école</h1>
+    <p class="dek">Première brique d'une épopée en 4 sous-phases : un CSV listant les classes de l'école (année/filière/spécialité + matières) génère d'un coup les couloirs et matières correspondants, retrouvables ensuite dans un select au moment de lancer une session — sans nouveau rôle admin.</p>
+    <div class="factrow">
+      <span class="fact"><strong>258</strong>&nbsp;tests backend, tous verts (+10)</span>
+      <span class="fact">import idempotent (triplet + nom de matière)</span>
+      <span class="fact">select matière sur "Nouvelle session"</span>
+      <span class="fact">vérifié en conditions réelles (curl + Playwright + Postgres)</span>
+      <span class="fact">tag <code>phase-17a-import-matieres</code></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">L'utilisateur trouvait anormal d'être toujours celui qui remplit matières et notions à la main, et a demandé une épopée en 4 parties (provisioning admin, inscription auto-assignée, contenu piloté par documents, mode conversation libre). Cette brique est la première : un administrateur envoie un CSV, les couloirs et matières apparaissent d'un coup. C'est le socle technique de la sous-phase suivante (17b, inscription auto-assignée).</p>
+      <p class="lead">Retour après une première version : le nom "Importer des matières" ne rendait pas compte du vrai objectif (le fichier décrit des <em>classes</em>) ni du bénéfice concret — retrouver ces matières dans un select au moment de lancer une session, pas seulement pour le tutorat. Deux ajustements : renommage en "Importer les classes de l'école", et ajout d'un select matière sur l'écran "Nouvelle session".</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Métadonnées de couloir dans une entité séparée</strong> — <code>ContexteScolaireCouloir</code> (École) référence <code>Couloir.id</code> en UUID brut plutôt que d'ajouter <code>filiere</code>/<code>specialite</code> sur l'entité moteur générique <code>Couloir</code>, qui doit rester réutilisable par Entreprise.</li>
+          <li><strong>Aucun nouveau rôle admin</strong> — <code>POST /api/v1/couloirs</code> (création manuelle) ne vérifie déjà aucun rôle. L'import réutilise <code>CouloirService</code>/<code>MatiereService</code> tels quels, avec l'appelant authentifié comme propriétaire — cohérent avec le modèle "instance dédiée par école".</li>
+          <li><strong>CSV plat, idempotent au niveau du triplet</strong> — groupement par <code>(annee, filiere, specialite)</code>, un couloir par groupe distinct, une matière par ligne. Rejouer le même fichier ne duplique rien.</li>
+          <li><strong>Rattachement session↔matière : une entité de plus, pas un champ sur <code>Session</code></strong> — <code>ContexteScolaireSession</code> (École), même raisonnement. Idempotent, vérifié (créateur de la session + matière du même couloir).</li>
+          <li><strong>Découverte en vérifiant : affichage trompeur "EN DIRECT"</strong> — 18 sessions de tests techniques jamais terminées depuis début juillet s'affichaient comme en cours d'enregistrement, sans date visible. Corrigé sur les deux fronts : date toujours affichée + 18 sessions basculées à <code>TERMINEE</code> directement en base (liste revue avec l'utilisateur avant confirmation, pas via l'API pour éviter des appels Azure inutiles sur du contenu de test).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>ContexteScolaireCouloir.java + Repository (nouveaux)</h4>
+          <p class="why" style="margin-top:0"><code>couloirId</code> (unique), <code>anneeAcademique</code>, <code>filiere</code>, <code>specialite</code> (nullable) ; <code>findByAnneeAcademiqueAndFiliereAndSpecialite</code> réutilisée telle quelle en phase 17b.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>ImportMatieresService.java + Controller (nouveaux)</h4>
+          <pre><code>POST /api/v1/ecole/import-matieres  (multipart, champ "fichier")
+-&gt; groupe par (annee, filiere, specialite)
+-&gt; CouloirService.creerCouloir / MatiereService.creerMatiere existants
+-&gt; RapportImportMatieres { couloirsCrees, couloirsExistants, matieresCreees, matieresExistantes, erreurs[] }</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>SecurityConfig.java (édité)</h4>
+          <p class="why" style="margin-top:0">Ajout de <code>/api/v1/ecole/**</code> sous <code>MODULE_ECOLE</code> — couvre ce endpoint et prépare 17b.</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>ImporterMatieresPage.tsx (nouveau) + Recorder.tsx (édité)</h4>
+          <p class="why" style="margin-top:0">Upload + rapport de résultat ; lien "Importer les classes de l'école" visible uniquement en module ECOLE. <code>Recorder.tsx</code> gagne un select matière peuplé par couloir, taggant la session via <code>PUT /ecole/sessions/{id}/matiere</code> juste après sa création.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié en conditions réelles</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B verify -- 258 tests, 0 finding, couverture maintenue</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">Upload CSV reel (curl multipart), 4 lignes valides + 1 incomplete</span><span class="ok-txt">3 couloirs, 4 matieres, erreur ligne 6 signalee</span></div>
+        <div class="verif-line"><span class="route">Rejeu du meme fichier</span><span class="ok-txt">0 doublon, idempotence confirmee</span></div>
+        <div class="verif-line"><span class="route">Playwright : upload reel via l'UI (/import-matieres)</span><span class="ok-txt">rapport affiche, capture a l'appui</span></div>
+        <div class="verif-line"><span class="route">Playwright (micro simule) : select couloir puis matiere, "Demarrer"</span><span class="ok-txt">session creee, taguee Algorithmique</span></div>
+        <div class="verif-line"><span class="route">Verification directe Postgres (docker exec psql)</span><span class="ok-txt">contextes_scolaires_session confirme</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Aucune restriction sur qui peut importer</strong> — décision assumée, pas un oubli. Point d'extension naturel si besoin : un flag léger <code>Utilisateur.estAdministrateur</code>.</li>
+        <li><strong>Pas de prévisualisation avant import</strong> — le rapport n'apparaît qu'après coup.</li>
+        <li><strong>Import atomique, tout ou rien</strong> — un triplet déjà possédé par un autre utilisateur annule tout l'import (pas de reprise partielle).</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Prochaine sous-phase : <strong>17b — inscription auto-assignée</strong>, qui consomme <code>ContexteScolaireCouloirRepository.findByAnneeAcademiqueAndFiliereAndSpecialite</code> pour résoudre le couloir d'un étudiant à l'inscription.</li>
+          <li>Puis 18 (contenu piloté par documents) et 19 (mode conversation libre).</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-17a-import-matieres</code> — vérifiée en conditions réelles (curl + Playwright).</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur l'import en masse de matières (17a/4).
+    </footer>
+  </main>
+</div>

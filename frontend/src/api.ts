@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, Qcm, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModuleMemoria, NiveauMaitrise, Notion, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -281,6 +281,15 @@ export async function listerCouloirs(): Promise<Couloir[]> {
   return reponse.json()
 }
 
+export async function importerMatieres(fichier: File): Promise<RapportImportMatieres> {
+  const corps = new FormData()
+  corps.append('fichier', fichier)
+  const reponse = await verifierReponse(
+    await appelApi('/api/v1/ecole/import-matieres', { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
 export async function obtenirCouloir(id: string): Promise<Couloir> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/couloirs/${id}`))
   return reponse.json()
@@ -406,6 +415,16 @@ export async function listerMatieresParCouloir(couloirId: string): Promise<Matie
 export async function obtenirMatiere(id: string): Promise<Matiere> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${id}`))
   return reponse.json()
+}
+
+export async function rattacherMatiereSession(sessionId: string, matiereId: string): Promise<void> {
+  await verifierReponse(
+    await appelApi(`/api/v1/ecole/sessions/${sessionId}/matiere`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matiereId }),
+    }),
+  )
 }
 
 export async function creerNotion(matiereId: string, terme: string, definition: string, ordre: number): Promise<Notion> {

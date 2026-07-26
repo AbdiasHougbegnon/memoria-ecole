@@ -33,6 +33,7 @@ function CarteSession({ session }: { session: Session }) {
           </span>
         )}
         <span className="text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>
+          {enDirect && `${new Date(session.dateCreation).toLocaleDateString('fr-FR')} `}
           {new Date(session.dateCreation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>

@@ -82,6 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/couloirs/*/matieres").hasAuthority("MODULE_ECOLE")
                         .requestMatchers("/api/v1/seances/**").hasAuthority("MODULE_ECOLE")
                         .requestMatchers("/api/v1/tutorat/**").hasAuthority("MODULE_ECOLE")
+                        .requestMatchers("/api/v1/ecole/**").hasAuthority("MODULE_ECOLE")
 
                         .anyRequest().authenticated()
                 )

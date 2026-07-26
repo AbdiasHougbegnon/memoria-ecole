@@ -171,6 +171,19 @@ export interface Couloir {
   nombreMembres: number
 }
 
+export interface ErreurImport {
+  numeroLigne: number
+  message: string
+}
+
+export interface RapportImportMatieres {
+  couloirsCrees: number
+  couloirsExistants: number
+  matieresCreees: number
+  matieresExistantes: number
+  erreurs: ErreurImport[]
+}
+
 export interface MembreCouloir {
   utilisateurId: string
   email: string

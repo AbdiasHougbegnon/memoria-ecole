@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { creerCouloir, listerCouloirs } from '../api'
 import { obtenirModuleConnecte, obtenirUtilisateurIdConnecte } from '../auth'
 import { IDENTITES_MODULE } from '../moduleIdentite'
@@ -72,6 +72,15 @@ export function CouloirsPage() {
             Vos espaces partages. Les sessions collectives et les membres y sont regroupes.
           </p>
         </div>
+        {obtenirModuleConnecte() === 'ECOLE' && (
+          <Link
+            to="/import-matieres"
+            className="whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold"
+            style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+          >
+            Importer les classes de l'ecole
+          </Link>
+        )}
       </div>
 
       <form onSubmit={creer} className="mt-6 flex gap-2">
