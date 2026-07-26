@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { creerNotion, creerSeance, listerNotionsParMatiere, listerSeancesParMatiere, obtenirCouloir, obtenirMatiere } from '../api'
+import {
+  creerNotion,
+  creerSeance,
+  listerDocumentsMatiere,
+  listerNotionsCandidates,
+  listerNotionsParMatiere,
+  listerSeancesParMatiere,
+  obtenirCouloir,
+  obtenirMatiere,
+  rejeterNotionCandidate,
+  televerserDocumentMatiere,
+  validerNotionCandidate,
+} from '../api'
 import { obtenirUtilisateurIdConnecte } from '../auth'
-import type { Couloir, Matiere, Notion, Seance } from '../types'
+import type { Couloir, DocumentMatiere, Matiere, Notion, NotionCandidate, Seance } from '../types'
 
 export function MatiereDetailPage() {
   const { id: matiereId } = useParams<{ id: string }>()
@@ -11,7 +23,11 @@ export function MatiereDetailPage() {
   const [couloir, setCouloir] = useState<Couloir | null>(null)
   const [notions, setNotions] = useState<Notion[]>([])
   const [seances, setSeances] = useState<Seance[]>([])
+  const [documents, setDocuments] = useState<DocumentMatiere[]>([])
+  const [candidates, setCandidates] = useState<NotionCandidate[]>([])
+  const [candidatsEdites, setCandidatsEdites] = useState<Record<string, { terme: string; definition: string }>>({})
   const [chargement, setChargement] = useState(true)
+  const [televersementEnCours, setTeleversementEnCours] = useState(false)
 
   const [terme, setTerme] = useState('')
   const [definition, setDefinition] = useState('')
@@ -26,11 +42,27 @@ export function MatiereDetailPage() {
     setChargement(true)
     try {
       const m = await obtenirMatiere(matiereId)
-      const [c, n, s] = await Promise.all([obtenirCouloir(m.couloirId), listerNotionsParMatiere(matiereId), listerSeancesParMatiere(matiereId)])
+      const [c, n, s, d, cd] = await Promise.all([
+        obtenirCouloir(m.couloirId),
+        listerNotionsParMatiere(matiereId),
+        listerSeancesParMatiere(matiereId),
+        listerDocumentsMatiere(matiereId),
+        listerNotionsCandidates(matiereId),
+      ])
       setMatiere(m)
       setCouloir(c)
       setNotions(n)
       setSeances(s)
+      setDocuments(d)
+      const enAttente = cd.filter((candidate) => candidate.statut === 'EN_ATTENTE')
+      setCandidates(enAttente)
+      setCandidatsEdites((prev) => {
+        const next: Record<string, { terme: string; definition: string }> = {}
+        enAttente.forEach((candidate) => {
+          next[candidate.id] = prev[candidate.id] ?? { terme: candidate.terme, definition: candidate.definition }
+        })
+        return next
+      })
     } finally {
       setChargement(false)
     }
@@ -66,6 +98,46 @@ export function MatiereDetailPage() {
       navigate(`/seances/${seance.id}`)
     } catch {
       setErreur('Impossible de creer la seance.')
+    }
+  }
+
+  async function televerserFiche(e: React.ChangeEvent<HTMLInputElement>) {
+    const fichier = e.target.files?.[0]
+    e.target.value = ''
+    if (!matiereId || !fichier) return
+    setErreur(null)
+    setTeleversementEnCours(true)
+    try {
+      await televerserDocumentMatiere(matiereId, fichier)
+      await rafraichir()
+    } catch {
+      setErreur('Impossible de televerser la fiche.')
+    } finally {
+      setTeleversementEnCours(false)
+    }
+  }
+
+  async function validerCandidate(candidate: NotionCandidate) {
+    if (!matiereId) return
+    const edite = candidatsEdites[candidate.id] ?? { terme: candidate.terme, definition: candidate.definition }
+    if (!edite.terme.trim() || !edite.definition.trim()) return
+    setErreur(null)
+    try {
+      await validerNotionCandidate(matiereId, candidate.id, edite.terme.trim(), edite.definition.trim())
+      await rafraichir()
+    } catch {
+      setErreur('Impossible de valider la notion proposee.')
+    }
+  }
+
+  async function rejeterCandidate(candidate: NotionCandidate) {
+    if (!matiereId) return
+    setErreur(null)
+    try {
+      await rejeterNotionCandidate(matiereId, candidate.id)
+      await rafraichir()
+    } catch {
+      setErreur('Impossible de rejeter la proposition.')
     }
   }
 
@@ -163,6 +235,101 @@ export function MatiereDetailPage() {
           </ul>
         </div>
       </div>
+
+      {estProprietaire && (
+        <div className="mt-8 border-t pt-7" style={{ borderColor: 'var(--color-border-soft)' }}>
+          <h2 className="text-sm font-bold">Contenu documentaire</h2>
+          <p className="mt-1 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+            Televersez une fiche de cours, d&apos;exercices ou d&apos;epreuve (PDF ou photo) : des notions candidates
+            en sont extraites automatiquement, a valider ou rejeter ci-dessous avant qu&apos;elles n&apos;entrent
+            dans le suivi de maitrise des etudiants.
+          </p>
+
+          <div className="mt-3 flex items-center gap-3">
+            <label
+              className="cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+              style={{ background: 'var(--color-brand)', opacity: televersementEnCours ? 0.6 : 1 }}
+            >
+              {televersementEnCours ? 'Televersement...' : 'Televerser une fiche'}
+              <input
+                type="file"
+                accept=".pdf,image/*"
+                onChange={televerserFiche}
+                disabled={televersementEnCours}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          <ul className="mt-3 flex flex-col gap-2">
+            {documents.map((document) => (
+              <li
+                key={document.id}
+                className="flex items-center justify-between rounded-lg border bg-white px-3.5 py-2 text-sm"
+                style={{ borderColor: 'var(--color-border-soft)' }}
+              >
+                <span>{document.nomFichier}</span>
+                <span className="text-xs" style={{ color: 'var(--color-ink-muted)' }}>{document.statut}</span>
+              </li>
+            ))}
+            {documents.length === 0 && (
+              <li className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucune fiche televersee pour le moment.</li>
+            )}
+          </ul>
+
+          <h3 className="mt-6 text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-muted)' }}>
+            Notions proposees
+          </h3>
+          <ul className="mt-3 flex flex-col gap-3">
+            {candidates.map((candidate) => {
+              const edite = candidatsEdites[candidate.id] ?? { terme: candidate.terme, definition: candidate.definition }
+              return (
+                <li
+                  key={candidate.id}
+                  className="flex flex-col gap-2 rounded-lg border bg-white px-3.5 py-3 text-sm"
+                  style={{ borderColor: 'var(--color-border-soft)' }}
+                >
+                  <input
+                    type="text"
+                    value={edite.terme}
+                    onChange={(e) => setCandidatsEdites((prev) => ({ ...prev, [candidate.id]: { ...edite, terme: e.target.value } }))}
+                    className="rounded-lg border px-3 py-2 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  />
+                  <textarea
+                    value={edite.definition}
+                    onChange={(e) => setCandidatsEdites((prev) => ({ ...prev, [candidate.id]: { ...edite, definition: e.target.value } }))}
+                    rows={2}
+                    className="rounded-lg border px-3 py-2 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void validerCandidate(candidate)}
+                      className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+                      style={{ background: 'var(--color-brand)' }}
+                    >
+                      Valider
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void rejeterCandidate(candidate)}
+                      className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold"
+                      style={{ borderColor: 'var(--color-border-soft)' }}
+                    >
+                      Rejeter
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+            {candidates.length === 0 && (
+              <li className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucune notion proposee pour le moment.</li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

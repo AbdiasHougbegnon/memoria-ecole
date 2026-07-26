@@ -186,4 +186,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererClasseIntrouvable() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.document.DocumentMatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererDocumentMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.notion.NotionCandidateNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererNotionCandidateIntrouvable() {
+    }
 }

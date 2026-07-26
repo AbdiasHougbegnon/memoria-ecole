@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -462,6 +462,45 @@ export async function creerNotion(matiereId: string, terme: string, definition: 
 
 export async function listerNotionsParMatiere(matiereId: string): Promise<Notion[]> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/notions`))
+  return reponse.json()
+}
+
+// --- Contenu pilote par documents (phase 18 : fiche televersee -> notions candidates -> validation enseignant) ---
+
+export async function televerserDocumentMatiere(matiereId: string, fichier: File): Promise<DocumentMatiere> {
+  const corps = new FormData()
+  corps.append('fichier', fichier)
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/matieres/${matiereId}/documents`, { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
+export async function listerDocumentsMatiere(matiereId: string): Promise<DocumentMatiere[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/documents`))
+  return reponse.json()
+}
+
+export async function listerNotionsCandidates(matiereId: string): Promise<NotionCandidate[]> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/notions-candidates`))
+  return reponse.json()
+}
+
+export async function validerNotionCandidate(matiereId: string, candidateId: string, terme: string, definition: string): Promise<Notion> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/matieres/${matiereId}/notions-candidates/${candidateId}/valider`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ terme, definition }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function rejeterNotionCandidate(matiereId: string, candidateId: string): Promise<NotionCandidate> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/matieres/${matiereId}/notions-candidates/${candidateId}/rejeter`, { method: 'POST' }),
+  )
   return reponse.json()
 }
 

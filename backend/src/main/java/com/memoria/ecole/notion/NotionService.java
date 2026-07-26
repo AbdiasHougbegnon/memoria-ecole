@@ -39,6 +39,17 @@ public class NotionService {
         return notionRepository.save(new Notion(matiereId, terme, definition, ordre));
     }
 
+    // Chemin de creation issu de la validation d'une NotionCandidate (phase
+    // 18) : meme verification de propriete que creerNotion, avec en plus la
+    // tracabilite vers le DocumentMatiere source.
+    public Notion creerNotionValidee(
+            UUID matiereId, String terme, String definition, int ordre, UUID documentSourceId, UUID utilisateurId
+    ) {
+        Matiere matiere = matiereService.obtenirMatiere(matiereId);
+        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        return notionRepository.save(new Notion(matiereId, terme, definition, ordre, documentSourceId));
+    }
+
     public Notion obtenirNotion(UUID id) {
         return notionRepository.findById(id)
                 .orElseThrow(() -> new NotionNotFoundException(id));

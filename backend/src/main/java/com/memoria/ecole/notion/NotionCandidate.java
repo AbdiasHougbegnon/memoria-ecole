@@ -2,22 +2,27 @@ package com.memoria.ecole.notion;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
 
-// Entite de premier ordre (contrairement a NotionCours, un @Embeddable sans
-// id ni suivi de maitrise, cf. ecole.resumecours) : une Notion appartient a
-// une Matiere et peut etre suivie individuellement par etudiant via
-// MaitriseNotion, et reutilisee par plusieurs Seances (SeanceNotion).
+// Proposition de Notion extraite par IA a partir d'un DocumentMatiere,
+// jamais injectee directement dans le suivi de maitrise reel des etudiants :
+// une extraction IA peut halluciner, la validation enseignant (transformation
+// en vraie Notion via NotionService.creerNotionValidee) est obligatoire.
 @Entity
-@Table(name = "notions")
-public class Notion {
+@Table(name = "notions_candidates")
+public class NotionCandidate {
 
     @Id
     private UUID id;
+
+    @Column(name = "document_matiere_id", nullable = false)
+    private UUID documentMatiereId;
 
     @Column(name = "matiere_id", nullable = false)
     private UUID matiereId;
@@ -28,39 +33,41 @@ public class Notion {
     @Column(columnDefinition = "text", nullable = false)
     private String definition;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private int ordre;
+    private StatutNotionCandidate statut;
 
     @Column(name = "date_creation", nullable = false)
     private Instant dateCreation;
 
-    // Nullable : renseigne uniquement pour une Notion issue de la validation
-    // d'une NotionCandidate (phase 18, tracabilite IA -> document source
-    // exigee par la doctrine IA du projet) ; null pour toute creation
-    // manuelle via le constructeur a 4 arguments, inchange.
-    @Column(name = "document_source_id")
-    private UUID documentSourceId;
-
-    protected Notion() {
+    protected NotionCandidate() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
-    public Notion(UUID matiereId, String terme, String definition, int ordre) {
+    public NotionCandidate(UUID documentMatiereId, UUID matiereId, String terme, String definition) {
         this.id = UUID.randomUUID();
+        this.documentMatiereId = documentMatiereId;
         this.matiereId = matiereId;
         this.terme = terme;
         this.definition = definition;
-        this.ordre = ordre;
+        this.statut = StatutNotionCandidate.EN_ATTENTE;
         this.dateCreation = Instant.now();
     }
 
-    public Notion(UUID matiereId, String terme, String definition, int ordre, UUID documentSourceId) {
-        this(matiereId, terme, definition, ordre);
-        this.documentSourceId = documentSourceId;
+    public void marquerValidee() {
+        this.statut = StatutNotionCandidate.VALIDEE;
+    }
+
+    public void marquerRejetee() {
+        this.statut = StatutNotionCandidate.REJETEE;
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getDocumentMatiereId() {
+        return documentMatiereId;
     }
 
     public UUID getMatiereId() {
@@ -75,15 +82,11 @@ public class Notion {
         return definition;
     }
 
-    public int getOrdre() {
-        return ordre;
+    public StatutNotionCandidate getStatut() {
+        return statut;
     }
 
     public Instant getDateCreation() {
         return dateCreation;
-    }
-
-    public UUID getDocumentSourceId() {
-        return documentSourceId;
     }
 }
