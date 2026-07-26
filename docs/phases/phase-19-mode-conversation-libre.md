@@ -168,14 +168,28 @@ au lieu d'une liste vide silencieuse).
 
 ## 5. Comment on a vérifié
 
-Vérification statique uniquement pour cet incrément : `mvn -B verify` (build + tests + gates de
-qualité) et `npm run build && npm run lint` côté frontend, tous deux propres. **Pas** de
-vérification en conditions réelles contre le backend/Postgres partagé ni de test Playwright
-end-to-end depuis ce worktree : un autre agent travaille en parallèle sur
-`feature/contenu-documentaire` contre la même base, et le script de backfill SQL (§2.4) n'a pas
-encore été exécuté en base. Cette vérification réelle (démarrage LIBRE via l'UI, question orale
-suivie d'une réponse du tuteur, `arreterTutorat` qui termine bien la conversation) sera faite
-par l'orchestrateur après fusion des deux branches et exécution du backfill.
+Fait par l'orchestrateur après fusion des deux branches. Script de backfill du §2.4 exécuté sur
+la base Postgres partagée : 16 lignes existantes migrées (10 `EXPLICATION`, 6 `EXERCICE`),
+colonne `mode_exercice` supprimée ensuite. **Un deuxième problème réel a été découvert au
+redémarrage du backend**, distinct du backfill anticipé : `ALTER TABLE seances_tutorat ADD
+COLUMN mode ... NOT NULL` a échoué au démarrage (`column "mode" ... contains null values` — la
+table avait déjà des lignes), la colonne n'a donc jamais été créée par Hibernate. Corrigé en
+trois temps manuels : ajout de la colonne sans contrainte, backfill, puis ajout de la contrainte
+`NOT NULL` + `CHECK` une fois toutes les valeurs renseignées.
+
+Démarrage d'une conversation LIBRE via `POST /seances/{id}/tutorat` (`{"mode":"LIBRE"}`) :
+confirmé aucun premier tour généré, `notionCouranteId`/`niveauMaitrise` à `null`. Une vraie
+question orale de test ("Est-ce que tu peux m'expliquer la différence entre une pile et une
+file ?") synthétisée via Azure TTS puis soumise à `POST /tutorat/{id}/reponse` : Azure Speech
+l'a transcrite exactement, et Azure OpenAI (vrai appel, pas mocké) a répondu de façon
+pertinente et conversationnelle sur la matière ("Algorithmique"), en proposant de continuer —
+exactement le comportement visé. Second problème réel découvert à cette étape : `notion_id` sur
+`tours_dialogue_tutorat` gardait sa contrainte `NOT NULL` héritée malgré le retrait de
+`nullable = false` côté entité (Hibernate `ddl-auto=update` ajoute des colonnes/contraintes
+mais n'en retire jamais) — corrigé avec `ALTER TABLE tours_dialogue_tutorat ALTER COLUMN
+notion_id DROP NOT NULL`. Vérification visuelle ensuite via Playwright sur `SeanceDetailPage` :
+bouton "Discussion libre" actif même sans aucune notion cochée, "Démarrer le tutorat" bien
+désactivé dans ce cas — capture d'écran à l'appui.
 
 ## 6. Limites connues, assumées, pas corrigées ici
 
@@ -184,11 +198,10 @@ par l'orchestrateur après fusion des deux branches et exécution du backfill.
   volontaire pour cet incrément (dépendance explicitement écartée avec la phase 18, développée
   en parallèle) : une intégration plus riche viendra dans un incrément séparé après fusion des
   deux branches.
-- **Backfill SQL manuel non exécuté** — la colonne `mode` reste `NULL` pour toutes les
-  `seances_tutorat` créées avant cet incrément tant que le script du §2.4 n'a pas tourné en
-  base. `GouvernanceDonneesService` s'en protège (export nul-safe), mais toute autre lecture
-  future de `SeanceTutorat.getMode()` sur d'anciennes lignes devra faire de même ou attendre le
-  backfill.
+- **Backfill exécuté** — le script du §2.4 a tourné en base au moment de la fusion (16 lignes
+  migrées), `mode_exercice` a été supprimée. `GouvernanceDonneesService` garde son export
+  nul-safe par prudence (une base restaurée depuis un ancien snapshot pourrait encore avoir des
+  lignes non migrées).
 - **Pas de changement de mode en cours de conversation** — comme pour EXPLICATION/EXERCICE, le
   mode est fixé au démarrage de la `SeanceTutorat`, non modifiable ensuite.
 - **Pas de fin automatique en LIBRE** — cohérent avec l'esprit "conversation libre", mais
@@ -199,8 +212,6 @@ par l'orchestrateur après fusion des deux branches et exécution du backfill.
 ## 7. Pour reprendre seul
 
 - Code de référence exact : `git checkout phase-19-mode-conversation-libre`
-- **Avant tout déploiement** : exécuter le script de backfill du §2.4 sur la base Postgres
-  partagée.
 - Épopée tuteur vocal terminée par cet incrément (17a → 17b → 18 en parallèle → 19). Prochaine
   étape naturelle, hors scope ici : brancher le contexte documentaire de la phase 18 (fiches de
   cours, notions candidates validées) dans `ContexteTour` du mode LIBRE, une fois les deux

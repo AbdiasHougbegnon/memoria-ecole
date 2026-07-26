@@ -107,8 +107,8 @@
       <span class="fact"><strong>276</strong>&nbsp;tests backend, tous verts (+18)</span>
       <span class="fact">validation humaine obligatoire, aucune injection directe en base</span>
       <span class="fact">traçabilité IA -&gt; document source (<code>documentSourceId</code>)</span>
-      <span class="fact pill warn">vérification en conditions réelles : pas encore faite</span>
-      <span class="fact">branche <code>feature/contenu-documentaire</code></span>
+      <span class="fact">vérifié en conditions réelles (PDF réel + Azure Document Intelligence + Azure OpenAI)</span>
+      <span class="fact">branche <code>feature/contenu-documentaire</code>, fusionnée dans <code>master</code></span>
     </div>
   </header>
 
@@ -187,7 +187,11 @@ POST .../notions-candidates/{candidateId}/rejeter</code></pre>
       <div class="card">
         <div class="verif-line"><span class="route">mvn -B verify -- 276 tests (+18), 0 finding SpotBugs/FindSecBugs, couverture JaCoCo maintenue</span><span class="ok-txt">OK</span></div>
         <div class="verif-line"><span class="route">npm run build + npm run lint</span><span class="ok-txt">OK, propres</span></div>
-        <div class="verif-line"><span class="route">Upload réel d'une fiche PDF/photo + extraction Azure Document Intelligence + génération Azure OpenAI + validation/rejet via l'UI</span><span class="pending-txt">PAS ENCORE FAIT</span></div>
+        <div class="verif-line"><span class="route">Upload reel (curl) d'un PDF genere avec un vrai contenu de cours</span><span class="ok-txt">extraction Azure Document Intelligence exacte</span></div>
+        <div class="verif-line"><span class="route">Generation de candidats (Azure OpenAI, vrai appel)</span><span class="ok-txt">6 candidats pertinents (liste chainee, noeud, pile, LIFO, file, FIFO)</span></div>
+        <div class="verif-line"><span class="route">Validation d'un candidat (terme/definition edites)</span><span class="ok-txt">vraie Notion creee avec le texte edite</span></div>
+        <div class="verif-line"><span class="route">Rejet d'un candidat</span><span class="ok-txt">aucune Notion creee, confirme</span></div>
+        <div class="verif-line"><span class="route">Playwright : MatiereDetailPage (upload, statut, candidats)</span><span class="ok-txt">rendu correct, capture a l'appui</span></div>
       </div>
       <p class="lead">Développement fait dans un worktree isolé, en parallèle d'une autre sous-phase (19, mode conversation libre) développée sur une branche séparée par une autre IA. Consigne explicite reçue : ne pas lancer le backend de dev réel (port 8080/Postgres) pour éviter tout conflit. La vérification en conditions réelles sera faite par l'orchestrateur après fusion de cette branche avec <code>master</code> (et avec la branche 19).</p>
     </section>

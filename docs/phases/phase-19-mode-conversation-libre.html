@@ -107,8 +107,8 @@
       <span class="fact"><strong>264</strong>&nbsp;tests backend, tous verts (+2)</span>
       <span class="fact">3e mode dans le flux existant, pas un nouveau service</span>
       <span class="fact">contrat JSON allégé, aucune évaluation forcée</span>
-      <span class="fact">backfill SQL manuel requis avant déploiement</span>
-      <span class="fact">tag <code>phase-19-mode-conversation-libre</code></span>
+      <span class="fact">backfill exécuté, 16 lignes migrées</span>
+      <span class="fact">vérifié en conditions réelles (vraie question orale, vrai Azure OpenAI)</span>
     </div>
   </header>
 
@@ -191,7 +191,11 @@ soumettreReponse(...)                                       -&gt; soumettreRepon
       <div class="card">
         <div class="verif-line"><span class="route">mvn -B verify -- 264 tests (+2), 0 finding SpotBugs/FindSecBugs, couverture maintenue</span><span class="ok-txt">OK</span></div>
         <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
-        <div class="verif-line"><span class="route">Backend reel / Postgres partage / Playwright</span><span class="warn-txt">non fait ici -- autre agent en parallele, backfill non execute</span></div>
+        <div class="verif-line"><span class="route">Backfill SQL (16 lignes) puis redemarrage backend</span><span class="warn-txt">colonne "mode" NOT NULL a d'abord echoue, corrigee manuellement</span></div>
+        <div class="verif-line"><span class="route">Demarrage LIBRE (POST /seances/{id}/tutorat)</span><span class="ok-txt">aucun premier tour, notion/maitrise a null</span></div>
+        <div class="verif-line"><span class="route">Vraie question orale (Azure TTS) soumise au tuteur</span><span class="ok-txt">transcrite exactement, reponse Azure OpenAI pertinente</span></div>
+        <div class="verif-line"><span class="route">Contrainte notion_id heritee (NOT NULL) sur tours_dialogue_tutorat</span><span class="warn-txt">decouverte et corrigee (DROP NOT NULL)</span></div>
+        <div class="verif-line"><span class="route">Playwright : bouton "Discussion libre" sur SeanceDetailPage</span><span class="ok-txt">actif sans notion, capture a l'appui</span></div>
       </div>
       <p class="lead">Vérification en conditions réelles laissée à l'orchestrateur après fusion des deux branches et exécution du backfill SQL (§7).</p>
     </section>

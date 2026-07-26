@@ -143,14 +143,24 @@ SpotBugs/FindSecBugs. `npm run build` + `npm run lint` : propres.
 
 ## 5. Comment on a vérifié en conditions réelles
 
-**Pas encore fait.** Cette brique a été développée et testée unitairement dans un worktree
-isolé, en parallèle d'une autre sous-phase (19, mode conversation libre) développée sur une
-branche séparée par une autre IA. Consigne explicite reçue : ne pas lancer le backend de dev
-réel (port 8080/Postgres) pour éviter tout conflit avec ce travail parallèle. La vérification en
-conditions réelles (upload d'une vraie fiche PDF/photo, extraction Azure Document Intelligence,
-génération de candidats via Azure OpenAI, validation/rejet via l'UI, confirmation en base que
-seule une candidate validée crée une `Notion` réelle) sera faite par l'orchestrateur après
-fusion de cette branche avec `master` (et avec la branche 19).
+Fait par l'orchestrateur après fusion de `feature/contenu-documentaire` et
+`feature/mode-conversation-libre` dans `master`. Un vrai PDF généré à la volée (fiche sur les
+listes chaînées/piles/files) uploadé sur la matière "Algorithmique" via `curl` multipart :
+extraction Azure Document Intelligence réussie (texte exact retrouvé dans `texteExtrait`),
+génération Azure OpenAI de 6 candidats pertinents (liste chaînée, nœud, pile, LIFO, file, FIFO).
+Validation d'un candidat avec terme/définition édités par l'enseignant : confirmé qu'une vraie
+`Notion` apparaît dans `GET /matieres/{id}/notions` avec exactement le texte édité (pas la
+proposition IA brute). Rejet d'un autre candidat : confirmé qu'aucune `Notion` n'est créée.
+Vérification visuelle ensuite via Playwright sur `MatiereDetailPage` : upload, statut du
+document, candidats affichés avec champs éditables et boutons Valider/Rejeter — capture d'écran
+à l'appui.
+
+**Un problème réel découvert à cette étape, invisible aux tests Mockito** : sans rapport avec
+cette brique elle-même, la fusion avec la branche 19 a révélé que la colonne `notion_id` de
+`tours_dialogue_tutorat` gardait sa contrainte `NOT NULL` héritée malgré le retrait de
+`nullable = false` côté entité (`ddl-auto=update` ajoute des colonnes/contraintes mais n'en
+retire jamais) — voir `docs/phases/phase-19-mode-conversation-libre.md` §5 pour le détail, ce
+correctif concerne le mode LIBRE, pas le pipeline documentaire de cette fiche.
 
 ## 6. Limites connues, assumées, pas corrigées ici
 
