@@ -181,4 +181,9 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public void gererPasCreateurDeLaSession() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.couloir.ClasseIntrouvableException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererClasseIntrouvable() {
+    }
 }

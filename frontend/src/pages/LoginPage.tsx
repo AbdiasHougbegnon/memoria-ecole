@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { connecter, ErreurApi, inscrire } from '../api'
+import { connecter, ErreurApi, inscrire, inscrireEcole, obtenirOptionsInscriptionEcole } from '../api'
 import { enregistrerSession } from '../auth'
 import { IDENTITES_MODULE } from '../moduleIdentite'
-import type { ModuleMemoria } from '../types'
+import type { ModuleMemoria, OptionInscription } from '../types'
 
 function messageErreur(e: unknown, mode: 'connexion' | 'inscription'): string {
   if (e instanceof TypeError) {
@@ -12,6 +12,9 @@ function messageErreur(e: unknown, mode: 'connexion' | 'inscription'): string {
   if (e instanceof ErreurApi) {
     if (mode === 'connexion' && e.status === 401) {
       return 'Email ou mot de passe incorrect.'
+    }
+    if (mode === 'inscription' && e.status === 409 && e.message.includes('ecole/inscription')) {
+      return "Cette combinaison annee/filiere/specialite n'est pas encore disponible. Contacte ton etablissement."
     }
     if (mode === 'inscription' && e.status === 409) {
       return 'Cet email est deja utilise.'
@@ -47,8 +50,37 @@ function FormulaireConnexion({ module }: { module: ModuleMemoria }) {
   const [motDePasse, setMotDePasse] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
+  const [options, setOptions] = useState<OptionInscription[] | null>(null)
+  const [anneeAcademique, setAnneeAcademique] = useState('')
+  const [filiere, setFiliere] = useState('')
+  const [specialite, setSpecialite] = useState('')
   const navigate = useNavigate()
   const identite = IDENTITES_MODULE[module]
+  const inscriptionEcole = module === 'ECOLE' && mode === 'inscription'
+
+  // Le fichier importe par l'etablissement (voir docs/phases/phase-17a-import-matieres.md)
+  // peuple ces options -- recuperees uniquement quand elles deviennent utiles,
+  // pas a chaque chargement de l'ecran de connexion.
+  useEffect(() => {
+    if (inscriptionEcole && options === null) {
+      obtenirOptionsInscriptionEcole().then(setOptions).catch(() => setOptions([]))
+    }
+  }, [inscriptionEcole, options])
+
+  const annees = useMemo(
+    () => [...new Set((options ?? []).map((o) => o.anneeAcademique))],
+    [options],
+  )
+  const filieres = useMemo(
+    () => [...new Set((options ?? []).filter((o) => o.anneeAcademique === anneeAcademique).map((o) => o.filiere))],
+    [options, anneeAcademique],
+  )
+  const specialites = useMemo(
+    () => [...new Set((options ?? [])
+      .filter((o) => o.anneeAcademique === anneeAcademique && o.filiere === filiere)
+      .map((o) => o.specialite ?? ''))],
+    [options, anneeAcademique, filiere],
+  )
 
   async function soumettre(e: React.FormEvent) {
     e.preventDefault()
@@ -61,7 +93,9 @@ function FormulaireConnexion({ module }: { module: ModuleMemoria }) {
       // "mauvais" ecran -- il atterrit simplement dans son propre module.
       const auth = mode === 'connexion'
         ? await connecter(email, motDePasse)
-        : await inscrire(email, motDePasse, module)
+        : inscriptionEcole
+          ? await inscrireEcole(email, motDePasse, anneeAcademique, filiere, specialite)
+          : await inscrire(email, motDePasse, module)
       enregistrerSession(auth)
       navigate('/')
     } catch (e) {
@@ -141,10 +175,53 @@ function FormulaireConnexion({ module }: { module: ModuleMemoria }) {
               className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
               style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
             />
+            {inscriptionEcole && (
+              <>
+                <select
+                  required
+                  value={anneeAcademique}
+                  onChange={(e) => { setAnneeAcademique(e.target.value); setFiliere(''); setSpecialite('') }}
+                  className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+                  style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                >
+                  <option value="" disabled>Annee academique</option>
+                  {annees.map((annee) => <option key={annee} value={annee}>{annee}</option>)}
+                </select>
+                {anneeAcademique && (
+                  <select
+                    required
+                    value={filiere}
+                    onChange={(e) => { setFiliere(e.target.value); setSpecialite('') }}
+                    className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  >
+                    <option value="" disabled>Filiere</option>
+                    {filieres.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                )}
+                {filiere && specialites.some((s) => s !== '') && (
+                  <select
+                    required
+                    value={specialite}
+                    onChange={(e) => setSpecialite(e.target.value)}
+                    className="rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  >
+                    <option value="" disabled>Specialite</option>
+                    {specialites.map((s) => <option key={s} value={s}>{s || 'Aucune specialite'}</option>)}
+                  </select>
+                )}
+                {options !== null && annees.length === 0 && (
+                  <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>
+                    Aucune classe disponible pour le moment -- contacte ton etablissement.
+                  </p>
+                )}
+              </>
+            )}
             {erreur && <p className="text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
             <button
               type="submit"
-              disabled={enCours}
+              disabled={enCours || (inscriptionEcole && (!anneeAcademique || !filiere))}
               className="rounded-lg py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
               style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
             >

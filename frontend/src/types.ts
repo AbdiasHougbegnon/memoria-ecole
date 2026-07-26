@@ -184,6 +184,12 @@ export interface RapportImportMatieres {
   erreurs: ErreurImport[]
 }
 
+export interface OptionInscription {
+  anneeAcademique: string
+  filiere: string
+  specialite: string | null
+}
+
 export interface MembreCouloir {
   utilisateurId: string
   email: string

@@ -67,6 +67,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/sessions/*/documents").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sessions/*/documents").permitAll()
+                        // Inscription Ecole (phase-17b) : un futur etudiant n'a pas encore
+                        // de compte, donc pas de JWT -- ces deux endpoints doivent rester
+                        // accessibles avant authentification, comme /api/v1/auth/**.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ecole/options-inscription").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ecole/inscription").permitAll()
 
                         // Entreprise uniquement -- le moteur commun (sessions, couloirs,
                         // recherche, fils de memoire, transcriptions, resumes generiques)
