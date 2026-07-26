@@ -231,6 +231,27 @@ export interface Notion {
   dateCreation: string
 }
 
+export interface DocumentMatiere {
+  id: string
+  matiereId: string
+  type: TypeDocument
+  nomFichier: string
+  statut: StatutDocument
+  dateCreation: string
+}
+
+export type StatutNotionCandidate = 'EN_ATTENTE' | 'VALIDEE' | 'REJETEE'
+
+export interface NotionCandidate {
+  id: string
+  documentMatiereId: string
+  matiereId: string
+  terme: string
+  definition: string
+  statut: StatutNotionCandidate
+  dateCreation: string
+}
+
 export type NiveauMaitrise = 'NON_ABORDEE' | 'EN_COURS' | 'MAITRISEE'
 
 export interface Seance {

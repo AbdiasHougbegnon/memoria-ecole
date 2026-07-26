@@ -181,4 +181,14 @@ public class GestionnaireExceptionsApi {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public void gererPasCreateurDeLaSession() {
     }
+
+    @ExceptionHandler(com.memoria.ecole.document.DocumentMatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererDocumentMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.notion.NotionCandidateNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererNotionCandidateIntrouvable() {
+    }
 }
