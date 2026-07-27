@@ -104,7 +104,7 @@
     <h1 class="title">Mode conversation libre</h1>
     <p class="dek">L'étudiant allume le tuteur et lui pose directement ses questions, sans que le tuteur n'initie — en coexistence avec le mode guidé par notion existant. Contexte minimal pour cet incrément : le nom de la matière.</p>
     <div class="factrow">
-      <span class="fact"><strong>264</strong>&nbsp;tests backend, tous verts (+2)</span>
+      <span class="fact"><strong>283</strong>&nbsp;tests backend, tous verts</span>
       <span class="fact">3e mode dans le flux existant, pas un nouveau service</span>
       <span class="fact">contrat JSON allégé, aucune évaluation forcée</span>
       <span class="fact">backfill exécuté, 16 lignes migrées</span>
@@ -196,6 +196,7 @@ soumettreReponse(...)                                       -&gt; soumettreRepon
         <div class="verif-line"><span class="route">Vraie question orale (Azure TTS) soumise au tuteur</span><span class="ok-txt">transcrite exactement, reponse Azure OpenAI pertinente</span></div>
         <div class="verif-line"><span class="route">Contrainte notion_id heritee (NOT NULL) sur tours_dialogue_tutorat</span><span class="warn-txt">decouverte et corrigee (DROP NOT NULL)</span></div>
         <div class="verif-line"><span class="route">Playwright : bouton "Discussion libre" sur SeanceDetailPage</span><span class="ok-txt">actif sans notion, capture a l'appui</span></div>
+        <div class="verif-line"><span class="route">Contexte documentaire (phase 18) branche : question generique posee au tuteur</span><span class="ok-txt">reponse ancree sur la notion validee "Liste chainee", pas generique</span></div>
       </div>
       <p class="lead">Vérification en conditions réelles laissée à l'orchestrateur après fusion des deux branches et exécution du backfill SQL (§7).</p>
     </section>
@@ -203,7 +204,7 @@ soumettreReponse(...)                                       -&gt; soumettreRepon
     <section id="limites">
       <h2><span class="num">§</span> Limites connues, assumées</h2>
       <ul class="plain">
-        <li><strong>Contexte limité au nom de la matière</strong> — aucun document de cours ni fil de mémoire injecté en mode LIBRE pour cet incrément ; prévu après fusion avec la phase 18 (contenu piloté par documents, développée en parallèle).</li>
+        <li><strong>Contexte enrichi par les notions validées</strong> (mis à jour) — le mode LIBRE injecte désormais les notions validées de la matière, pas seulement son nom ; confirmé en conditions réelles. Reste hors-scope : texte brut des documents ou fil de mémoire.</li>
         <li><strong>Backfill SQL manuel non exécuté</strong> — la colonne <code>mode</code> reste <code>NULL</code> pour les <code>seances_tutorat</code> antérieures à cet incrément tant que le script du §7 n'a pas tourné en base.</li>
         <li><strong>Pas de changement de mode en cours de conversation</strong> — fixé au démarrage, comme pour EXPLICATION/EXERCICE.</li>
         <li><strong>Pas de fin automatique en LIBRE</strong> — cohérent avec l'esprit du mode, mais une séance oubliée reste <code>EN_COURS</code> tant que l'étudiant ne clique pas sur "Terminer".</li>

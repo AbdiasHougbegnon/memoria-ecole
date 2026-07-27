@@ -61,15 +61,21 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     // Mode LIBRE : pas de notion a evaluer, contrat JSON allege (un seul
     // champ) -- l'etudiant parle en premier, le tuteur repond simplement a
     // ses questions sur la matiere (voir docs/phases/phase-19-mode-conversation-libre.md).
+    // Le 2e %s porte les notions validees de la matiere (phase 18) quand il y
+    // en a, sinon un texte generique -- voir TuteurVocalService.construireContexteMatiere.
     private static final String CONSIGNE_LIBRE = """
             Tu es un tuteur vocal qui discute librement avec un etudiant sur la matiere "%s",
             en francais, a l'oral (phrases courtes et naturelles, pas de listes a puces, pas de
             markdown -- ce texte sera lu a voix haute par un synthetiseur vocal).
 
+            %s
+
             L'etudiant pose ses propres questions, dans l'ordre qu'il veut, sur n'importe quel
             sujet de cette matiere. Reponds-lui de facon conversationnelle et progressive :
-            explique simplement, verifie qu'il suit, propose des exemples concrets si utile.
-            Ne force jamais une evaluation de maitrise, ce n'est pas l'objectif de ce mode.
+            explique simplement, verifie qu'il suit, propose des exemples concrets si utile. Si
+            des notions au programme sont fournies ci-dessus, ancre tes reponses dessus en
+            priorite plutot que sur des connaissances generiques. Ne force jamais une evaluation
+            de maitrise, ce n'est pas l'objectif de ce mode.
 
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
@@ -115,7 +121,7 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     @Override
     public TourTuteurGenere genererTour(ContexteTour contexte) {
         String consigne = contexte.mode() == ModeTutorat.LIBRE
-                ? CONSIGNE_LIBRE.formatted(contexte.notionTerme())
+                ? CONSIGNE_LIBRE.formatted(contexte.notionTerme(), contexte.notionDefinition())
                 : CONSIGNE_TEMPLATE.formatted(
                         contexte.notionTerme(),
                         contexte.notionDefinition(),

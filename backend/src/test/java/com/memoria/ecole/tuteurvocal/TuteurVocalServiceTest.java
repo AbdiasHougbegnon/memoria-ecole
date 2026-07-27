@@ -318,13 +318,46 @@ class TuteurVocalServiceTest {
         assertThat(resultat.texteTuteur()).isEqualTo("Une integrale, c'est...");
         org.mockito.Mockito.verify(tourDialogueTutoratRepository, org.mockito.Mockito.never())
                 .findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(any(), any());
-        org.mockito.Mockito.verifyNoInteractions(notionService);
+        org.mockito.Mockito.verify(notionService, org.mockito.Mockito.never())
+                .mettreAJourMaitrise(any(), any(), any());
 
         var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
         org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
         assertThat(contexteCapture.getValue().notionTerme()).isEqualTo("Mathematiques");
         assertThat(contexteCapture.getValue().mode()).isEqualTo(ModeTutorat.LIBRE);
         assertThat(contexteCapture.getValue().historique()).hasSize(1);
+    }
+
+    // Phase 18 -> 19 : les notions validees par l'enseignant (issues des
+    // fiches uploadees) nourrissent le mode LIBRE, jamais le texte brut d'un
+    // document -- voir TuteurVocalService.construireContexteMatiere.
+    @Test
+    void soumettreReponse_en_mode_libre_injecte_les_notions_validees_de_la_matiere() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        UUID matiereId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", matiereId, UUID.randomUUID());
+        Matiere matiere = new Matiere("Algorithmique", UUID.randomUUID(), UUID.randomUUID());
+        Notion notion = new Notion(matiere.getId(), "Pile", "Structure LIFO", 0);
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("C'est quoi une pile ?", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdOrderByDateCreationAsc(seanceTutorat.getId()))
+                .thenReturn(List.of());
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(seanceService.obtenirSeance(seanceId)).thenReturn(seance);
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(notionService.listerNotionsParMatiere(matiere.getId())).thenReturn(List.of(notion));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Une pile fonctionne en LIFO...", null, false)
+        );
+
+        tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().notionDefinition()).contains("Pile").contains("Structure LIFO");
     }
 
     @Test

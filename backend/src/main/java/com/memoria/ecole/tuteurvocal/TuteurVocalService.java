@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // Orchestration du dialogue tour par tour : STT (reutilise tel quel) -> IA
 // (evaluation de maitrise + prochaine repartie) -> mise a jour de la
@@ -28,8 +29,10 @@ import java.util.UUID;
 public class TuteurVocalService {
 
     // Tient lieu de "notionDefinition" en mode LIBRE, ou aucune notion n'est
-    // rattachee -- contexte minimal pour ce premier increment (nom de la
-    // matiere uniquement), voir docs/phases/phase-19-mode-conversation-libre.md.
+    // rattachee. Complete par les notions validees de la matiere quand il y
+    // en a (phase 18 : fiches -> candidats -> validation enseignant), sinon
+    // ce texte generique reste le seul contexte -- voir
+    // docs/phases/phase-19-mode-conversation-libre.md.
     private static final String DEFINITION_MODE_LIBRE =
             "Discussion libre sur cette matiere, reponds aux questions de l'etudiant en le guidant progressivement.";
 
@@ -205,7 +208,7 @@ public class TuteurVocalService {
         Matiere matiere = matiereService.obtenirMatiere(seance.getMatiereId());
 
         var contexte = new GenerateurTourTuteurPort.ContexteTour(
-                matiere.getNom(), DEFINITION_MODE_LIBRE, historique, texteEtudiant, ModeTutorat.LIBRE
+                matiere.getNom(), construireContexteMatiere(matiere.getId()), historique, texteEtudiant, ModeTutorat.LIBRE
         );
         GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
 
@@ -246,6 +249,22 @@ public class TuteurVocalService {
             throw new AccesTutoratRefuseException(seanceTutoratId, utilisateurId);
         }
         return seanceTutorat;
+    }
+
+    // Notions validees de la matiere (phase 18 : fiches -> candidats ->
+    // validation enseignant, seules des notions humainement confirmees
+    // alimentent le tuteur -- jamais le texte brut d'un document, coherent
+    // avec la doctrine de tracabilite/traabilite du projet). Se degrade vers
+    // le texte generique si la matiere n'a encore aucune notion.
+    private String construireContexteMatiere(UUID matiereId) {
+        List<Notion> notions = notionService.listerNotionsParMatiere(matiereId);
+        if (notions.isEmpty()) {
+            return DEFINITION_MODE_LIBRE;
+        }
+        String connaissances = notions.stream()
+                .map(notion -> "- " + notion.getTerme() + " : " + notion.getDefinition())
+                .collect(Collectors.joining("\n"));
+        return DEFINITION_MODE_LIBRE + "\n\nNotions au programme de cette matiere (appuie-toi dessus si pertinent) :\n" + connaissances;
     }
 
     private Optional<UUID> choisirProchaineNotion(List<Notion> notionsOrdonnees, UUID utilisateurId) {

@@ -160,8 +160,13 @@ au lieu d'une liste vide silencieuse).
   avec le générateur IA, aucun tour persisté).
 - `soumettreReponse_en_mode_libre_utilise_lhistorique_complet_et_najamais_evalue_de_maitrise` —
   vérifie l'usage de `findBySeanceTutoratIdOrderByDateCreationAsc` (pas la variante filtrée par
-  notion), zéro interaction avec `NotionService`, et le contexte transmis au générateur
+  notion), que `mettreAJourMaitrise` n'est jamais appelée, et le contexte transmis au générateur
   (`notionTerme` = nom de la matière, `mode` = `LIBRE`).
+
+**Mise à jour (branchement du contexte documentaire, après fusion avec la phase 18)** :
+`soumettreReponse_en_mode_libre_injecte_les_notions_validees_de_la_matiere` vérifie que
+`notionDefinition` contient bien les notions validées de la matière quand il y en a. 283/283
+tests backend au total désormais.
 
 `mvn -B verify` : `BUILD SUCCESS`, JaCoCo couverture maintenue, SpotBugs/FindSecBugs 0 finding.
 `npm run build` + `npm run lint` : propres.
@@ -191,13 +196,25 @@ notion_id DROP NOT NULL`. Vérification visuelle ensuite via Playwright sur `Sea
 bouton "Discussion libre" actif même sans aucune notion cochée, "Démarrer le tutorat" bien
 désactivé dans ce cas — capture d'écran à l'appui.
 
+**Mise à jour (branchement du contexte documentaire de la phase 18)** : nouvelle séance sur la
+matière "Algorithmique" (qui a déjà une notion validée "Liste chaînée" depuis la vérification de
+la phase 18), conversation LIBRE démarrée, question orale générique posée ("Peux-tu me rappeler
+ce qu'on a vu sur les structures de données dans ce cours ?", synthétisée via Azure TTS). Réponse
+réelle d'Azure OpenAI : *"On a surtout vu les listes chaînées : une structure linéaire où chaque
+nœud contient une valeur et un pointeur vers le suivant..."* — reprend quasiment mot pour mot la
+définition validée par l'enseignant plutôt qu'une explication générique, confirmant que le
+contexte documentaire est bien pris en compte.
+
 ## 6. Limites connues, assumées, pas corrigées ici
 
-- **Contexte limité au nom de la matière** — le tuteur ne connaît que le nom de la matière en
-  mode LIBRE, aucun document de cours ni fil de mémoire n'est injecté dans le prompt. C'est
-  volontaire pour cet incrément (dépendance explicitement écartée avec la phase 18, développée
-  en parallèle) : une intégration plus riche viendra dans un incrément séparé après fusion des
-  deux branches.
+- **Contexte enrichi par les notions validées** (mis à jour après fusion avec la phase 18) — le
+  mode LIBRE injecte désormais les notions validées par l'enseignant pour la matière
+  (`TuteurVocalService.construireContexteMatiere`), pas seulement son nom. Confirmé en
+  conditions réelles : une question générique ("qu'est-ce qu'on a vu sur les structures de
+  données ?") a produit une réponse ancrée sur la notion validée "Liste chaînée" plutôt qu'une
+  réponse générique. Reste volontairement hors-scope : injecter le texte brut des documents
+  (`DocumentMatiere.texteExtrait`) ou le fil de mémoire — seules des notions humainement
+  validées alimentent le tuteur, cohérent avec la doctrine de traçabilité du projet.
 - **Backfill exécuté** — le script du §2.4 a tourné en base au moment de la fusion (16 lignes
   migrées), `mode_exercice` a été supprimée. `GouvernanceDonneesService` garde son export
   nul-safe par prudence (une base restaurée depuis un ancien snapshot pourrait encore avoir des
@@ -211,8 +228,9 @@ désactivé dans ce cas — capture d'écran à l'appui.
 
 ## 7. Pour reprendre seul
 
-- Code de référence exact : `git checkout phase-19-mode-conversation-libre`
-- Épopée tuteur vocal terminée par cet incrément (17a → 17b → 18 en parallèle → 19). Prochaine
-  étape naturelle, hors scope ici : brancher le contexte documentaire de la phase 18 (fiches de
-  cours, notions candidates validées) dans `ContexteTour` du mode LIBRE, une fois les deux
-  branches fusionnées.
+- Code de référence exact : `git checkout phase-19-mode-conversation-libre` (état initial) ou
+  `master` (avec le branchement du contexte documentaire, voir §6 mise à jour).
+- Épopée tuteur vocal terminée (17a → 17b → 18 en parallèle → 19), y compris le fil laissé
+  ouvert (contexte documentaire de la phase 18 injecté dans le mode LIBRE). Direction possible
+  suivante, non demandée pour l'instant : injecter aussi le texte brut des documents ou le fil
+  de mémoire si les notions validées seules s'avèrent insuffisantes en usage réel.
