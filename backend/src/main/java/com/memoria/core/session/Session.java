@@ -43,6 +43,15 @@ public class Session {
     @Column(name = "createur_id")
     private UUID createurId;
 
+    // Nullable de fait pour les sessions creees avant l'introduction de ce
+    // champ (phase 21) -- pas de backfill retroactif, le consentement ne
+    // peut pas etre reconstitue apres coup. Renseigne uniquement via
+    // confirmerConsentementEnregistrement(), jamais au constructeur : c'est
+    // SessionService qui verifie le consentement AVANT de construire la
+    // session (meme doctrine que EmpreinteVocaleService.enregistrerConsentement).
+    @Column(name = "date_consentement_enregistrement")
+    private Instant dateConsentementEnregistrement;
+
     protected Session() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -86,6 +95,14 @@ public class Session {
 
     public UUID getCreateurId() {
         return createurId;
+    }
+
+    public Instant getDateConsentementEnregistrement() {
+        return dateConsentementEnregistrement;
+    }
+
+    public void confirmerConsentementEnregistrement() {
+        this.dateConsentementEnregistrement = Instant.now();
     }
 
     public void terminer() {

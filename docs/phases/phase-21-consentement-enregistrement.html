@@ -1,0 +1,219 @@
+<title>Memoria — Dossier technique : consentement à l'enregistrement</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Gouvernance des données (phase 21)</span>
+    <h1 class="title">Consentement explicite à l'enregistrement</h1>
+    <p class="dek">Dernier principe RGPD du master prompt encore marqué "différé" : une session ne peut plus démarrer sans que son créateur confirme avoir informé les participants qu'elle sera enregistrée.</p>
+    <div class="factrow">
+      <span class="fact"><strong>319</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">meme doctrine que le consentement vocal deja en place</span>
+      <span class="fact">colonne nullable, zero migration manuelle</span>
+      <span class="fact">verifie en conditions reelles (API + Playwright)</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Dernier principe RGPD listé dans le master prompt encore marqué "différé" dans <code>docs/gouvernance-donnees.md</code> §1. Orthogonal à la gouvernance des données déjà collectées (phases 13/20) : ici, il s'agit d'empêcher qu'une session démarre sans confirmation explicite du créateur.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Même doctrine que le consentement vocal</strong> — <code>ConsentementEnregistrementRequisException</code> vérifiée en tout premier dans <code>SessionService.creerSession</code>, avant même de construire l'entité, comme <code>EmpreinteVocaleService.enregistrerConsentement</code>.</li>
+          <li><strong>Colonne nullable, constructeurs inchangés</strong> — <code>Session</code> a deux constructeurs utilisés comme simples fixtures dans une quinzaine de fichiers de tests ; le consentement est un champ mutable renseigné après construction (<code>confirmerConsentementEnregistrement()</code>), pas un paramètre de constructeur.</li>
+          <li><strong>Seuls les chemins HTTP réels sont gatés</strong> — la surcharge à 1 argument de <code>creerSession</code> n'est appelée par aucun contrôleur (conservée pour des tests existants), donc non concernée.</li>
+          <li><strong>Consentement par session, pas par segment</strong> — la reprise d'une session interrompue ne redemande pas confirmation : elle a déjà été donnée à la création de cette session précise.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>Session.java (édité)</h4>
+          <p class="why" style="margin-top:0"><code>dateConsentementEnregistrement</code> (nullable) + <code>confirmerConsentementEnregistrement()</code>. Constructeurs inchangés.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>ConsentementEnregistrementRequisException.java (nouveau, core.session)</h4>
+          <p class="why" style="margin-top:0">Miroir de <code>core.locuteur.ConsentementRequisException</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>SessionService.java, CreateSessionRequest.java, SessionController.java (édités)</h4>
+          <pre><code>creerSession(titre, createurId, consentementEnregistrement)
+creerSession(titre, couloirId, createurId, consentementEnregistrement)</code></pre>
+          <p class="why">Consentement verifie en premier, avant meme la verification d'appartenance au couloir.</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>GestionnaireExceptionsApi.java (édité)</h4>
+          <p class="why" style="margin-top:0"><code>ConsentementEnregistrementRequisException</code> → <code>400</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">5</span>
+          <h4>Frontend : api.ts, Recorder.tsx (édités)</h4>
+          <p class="why" style="margin-top:0">Case a cocher obligatoire, bouton "Demarrer" desactive tant qu'elle n'est pas cochee, remise a zero apres chaque demarrage.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 319 tests (+2), 0 finding SpotBugs/FindSecBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Colonne nullable date_consentement_enregistrement</span><span class="ok-txt">ajoutee par Hibernate sans incident</span></div>
+        <div class="verif-line"><span class="route">POST /api/v1/sessions sans consentement</span><span class="ok-txt">400</span></div>
+        <div class="verif-line"><span class="route">POST /api/v1/sessions avec consentement</span><span class="ok-txt">201, session creee</span></div>
+        <div class="verif-line"><span class="route">Playwright : bouton Demarrer avant/apres case cochee</span><span class="ok-txt">desactive puis actif, capture a l'appui</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Déclaratif, pas vérifiable techniquement</strong> — seule la confirmation du créateur est enregistrée et horodatée.</li>
+        <li><strong>Pas de reconstitution rétroactive</strong> — les sessions antérieures ont <code>dateConsentementEnregistrement = null</code>.</li>
+        <li><strong>Pas redemandé à la reprise</strong> d'une session interrompue.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-21-consentement-enregistrement</code></li>
+          <li>Dernier principe RGPD du master prompt encore non traité au niveau applicatif : le chiffrement au repos/transit — bloqué faute d'accès à de vrais identifiants Azure/certificats.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-21-consentement-enregistrement</code> — vérifiée par build + tests + conditions réelles (API et Playwright).</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le consentement à l'enregistrement (phase 21).
+    </footer>
+  </main>
+</div>

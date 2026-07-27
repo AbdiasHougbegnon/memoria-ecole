@@ -40,6 +40,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
   const [couloirId, setCouloirId] = useState('')
   const [matieres, setMatieres] = useState<Matiere[]>([])
   const [matiereId, setMatiereId] = useState('')
+  const [consentementEnregistrement, setConsentementEnregistrement] = useState(false)
   const estModuleEcole = obtenirModuleConnecte() === 'ECOLE'
   const [connexionInstable, setConnexionInstable] = useState(false)
   const [sessionInterrompue, setSessionInterrompue] = useState<SessionActiveSauvegardee | null>(null)
@@ -224,10 +225,14 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
       setErreur('Donne un titre a la session avant de demarrer.')
       return
     }
+    if (!consentementEnregistrement) {
+      setErreur("Confirme avoir informe les participants avant de demarrer l'enregistrement.")
+      return
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const { id } = await creerSession(titre.trim(), couloirId || undefined)
+      const { id } = await creerSession(titre.trim(), couloirId || undefined, consentementEnregistrement)
       if (matiereId) {
         rattacherMatiereSession(id, matiereId).catch(() => {})
       }
@@ -241,6 +246,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
       arretDemandeRef.current = false
       setTranscriptions([])
       setEnregistrement(true)
+      setConsentementEnregistrement(false)
       demarrerNouveauSegment()
     } catch {
       setErreur("Impossible d'acceder au microphone.")
@@ -322,6 +328,17 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
           </div>
         </div>
       )}
+      {!enregistrement && (
+        <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+          <input
+            type="checkbox"
+            checked={consentementEnregistrement}
+            onChange={(e) => setConsentementEnregistrement(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>J'ai informe les participants que cette session sera enregistree.</span>
+        </label>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="text"
@@ -367,7 +384,8 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
         {!enregistrement ? (
           <button
             onClick={demarrer}
-            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+            disabled={!consentementEnregistrement}
+            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
           >
             <span className="inline-block h-2 w-2 rounded-full bg-white" />

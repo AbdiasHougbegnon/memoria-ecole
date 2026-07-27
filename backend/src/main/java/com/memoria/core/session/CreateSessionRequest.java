@@ -7,6 +7,7 @@ import java.util.UUID;
 public record CreateSessionRequest(
         @NotBlank(message = "le titre est obligatoire")
         String titre,
-        UUID couloirId
+        UUID couloirId,
+        boolean consentementEnregistrement
 ) {
 }

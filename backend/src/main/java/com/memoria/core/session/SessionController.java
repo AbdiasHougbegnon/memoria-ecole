@@ -31,8 +31,8 @@ public class SessionController {
             @AuthenticationPrincipal UUID utilisateurId
     ) {
         Session session = requete.couloirId() != null
-                ? sessionService.creerSession(requete.titre(), requete.couloirId(), utilisateurId)
-                : sessionService.creerSession(requete.titre(), utilisateurId);
+                ? sessionService.creerSession(requete.titre(), requete.couloirId(), utilisateurId, requete.consentementEnregistrement())
+                : sessionService.creerSession(requete.titre(), utilisateurId, requete.consentementEnregistrement());
         return new CreateSessionResponse(session.getId());
     }
 

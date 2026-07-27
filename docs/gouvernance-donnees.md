@@ -14,12 +14,15 @@ chiffrement au repos/transit, consentement explicite à l'enregistrement.
 | **Durée de conservation paramétrable** | **Construite** — voir §4 |
 | **Audit** | **Réduit et proportionné** — journal des opérations RGPD elles-mêmes, pas un audit général de tout accès. Voir §5 |
 | Chiffrement au repos/transit | **Non traité ici** — infrastructure, pas du code applicatif. Voir §6 |
-| Consentement explicite à l'enregistrement des participants | **Différé** — brique séparée, voir §6 |
+| Consentement explicite à l'enregistrement des participants | **Construit** — voir §7 |
 
 ## 2. Droit à l'effacement (`DELETE /api/v1/utilisateurs/moi`)
 
-Self-service uniquement (aucun rôle admin n'existe encore dans le projet). Un utilisateur ne
-peut effacer que son propre compte.
+Self-service par défaut. Depuis la phase 20, un compte admin peut aussi déclencher
+l'effacement d'un utilisateur qui en fait la demande par un autre canal (email, support) —
+voir `docs/phases/phase-20-role-admin.md`. Les deux chemins partagent la même logique
+d'effacement (`GouvernanceDonneesService.effacerCompte`), seule la résolution de la cible et
+la traçabilité de l'initiateur diffèrent.
 
 **Ce qui est supprimé définitivement (données personnelles exclusives)** : empreinte vocale
 (réutilise `EmpreinteVocaleService.revoquer`), séances de tutorat et leurs tours de dialogue,
@@ -79,11 +82,12 @@ utilisateur qui la demande explicitement.
 
 Une ligne par effacement de compte et par exécution du balayage de rétention (pas une ligne
 par session purgée, pour ne pas noyer le journal) : type d'action, utilisateur cible
-(nullable pour une purge de rétention), date, détails. **Ce n'est pas un audit général de
-tout accès à toute donnée sensible** — un tel audit interdirait chaque lecture/écriture dans
-toute l'application, un chantier d'observabilité à part entière, hors de proportion pour
-cette brique. Consultable uniquement par requête directe en base pour l'instant : aucun
-endpoint de consultation n'existe (pas de rôle admin pour le gater).
+(nullable pour une purge de rétention), **initiateur** (nullable — l'UUID de l'admin pour un
+effacement au nom d'autrui, `null` pour un self-service ou une purge de rétention, voir
+phase 20), date, détails. **Ce n'est pas un audit général de tout accès à toute donnée
+sensible** — un tel audit interdirait chaque lecture/écriture dans toute l'application, un
+chantier d'observabilité à part entière, hors de proportion pour cette brique. Consultable
+via `GET /api/v1/admin/journal-rgpd` (réservé `ROLE_ADMIN`, voir phase 20).
 
 ## 5bis. Note d'architecture (juillet 2026)
 
@@ -102,12 +106,12 @@ la règle "le moteur ne dépend jamais d'un produit" (voir
   dans `docs/deploiement.md` (vérifié : aucune mention de TLS/HTTPS/chiffrement). C'est un
   vrai trou de la couche infrastructure (reverse proxy TLS, chiffrement au repos du
   fournisseur Postgres managé), pas un renvoi de façade — à traiter dans une brique dédiée
-  au déploiement/infrastructure, pas dans une brique de code applicatif.
-- **Consentement explicite à l'enregistrement des participants** : fonctionnalité UX/légale
-  au moment de la capture (prévenir les participants qu'une session est enregistrée),
-  orthogonale à la gouvernance de données déjà collectées traitée ici.
-- **Pas de rôle admin** pour déclencher un effacement au nom d'un autre utilisateur, ou pour
-  consulter le journal RGPD via une API — direction future si le besoin se confirme.
+  au déploiement/infrastructure, pas dans une brique de code applicatif. Bloqué faute
+  d'accès à de vrais identifiants Azure/certificats, même raisonnement que l'absence de
+  `terraform apply` documentée dans `docs/deploiement.md`.
+- **Pas de révocation admin en libre-service** ni de gestion d'utilisateurs générale au-delà
+  de l'effacement au nom d'autrui et de la consultation du journal — voir
+  `docs/phases/phase-20-role-admin.md` §6.
 - **`Matiere.createurId`** (`nullable = false`) n'est pas anonymisé à l'effacement —
   changerait un schéma pour un champ à faible sensibilité (créateur d'un intitulé de
   matière, pas un contenu personnel).
@@ -115,3 +119,25 @@ la règle "le moteur ne dépend jamais d'un produit" (voir
   texte déjà généré par IA peut encore faire écho au contenu supprimé ; le régénérer
   demanderait une vraie opération de résumé, hors de proportion pour une suppression de
   session.
+
+## 7. Consentement explicite à l'enregistrement (phase 21)
+
+`POST /api/v1/sessions` exige désormais `consentementEnregistrement: true` dans le corps de
+la requête — sinon `ConsentementEnregistrementRequisException` (`400`), avant toute
+construction ou sauvegarde de la session. Même doctrine que
+`EmpreinteVocaleService.enregistrerConsentement` (consentement vérifié en premier, par le
+service, pas par une contrainte de schéma) : le créateur de la session confirme avoir
+informé les participants qu'elle sera enregistrée, horodaté sur
+`Session.dateConsentementEnregistrement` (nullable — les sessions antérieures à cette
+colonne n'ont pas ce champ, pas de reconstitution rétroactive possible).
+
+Frontend (`Recorder.tsx`) : case à cocher obligatoire ("J'ai informé les participants que
+cette session sera enregistrée"), le bouton "Démarrer" reste désactivé tant qu'elle n'est
+pas cochée — garde de commodité UX, la vraie frontière reste le contrôleur backend. La
+reprise d'une session interrompue (`reprendre()`) ne redemande pas confirmation : le
+consentement a déjà été donné à la création de cette session précise.
+
+**Limite assumée** : l'application ne peut pas vérifier qu'un participant physiquement
+présent a réellement été informé — seule la déclaration du créateur est enregistrée,
+horodatée et traçable. C'est le même niveau de garantie que pour n'importe quelle mention
+légale déclarative (case à cocher), pas un contrôle technique de présence.

@@ -117,6 +117,11 @@ public class GestionnaireExceptionsApi {
     public void gererConsentementRequis() {
     }
 
+    @ExceptionHandler(com.memoria.core.session.ConsentementEnregistrementRequisException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public void gererConsentementEnregistrementRequis() {
+    }
+
     @ExceptionHandler(com.memoria.core.locuteur.AudioEnrollementInsuffisantException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public void gererAudioEnrollementInsuffisant() {

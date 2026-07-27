@@ -89,12 +89,12 @@ export async function obtenirSession(id: string): Promise<Session> {
   return reponse.json()
 }
 
-export async function creerSession(titre: string, couloirId?: string): Promise<{ id: string }> {
+export async function creerSession(titre: string, couloirId: string | undefined, consentementEnregistrement: boolean): Promise<{ id: string }> {
   const reponse = await verifierReponse(
     await appelApi(BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titre, couloirId: couloirId ?? null }),
+      body: JSON.stringify({ titre, couloirId: couloirId ?? null, consentementEnregistrement }),
     }),
   )
   return reponse.json()

@@ -42,18 +42,30 @@ public class SessionService {
     // Sans couloir, mais avec un createur enregistre -- utilise par le
     // controleur des que la requete precise un utilisateur authentifie
     // (donc systematiquement depuis la Phase 5 securite).
-    public Session creerSession(String titre, UUID createurId) {
-        return sessionRepository.save(new Session(titre, createurId, null));
+    // Consentement verifie AVANT toute construction/sauvegarde, meme
+    // doctrine que EmpreinteVocaleService.enregistrerConsentement (phase 21).
+    public Session creerSession(String titre, UUID createurId, boolean consentementEnregistrement) {
+        if (!consentementEnregistrement) {
+            throw new ConsentementEnregistrementRequisException();
+        }
+        Session session = new Session(titre, createurId, null);
+        session.confirmerConsentementEnregistrement();
+        return sessionRepository.save(session);
     }
 
     // Rattache la session a un couloir seulement si le createur en est
     // membre. Le rattachement ne change rien a la visibilite par lui-meme :
     // c'est listerSessionsVisibles() qui l'exploite.
-    public Session creerSession(String titre, UUID couloirId, UUID createurId) {
+    public Session creerSession(String titre, UUID couloirId, UUID createurId, boolean consentementEnregistrement) {
+        if (!consentementEnregistrement) {
+            throw new ConsentementEnregistrementRequisException();
+        }
         if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, createurId)) {
             throw new PasMembreDuCouloirException(couloirId, createurId);
         }
-        return sessionRepository.save(new Session(titre, createurId, couloirId));
+        Session session = new Session(titre, createurId, couloirId);
+        session.confirmerConsentementEnregistrement();
+        return sessionRepository.save(session);
     }
 
     public List<Session> listerSessionsParCouloir(UUID couloirId) {

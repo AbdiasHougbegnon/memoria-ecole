@@ -214,9 +214,10 @@ class SessionServiceTest {
         when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(true);
         when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Session session = sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId);
+        Session session = sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId, true);
 
         assertThat(session.getCouloirId()).isEqualTo(couloirId);
+        assertThat(session.getDateConsentementEnregistrement()).isNotNull();
     }
 
     @Test
@@ -225,9 +226,20 @@ class SessionServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(false);
 
-        assertThatThrownBy(() -> sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId))
+        assertThatThrownBy(() -> sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId, true))
                 .isInstanceOf(PasMembreDuCouloirException.class);
         verify(sessionRepository, never()).save(any());
+    }
+
+    @Test
+    void creerSession_avec_couloir_leve_une_exception_si_le_consentement_est_absent() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> sessionService.creerSession("Cours de reseaux", couloirId, utilisateurId, false))
+                .isInstanceOf(ConsentementEnregistrementRequisException.class);
+        verify(sessionRepository, never()).save(any());
+        verify(membreCouloirRepository, never()).existsByCouloirIdAndUtilisateurId(any(), any());
     }
 
     @Test
@@ -235,10 +247,20 @@ class SessionServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Session session = sessionService.creerSession("Cours de reseaux", utilisateurId);
+        Session session = sessionService.creerSession("Cours de reseaux", utilisateurId, true);
 
         assertThat(session.getCreateurId()).isEqualTo(utilisateurId);
         assertThat(session.getCouloirId()).isNull();
+        assertThat(session.getDateConsentementEnregistrement()).isNotNull();
+    }
+
+    @Test
+    void creerSession_avec_createur_leve_une_exception_si_le_consentement_est_absent() {
+        UUID utilisateurId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> sessionService.creerSession("Cours de reseaux", utilisateurId, false))
+                .isInstanceOf(ConsentementEnregistrementRequisException.class);
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test
