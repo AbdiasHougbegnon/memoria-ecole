@@ -137,7 +137,13 @@ public class GouvernanceDonneesService {
     // personnelles exclusives collectees a l'etape 1, puis journalisation.
     // Jamais transactionnel avec effacerCompte -- voir doctrine
     // SessionPurgeService.nettoyerDependancesExternes.
+    // Self-service (initiateur = la cible elle-meme) : voir la variante 3-arg
+    // pour l'effacement declenche par un admin au nom d'autrui (phase 20).
     public void finaliserEffacement(UUID utilisateurId, List<UUID> sessionsAPurger) {
+        finaliserEffacement(utilisateurId, sessionsAPurger, null);
+    }
+
+    public void finaliserEffacement(UUID utilisateurId, List<UUID> sessionsAPurger, UUID initiateurId) {
         for (UUID sessionId : sessionsAPurger) {
             try {
                 sessionPurgeService.purgerSessionCompletement(sessionId);
@@ -148,9 +154,18 @@ public class GouvernanceDonneesService {
             sessionPurgeService.nettoyerDependancesExternes(sessionId);
         }
         journalRgpdRepository.save(new JournalRgpd(
-                TypeActionRgpd.EFFACEMENT_COMPTE, utilisateurId,
+                TypeActionRgpd.EFFACEMENT_COMPTE, utilisateurId, initiateurId,
                 sessionsAPurger.size() + " session(s) personnelle(s) purgee(s)"
         ));
+    }
+
+    // Resout la cible d'un effacement declenche par un admin (phase 20) : les
+    // demandes RGPD arrivent par email (support, formulaire), pas par UUID.
+    // Insensible a la casse (voir UtilisateurRepository.findByEmailIgnoreCase).
+    public UUID resoudreParEmail(String email) {
+        return utilisateurRepository.findByEmailIgnoreCase(email)
+                .map(Utilisateur::getId)
+                .orElseThrow(() -> new UtilisateurNotFoundException(email));
     }
 
     public ExportDonneesUtilisateur exporterDonnees(UUID utilisateurId) {

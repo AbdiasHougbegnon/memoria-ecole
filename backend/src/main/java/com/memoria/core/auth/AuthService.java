@@ -17,6 +17,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final Set<String> domainesAutorises;
+    private final Set<String> emailsAdminAutorises;
 
     // "Instance = tenant" (meme raisonnement que le budget Azure en phase-11 et
     // la retention RGPD en phase-13) : une seule liste globale de domaines pour
@@ -28,16 +29,14 @@ public class AuthService {
             UtilisateurRepository utilisateurRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            @Value("${memoria.inscription.domaines-autorises:}") String domainesAutorises
+            @Value("${memoria.inscription.domaines-autorises:}") String domainesAutorises,
+            @Value("${memoria.admin.emails-autorises:}") String emailsAdminAutorises
     ) {
         this.utilisateurRepository = utilisateurRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.domainesAutorises = Arrays.stream(domainesAutorises.split(","))
-                .map(String::trim)
-                .map(domaine -> domaine.toLowerCase(Locale.ROOT))
-                .filter(domaine -> !domaine.isEmpty())
-                .collect(Collectors.toSet());
+        this.domainesAutorises = decouperListe(domainesAutorises);
+        this.emailsAdminAutorises = decouperListe(emailsAdminAutorises);
     }
 
     public AuthResponse inscrire(String email, String motDePasse, ModuleMemoria module) {
@@ -48,6 +47,14 @@ public class AuthService {
             throw new EmailDejaUtiliseException(email);
         }
         Utilisateur utilisateur = new Utilisateur(email, passwordEncoder.encode(motDePasse), module);
+        // Liste d'emails admin (memoria.admin.emails-autorises) : couvre le cas
+        // ou la personne s'inscrit APRES que l'operateur de l'instance a
+        // configure la liste. Le cas inverse (compte deja existant) est couvert
+        // par AdminBootstrapRunner, qui reconcilie la meme liste a chaque
+        // demarrage -- jamais de promotion en libre-service.
+        if (emailsAdminAutorises.contains(email.toLowerCase(Locale.ROOT))) {
+            utilisateur.promouvoirAdmin();
+        }
         utilisateur = utilisateurRepository.save(utilisateur);
         return AuthResponse.depuis(utilisateur, jwtService.genererToken(utilisateur));
     }
@@ -76,5 +83,13 @@ public class AuthService {
     // d'atteindre le service.
     private String domaine(String email) {
         return email.substring(email.lastIndexOf('@') + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static Set<String> decouperListe(String valeurs) {
+        return Arrays.stream(valeurs.split(","))
+                .map(String::trim)
+                .map(valeur -> valeur.toLowerCase(Locale.ROOT))
+                .filter(valeur -> !valeur.isEmpty())
+                .collect(Collectors.toSet());
     }
 }

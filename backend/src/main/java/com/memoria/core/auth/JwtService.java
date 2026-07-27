@@ -35,20 +35,22 @@ public class JwtService {
                 .subject(utilisateur.getId().toString())
                 .claim("email", utilisateur.getEmail())
                 .claim("module", utilisateur.getModule().name())
+                .claim("admin", utilisateur.estAdmin())
                 .issuedAt(Date.from(maintenant))
                 .expiration(Date.from(maintenant.plus(dureeValidite)))
                 .signWith(cleSignature)
                 .compact();
     }
 
-    public record UtilisateurAuthentifie(UUID utilisateurId, ModuleMemoria module) {
+    public record UtilisateurAuthentifie(UUID utilisateurId, ModuleMemoria module, boolean admin) {
     }
 
-    // Le module vient du JWT, pas d'une relecture en base : le filtre reste
-    // stateless (aucun appel DB par requete, deja le cas pour l'email).
-    // Limite assumee : un changement de module ne serait pris en compte
-    // qu'a la reemission d'un token (jusqu'a 24h) -- sans consequence ici,
-    // aucun endpoint ne permet de changer de module dans ce lot.
+    // Le module (et le statut admin) viennent du JWT, pas d'une relecture en
+    // base : le filtre reste stateless (aucun appel DB par requete, deja le
+    // cas pour l'email). Limite assumee : un changement de module ou de
+    // statut admin ne serait pris en compte qu'a la reemission d'un token
+    // (jusqu'a 24h) -- pour l'admin, AdminBootstrapRunner promeut au demarrage
+    // mais l'utilisateur deja connecte doit se reconnecter pour en beneficier.
     public Optional<UtilisateurAuthentifie> validerEtExtraire(String token) {
         try {
             Claims claims = Jwts.parser()
@@ -58,7 +60,8 @@ public class JwtService {
                     .getPayload();
             UUID utilisateurId = UUID.fromString(claims.getSubject());
             ModuleMemoria module = ModuleMemoria.valueOf(claims.get("module", String.class));
-            return Optional.of(new UtilisateurAuthentifie(utilisateurId, module));
+            boolean admin = Boolean.TRUE.equals(claims.get("admin", Boolean.class));
+            return Optional.of(new UtilisateurAuthentifie(utilisateurId, module, admin));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

@@ -188,6 +188,47 @@ class GouvernanceDonneesServiceTest {
     }
 
     @Test
+    void finaliserEffacement_avec_initiateur_trace_qui_a_declenche_leffacement() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+
+        gouvernanceDonneesService.finaliserEffacement(utilisateurId, List.of(), adminId);
+
+        ArgumentCaptor<JournalRgpd> captor = ArgumentCaptor.forClass(JournalRgpd.class);
+        verify(journalRgpdRepository).save(captor.capture());
+        assertThat(captor.getValue().getInitiateurId()).isEqualTo(adminId);
+    }
+
+    @Test
+    void finaliserEffacement_self_service_ne_trace_aucun_initiateur() {
+        UUID utilisateurId = UUID.randomUUID();
+
+        gouvernanceDonneesService.finaliserEffacement(utilisateurId, List.of());
+
+        ArgumentCaptor<JournalRgpd> captor = ArgumentCaptor.forClass(JournalRgpd.class);
+        verify(journalRgpdRepository).save(captor.capture());
+        assertThat(captor.getValue().getInitiateurId()).isNull();
+    }
+
+    @Test
+    void resoudreParEmail_retourne_lid_de_lutilisateur_trouve() {
+        Utilisateur utilisateur = new Utilisateur("cible@memoria.fr", "hash", ModuleMemoria.ECOLE);
+        when(utilisateurRepository.findByEmailIgnoreCase("cible@memoria.fr")).thenReturn(Optional.of(utilisateur));
+
+        UUID resultat = gouvernanceDonneesService.resoudreParEmail("cible@memoria.fr");
+
+        assertThat(resultat).isEqualTo(utilisateur.getId());
+    }
+
+    @Test
+    void resoudreParEmail_leve_une_exception_si_aucun_compte_ne_correspond() {
+        when(utilisateurRepository.findByEmailIgnoreCase("inconnu@memoria.fr")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> gouvernanceDonneesService.resoudreParEmail("inconnu@memoria.fr"))
+                .isInstanceOf(UtilisateurNotFoundException.class);
+    }
+
+    @Test
     void exporterDonnees_leve_une_exception_si_lutilisateur_est_introuvable() {
         UUID idInconnu = UUID.randomUUID();
         when(utilisateurRepository.findById(idInconnu)).thenReturn(Optional.empty());

@@ -31,7 +31,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "");
+        authService = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "", "");
     }
 
     @Test
@@ -120,7 +120,7 @@ class AuthServiceTest {
 
     @Test
     void inscrire_accepte_un_email_du_domaine_autorise() {
-        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr, etu.episen.fr");
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr, etu.episen.fr", "");
         when(utilisateurRepository.existsByEmail("alice@episen.fr")).thenReturn(false);
         when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
         when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -133,7 +133,7 @@ class AuthServiceTest {
 
     @Test
     void inscrire_accepte_un_domaine_autorise_sans_tenir_compte_de_la_casse() {
-        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr");
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr", "");
         when(utilisateurRepository.existsByEmail("alice@EPISEN.fr")).thenReturn(false);
         when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
         when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -146,9 +146,48 @@ class AuthServiceTest {
 
     @Test
     void inscrire_leve_une_exception_si_le_domaine_nest_pas_autorise() {
-        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr");
+        AuthService authServiceRestreint = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "episen.fr", "");
 
         assertThatThrownBy(() -> authServiceRestreint.inscrire("alice@gmail.com", "motdepasse123", ModuleMemoria.ECOLE))
                 .isInstanceOf(DomaineEmailNonAutoriseException.class);
+    }
+
+    @Test
+    void inscrire_promeut_admin_un_email_liste_dans_memoria_admin_emails_autorises() {
+        AuthService authServiceAvecAdmin = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "", "admin@memoria.fr");
+        when(utilisateurRepository.existsByEmail("admin@memoria.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authServiceAvecAdmin.inscrire("admin@memoria.fr", "motdepasse123", ModuleMemoria.ENTREPRISE);
+
+        assertThat(reponse.admin()).isTrue();
+    }
+
+    @Test
+    void inscrire_promeut_admin_sans_tenir_compte_de_la_casse() {
+        AuthService authServiceAvecAdmin = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "", "admin@memoria.fr");
+        when(utilisateurRepository.existsByEmail("Admin@Memoria.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authServiceAvecAdmin.inscrire("Admin@Memoria.fr", "motdepasse123", ModuleMemoria.ENTREPRISE);
+
+        assertThat(reponse.admin()).isTrue();
+    }
+
+    @Test
+    void inscrire_ne_promeut_pas_admin_un_email_absent_de_la_liste() {
+        AuthService authServiceAvecAdmin = new AuthService(utilisateurRepository, passwordEncoder, jwtService, "", "admin@memoria.fr");
+        when(utilisateurRepository.existsByEmail("alice@memoria.fr")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse123")).thenReturn("hash-secret");
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.genererToken(any(Utilisateur.class))).thenReturn("un-jwt");
+
+        AuthResponse reponse = authServiceAvecAdmin.inscrire("alice@memoria.fr", "motdepasse123", ModuleMemoria.ENTREPRISE);
+
+        assertThat(reponse.admin()).isFalse();
     }
 }

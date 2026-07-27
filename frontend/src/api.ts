@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, JournalRgpdEntry, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -582,4 +582,19 @@ export async function arreterTutorat(id: string): Promise<EtatTutorat> {
 export async function obtenirAudioTutorat(audioUrl: string): Promise<Blob> {
   const reponse = await verifierReponse(await appelApi(audioUrl))
   return reponse.blob()
+}
+
+export async function effacerCompteAdmin(email: string): Promise<void> {
+  await verifierReponse(
+    await appelApi('/api/v1/admin/utilisateurs/effacement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }),
+  )
+}
+
+export async function listerJournalRgpd(): Promise<JournalRgpdEntry[]> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/admin/journal-rgpd'))
+  return reponse.json()
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { deconnecter, obtenirEmailConnecte, obtenirModuleConnecte } from '../auth'
+import { deconnecter, estAdminConnecte, obtenirEmailConnecte, obtenirModuleConnecte } from '../auth'
 import { IDENTITES_MODULE } from '../moduleIdentite'
 
 // Icones et structure de sidebar reprises de docs/maquette-initiale.html
@@ -86,6 +86,15 @@ function IconePlus() {
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
       <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconeAdmin() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+      <path d="M9 2 L15 4.5 V9 C15 12.5 12.5 14.8 9 16 C5.5 14.8 3 12.5 3 9 V4.5 Z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
+      <path d="M6.5 9 L8.2 10.7 L11.5 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -181,6 +190,18 @@ export function Layout({ children }: { children: ReactNode }) {
               <LienNav to="/tableau-de-bord" actif={location.pathname === '/tableau-de-bord'}>
                 <IconeTableauDeBord />
                 Tableau de bord
+              </LienNav>
+            </>
+          )}
+
+          {estAdminConnecte() && (
+            <>
+              <div className="px-2.5 pt-3.5 pb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
+                Administration
+              </div>
+              <LienNav to="/admin" actif={location.pathname === '/admin'}>
+                <IconeAdmin />
+                Administration
               </LienNav>
             </>
           )}

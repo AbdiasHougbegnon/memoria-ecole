@@ -25,6 +25,12 @@ public class JournalRgpd {
     @Column(name = "utilisateur_cible_id")
     private UUID utilisateurCibleId;
 
+    // Null pour un effacement self-service ou une purge de retention : seul
+    // un effacement declenche par un admin au nom d'autrui (phase 20) porte
+    // un initiateur, pour la tracabilite de qui a autorise l'action.
+    @Column(name = "initiateur_id")
+    private UUID initiateurId;
+
     @Column(name = "date_action", nullable = false)
     private Instant dateAction;
 
@@ -36,9 +42,14 @@ public class JournalRgpd {
     }
 
     public JournalRgpd(TypeActionRgpd type, UUID utilisateurCibleId, String details) {
+        this(type, utilisateurCibleId, null, details);
+    }
+
+    public JournalRgpd(TypeActionRgpd type, UUID utilisateurCibleId, UUID initiateurId, String details) {
         this.id = UUID.randomUUID();
         this.type = type;
         this.utilisateurCibleId = utilisateurCibleId;
+        this.initiateurId = initiateurId;
         this.dateAction = Instant.now();
         this.details = details;
     }
@@ -53,6 +64,10 @@ public class JournalRgpd {
 
     public UUID getUtilisateurCibleId() {
         return utilisateurCibleId;
+    }
+
+    public UUID getInitiateurId() {
+        return initiateurId;
     }
 
     public Instant getDateAction() {

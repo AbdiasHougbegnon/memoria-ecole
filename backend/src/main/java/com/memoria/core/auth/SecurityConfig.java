@@ -73,6 +73,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/ecole/options-inscription").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ecole/inscription").permitAll()
 
+                        // Role admin (phase 20) : effacement RGPD au nom d'autrui + consultation
+                        // du journal RGPD -- accorde uniquement via memoria.admin.emails-autorises
+                        // (voir AuthService/AdminBootstrapRunner), jamais en libre-service.
+                        .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
+
                         // Entreprise uniquement -- le moteur commun (sessions, couloirs,
                         // recherche, fils de memoire, transcriptions, resumes generiques)
                         // reste accessible aux deux modules via anyRequest().authenticated().

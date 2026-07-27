@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-// Self-service uniquement (aucun role admin n'existe encore dans le projet,
-// voir docs/phases/phase-13-gouvernance-donnees.md) : un utilisateur ne peut
-// effacer/exporter que ses propres donnees.
+// Self-service : un utilisateur ne peut effacer/exporter que ses propres
+// donnees. Voir GouvernanceAdminController pour l'effacement au nom d'autrui
+// reserve aux comptes admin (phase 20).
 @RestController
 @RequestMapping("/api/v1/utilisateurs/moi")
 public class GouvernanceDonneesController {

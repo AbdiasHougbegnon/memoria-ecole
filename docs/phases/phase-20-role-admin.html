@@ -1,0 +1,231 @@
+<title>Memoria — Dossier technique : rôle admin</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — Audit sécurité (phase 20)</span>
+    <h1 class="title">Rôle admin</h1>
+    <p class="dek">Effacement RGPD au nom d'un utilisateur qui en fait la demande par un autre canal, et consultation du journal RGPD — les deux trous documentés depuis la phase 13, comblés sans introduire de gestion d'utilisateurs générale.</p>
+    <div class="factrow">
+      <span class="fact"><strong>317</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">admin accordé par liste d'emails en config, jamais en libre-service</span>
+      <span class="fact">traçabilité typée (initiateurId), pas de texte libre</span>
+      <span class="fact">vérifié en conditions réelles (API + Playwright)</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Pourquoi maintenant</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">L'audit sécurité/architecture de juillet 2026 et <code>docs/gouvernance-donnees.md</code> §6 documentaient le même trou depuis la phase 13 : aucun rôle admin n'existe dans le projet. Deux capacités manquaient concrètement — effacer le compte d'un utilisateur qui en fait la demande par un autre canal, et consulter le journal RGPD sans accès direct à la base. Ce lot construit exactement ces deux capacités, pas plus.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Comment un compte devient admin</strong> — <code>memoria.admin.emails-autorises</code> (liste d'emails, même doctrine que <code>memoria.inscription.domaines-autorises</code> en phase 15). Promotion à l'inscription (<code>AuthService</code>) ET au démarrage pour un compte déjà existant (<code>AdminBootstrapRunner</code>) — redémarrer après avoir mis à jour la config suffit, jamais d'UI ni d'endpoint de promotion.</li>
+          <li><strong>Statut admin propagé via JWT</strong> — même mécanique que <code>ModuleMemoria</code> : claim <code>admin</code>, autorité Spring <code>ROLE_ADMIN</code> ajoutée par <code>JwtAuthenticationFilter</code>, gate <code>SecurityConfig</code> sur <code>/api/v1/admin/**</code>.</li>
+          <li><strong>Traçabilité typée</strong> — <code>JournalRgpd.initiateurId</code> (nullable) : <code>null</code> pour self-service/rétention, l'UUID de l'admin pour un effacement au nom d'autrui. Jamais casé dans le champ texte libre.</li>
+          <li><strong>Résolution par email, insensible à la casse</strong> — les demandes RGPD arrivent par email, pas par UUID (<code>resoudreParEmail</code>, <code>findByEmailIgnoreCase</code>).</li>
+          <li><strong>Même séquence d'orchestration que le self-service</strong> — <code>GouvernanceAdminController</code> reproduit les deux appels de <code>GouvernanceDonneesController</code> (<code>@Transactional</code> ne s'applique pas à un appel interne au sein d'une même instance Spring).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>Utilisateur.java + AuthService.java (édités)</h4>
+          <p class="why" style="margin-top:0"><code>estAdmin</code> (boolean), promotion à l'inscription si l'email est listé.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>AdminBootstrapRunner.java (nouveau, core.auth)</h4>
+          <p class="why" style="margin-top:0"><code>ApplicationRunner</code> : réconcilie la liste à chaque démarrage pour les comptes déjà existants.</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>AuthResponse.java, JwtService.java, JwtAuthenticationFilter.java, SecurityConfig.java (édités)</h4>
+          <pre><code>claim "admin" -> ROLE_ADMIN -> /api/v1/admin/** hasAuthority("ROLE_ADMIN")</code></pre>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>JournalRgpd.java, JournalRgpdRepository.java, GouvernanceDonneesService.java (édités)</h4>
+          <p class="why" style="margin-top:0"><code>initiateurId</code> nullable, <code>findAllByOrderByDateActionDesc</code>, <code>resoudreParEmail</code>, <code>finaliserEffacement</code> à 3 arguments.</p>
+        </div>
+        <div class="bug">
+          <span class="n">5</span>
+          <h4>GouvernanceAdminController.java, JournalRgpdResponse.java (nouveaux, core.gouvernance)</h4>
+          <p class="why" style="margin-top:0"><code>POST /api/v1/admin/utilisateurs/effacement</code> (body email), <code>GET /api/v1/admin/journal-rgpd</code>.</p>
+        </div>
+        <div class="bug">
+          <span class="n">6</span>
+          <h4>Frontend : types.ts, auth.ts, api.ts, RouteProtegee.tsx, Layout.tsx, AdminPage.tsx (nouveaux/édités)</h4>
+          <p class="why" style="margin-top:0"><code>estAdminConnecte()</code>, garde <code>adminRequis</code>, section de nav "Administration", page d'effacement par email + table du journal RGPD.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 317 tests (+13), 0 finding SpotBugs/FindSecBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">alter table utilisateurs add column est_admin boolean not null</span><span class="warn-txt">echoue au demarrage (68 lignes existantes), corrige en 3 temps manuels</span></div>
+        <div class="verif-line"><span class="route">Inscription avec un email liste</span><span class="ok-txt">admin: true immediatement dans la reponse</span></div>
+        <div class="verif-line"><span class="route">Compte non-admin sur /api/v1/admin/journal-rgpd</span><span class="ok-txt">403, ROLE_ADMIN bien impose</span></div>
+        <div class="verif-line"><span class="route">Effacement d'un compte par email via l'admin</span><span class="ok-txt">204, cible ne peut plus se connecter</span></div>
+        <div class="verif-line"><span class="route">Journal RGPD apres effacement</span><span class="ok-txt">nouvelle entree en tete, initiateurId = UUID admin</span></div>
+        <div class="verif-line"><span class="route">AdminBootstrapRunner : compte existant ajoute a la liste puis redemarrage</span><span class="ok-txt">promu au demarrage (log confirme), admin: true a la reconnexion</span></div>
+        <div class="verif-line"><span class="route">Playwright : nav + page /admin sur le frontend reel</span><span class="ok-txt">section Administration visible, tableau du journal rendu, capture a l'appui</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de révocation en libre-service</strong> — retirer un email de la config ne rétrograde jamais un compte déjà promu, nécessite un accès direct à la base.</li>
+        <li><strong>Pas de gestion d'utilisateurs générale</strong> — seulement effacement au nom d'autrui et consultation du journal.</li>
+        <li><strong>Statut admin propagé par JWT, pas relu en base</strong> — un changement ne prend effet qu'à la reconnexion, même limite déjà assumée pour le module.</li>
+        <li><strong>Pas de vérification d'identité intégrée</strong> — la page admin suppose que la demande a déjà été vérifiée par un autre canal, rappelé dans l'UI, pas un contrôle applicatif.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-20-role-admin</code></li>
+          <li>Pour activer un admin sur une instance existante :</li>
+        </ul>
+        <pre><code>MEMORIA_ADMIN_EMAILS_AUTORISES=admin@episen.fr,dpo@episen.fr</code></pre>
+        <ul class="plain" style="margin-top:12px">
+          <li>Redémarrer suffit — couvre à la fois un compte à créer et un compte déjà existant. Direction possible suivante, non demandée pour l'instant : révocation en libre-service, gestion d'utilisateurs plus large.</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-20-role-admin</code> — vérifiée par build + tests + conditions réelles (API et Playwright).</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le rôle admin (phase 20).
+    </footer>
+  </main>
+</div>

@@ -41,6 +41,11 @@ public class Utilisateur {
     @Column(nullable = false, length = 20)
     private ModuleMemoria module;
 
+    // Accorde uniquement via la liste memoria.admin.emails-autorises (voir
+    // AuthService et AdminBootstrapRunner) -- jamais de promotion en libre-service.
+    @Column(name = "est_admin", nullable = false)
+    private boolean estAdmin;
+
     protected Utilisateur() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -51,6 +56,7 @@ public class Utilisateur {
         this.motDePasseHash = motDePasseHash;
         this.dateCreation = Instant.now();
         this.module = module;
+        this.estAdmin = false;
     }
 
     public UUID getId() {
@@ -77,8 +83,16 @@ public class Utilisateur {
         return module;
     }
 
+    public boolean estAdmin() {
+        return estAdmin;
+    }
+
     public void renseignerNom(String nom) {
         this.nom = nom;
+    }
+
+    public void promouvoirAdmin() {
+        this.estAdmin = true;
     }
 
     public String nomAffichage() {

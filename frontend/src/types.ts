@@ -161,6 +161,18 @@ export interface AuthResponse {
   utilisateurId: string
   email: string
   module: ModuleMemoria
+  admin: boolean
+}
+
+export type TypeActionRgpd = 'EFFACEMENT_COMPTE' | 'EXPORT_DONNEES' | 'PURGE_RETENTION'
+
+export interface JournalRgpdEntry {
+  id: string
+  type: TypeActionRgpd
+  utilisateurCibleId: string | null
+  initiateurId: string | null
+  dateAction: string
+  details: string
 }
 
 export interface Couloir {

@@ -49,7 +49,7 @@ class InscriptionEcoleServiceTest {
         UUID couloirId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         ContexteScolaireCouloir contexte = new ContexteScolaireCouloir(couloirId, "2026-2027", "Informatique", "Genie Logiciel");
-        AuthResponse reponseAttendue = new AuthResponse("token", utilisateurId, "etu@test.local", ModuleMemoria.ECOLE);
+        AuthResponse reponseAttendue = new AuthResponse("token", utilisateurId, "etu@test.local", ModuleMemoria.ECOLE, false);
         when(contexteScolaireCouloirRepository.findByAnneeAcademiqueAndFiliereAndSpecialite(
                 "2026-2027", "Informatique", "Genie Logiciel")).thenReturn(Optional.of(contexte));
         when(authService.inscrire("etu@test.local", "motdepasse123", ModuleMemoria.ECOLE)).thenReturn(reponseAttendue);
@@ -68,7 +68,7 @@ class InscriptionEcoleServiceTest {
         when(contexteScolaireCouloirRepository.findByAnneeAcademiqueAndFiliereAndSpecialite(
                 eq("2026-2027"), eq("Droit"), isNull())).thenReturn(Optional.of(contexte));
         when(authService.inscrire("etu@test.local", "motdepasse123", ModuleMemoria.ECOLE))
-                .thenReturn(new AuthResponse("token", utilisateurId, "etu@test.local", ModuleMemoria.ECOLE));
+                .thenReturn(new AuthResponse("token", utilisateurId, "etu@test.local", ModuleMemoria.ECOLE, false));
 
         inscriptionEcoleService.inscrire("etu@test.local", "motdepasse123", "2026-2027", "Droit", "");
 

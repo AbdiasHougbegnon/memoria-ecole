@@ -31,6 +31,29 @@ class JwtServiceTest {
     }
 
     @Test
+    void genererToken_propage_le_statut_admin() {
+        Utilisateur utilisateur = new Utilisateur("admin@memoria.fr", "hash", ModuleMemoria.ENTREPRISE);
+        utilisateur.promouvoirAdmin();
+
+        String token = jwtService.genererToken(utilisateur);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
+
+        assertThat(resultat).isPresent();
+        assertThat(resultat.get().admin()).isTrue();
+    }
+
+    @Test
+    void genererToken_indique_non_admin_par_defaut() {
+        Utilisateur utilisateur = new Utilisateur("alice@memoria.fr", "hash", ModuleMemoria.ENTREPRISE);
+
+        String token = jwtService.genererToken(utilisateur);
+        Optional<JwtService.UtilisateurAuthentifie> resultat = jwtService.validerEtExtraire(token);
+
+        assertThat(resultat).isPresent();
+        assertThat(resultat.get().admin()).isFalse();
+    }
+
+    @Test
     void genererToken_propage_le_module_ecole() {
         Utilisateur utilisateur = new Utilisateur("jean@memoria.fr", "hash", ModuleMemoria.ECOLE);
 

@@ -17,6 +17,7 @@ import { ImporterMatieresPage } from './pages/ImporterMatieresPage'
 import { MatiereDetailPage } from './pages/MatiereDetailPage'
 import { SeanceDetailPage } from './pages/SeanceDetailPage'
 import { TuteurVocalPage } from './pages/TuteurVocalPage'
+import { AdminPage } from './pages/AdminPage'
 import { RouteProtegee } from './components/RouteProtegee'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/couloirs/:id" element={<RouteProtegee><CouloirDetailPage /></RouteProtegee>} />
           <Route path="/couloirs/:id/rejoindre" element={<RouteProtegee><RejoindreCouloirPage /></RouteProtegee>} />
           <Route path="/parametres" element={<RouteProtegee><ParametresCompteePage /></RouteProtegee>} />
+          <Route path="/admin" element={<RouteProtegee adminRequis><AdminPage /></RouteProtegee>} />
           <Route path="/tableau-de-bord" element={<RouteProtegee module="ENTREPRISE"><TableauDeBordPage /></RouteProtegee>} />
           <Route path="/couloirs/:id/matieres" element={<RouteProtegee module="ECOLE"><MatieresPage /></RouteProtegee>} />
           <Route path="/import-matieres" element={<RouteProtegee module="ECOLE"><ImporterMatieresPage /></RouteProtegee>} />
