@@ -258,4 +258,26 @@ class CouloirServiceTest {
 
         assertThat(resultat).containsExactly(membre);
     }
+
+    // Point unique de verification reutilise par les services Ecole
+    // (Matiere/Notion/Seance/NotionCandidate/DocumentMatiere) -- voir audit
+    // du 2026-07-27, ces services dupliquaient chacun la meme logique avant.
+    @Test
+    void verifierProprietaireDuCouloir_ne_leve_rien_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        couloirService.verifierProprietaireDuCouloir(couloir.getId(), proprietaireId);
+    }
+
+    @Test
+    void verifierProprietaireDuCouloir_leve_une_exception_si_pas_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        Couloir couloir = new Couloir("Classe", proprietaireId);
+        when(couloirRepository.findById(couloir.getId())).thenReturn(Optional.of(couloir));
+
+        assertThatThrownBy(() -> couloirService.verifierProprietaireDuCouloir(couloir.getId(), UUID.randomUUID()))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+    }
 }

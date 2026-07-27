@@ -16,6 +16,8 @@ import {
 import { obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, DocumentMatiere, Matiere, Notion, NotionCandidate, Seance } from '../types'
 
+const INTERVALLE_POLLING_DOCUMENTS_MS = 4000
+
 export function MatiereDetailPage() {
   const { id: matiereId } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -72,6 +74,39 @@ export function MatiereDetailPage() {
     void rafraichir()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matiereId])
+
+  // L'extraction (Document Intelligence) puis la generation des candidats
+  // (Azure OpenAI) sont asynchrones cote serveur -- environ 9s observees en
+  // conditions reelles. Tant qu'un document reste EN_ATTENTE, on reinterroge
+  // periodiquement plutot que de laisser l'ecran fige sur l'etat televerse.
+  useEffect(() => {
+    if (!matiereId) return
+    if (!documents.some((d) => d.statut === 'EN_ATTENTE')) return
+
+    let annule = false
+    const intervalle = window.setInterval(() => {
+      Promise.all([listerDocumentsMatiere(matiereId), listerNotionsCandidates(matiereId)])
+        .then(([d, cd]) => {
+          if (annule) return
+          setDocuments(d)
+          const enAttente = cd.filter((candidate) => candidate.statut === 'EN_ATTENTE')
+          setCandidates(enAttente)
+          setCandidatsEdites((prev) => {
+            const next: Record<string, { terme: string; definition: string }> = {}
+            enAttente.forEach((candidate) => {
+              next[candidate.id] = prev[candidate.id] ?? { terme: candidate.terme, definition: candidate.definition }
+            })
+            return next
+          })
+        })
+        .catch(() => {})
+    }, INTERVALLE_POLLING_DOCUMENTS_MS)
+
+    return () => {
+      annule = true
+      window.clearInterval(intervalle)
+    }
+  }, [matiereId, documents])
 
   async function ajouterNotion(e: React.FormEvent) {
     e.preventDefault()

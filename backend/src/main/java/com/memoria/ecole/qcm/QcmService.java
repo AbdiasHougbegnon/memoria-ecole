@@ -45,8 +45,8 @@ public class QcmService {
 
     // Genere a la demande uniquement, comme le resume de cours dont il depend.
     // Mis en cache des la premiere generation, jamais regenere ensuite.
-    public Qcm obtenirOuGenererQcm(UUID sessionId) {
-        sessionService.obtenirSession(sessionId);
+    public Qcm obtenirOuGenererQcm(UUID sessionId, UUID utilisateurId) {
+        sessionService.verifierAcces(sessionId, utilisateurId);
 
         Optional<Qcm> existant = qcmRepository.findBySessionId(sessionId);
         if (existant.isPresent()) {

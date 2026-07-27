@@ -16,24 +16,33 @@ export function RecherchePage() {
   const [chargement, setChargement] = useState(false)
   const [aRecherche, setARecherche] = useState(false)
   const [reindexationLancee, setReindexationLancee] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
 
   async function lancerRecherche(e: React.FormEvent) {
     e.preventDefault()
     if (!requete.trim()) {
       return
     }
+    setErreur(null)
     setChargement(true)
     setARecherche(true)
     try {
       setResultats(await rechercher(requete.trim()))
+    } catch {
+      setErreur('La recherche a echoue. Reessaie dans un instant.')
     } finally {
       setChargement(false)
     }
   }
 
   async function lancerReindexation() {
-    await reindexerHistorique()
-    setReindexationLancee(true)
+    setErreur(null)
+    try {
+      await reindexerHistorique()
+      setReindexationLancee(true)
+    } catch {
+      setErreur("Impossible de lancer la reindexation.")
+    }
   }
 
   return (
@@ -87,6 +96,8 @@ export function RecherchePage() {
           </button>
         )}
       </p>
+
+      {erreur && <p className="mb-6 text-center text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
       {aRecherche && !chargement && resultats.length === 0 && (
         <p className="text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun resultat.</p>

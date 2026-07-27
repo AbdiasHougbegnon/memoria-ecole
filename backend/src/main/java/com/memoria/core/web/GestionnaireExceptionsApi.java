@@ -187,6 +187,11 @@ public class GestionnaireExceptionsApi {
     public void gererClasseIntrouvable() {
     }
 
+    @ExceptionHandler(com.memoria.core.session.AccesSessionRefuseException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererAccesSessionRefuse() {
+    }
+
     @ExceptionHandler(com.memoria.ecole.document.DocumentMatiereNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public void gererDocumentMatiereIntrouvable() {

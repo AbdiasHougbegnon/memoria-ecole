@@ -148,13 +148,16 @@ class EngagementServiceTest {
     @Test
     void confirmer_fait_passer_un_engagement_en_attente_a_confirme() {
         UUID id = UUID.randomUUID();
-        Engagement engagement = new Engagement(UUID.randomUUID(), "Envoyer le mail", null, null);
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", null, null);
         when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Engagement resultat = engagementService.confirmer(id);
+        Engagement resultat = engagementService.confirmer(id, utilisateurId);
 
         assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.CONFIRME);
+        verify(sessionService).verifierAcces(sessionId, utilisateurId);
     }
 
     @Test
@@ -164,7 +167,7 @@ class EngagementServiceTest {
         when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Engagement resultat = engagementService.rejeter(id);
+        Engagement resultat = engagementService.rejeter(id, UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.REJETE);
     }
@@ -179,7 +182,7 @@ class EngagementServiceTest {
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionService.resoudreEmailsParticipants(sessionId)).thenReturn(List.of("createur@test.fr"));
 
-        Engagement resultat = engagementService.terminer(id);
+        Engagement resultat = engagementService.terminer(id, UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(StatutEngagement.TERMINE);
         verify(envoyeurEmail).envoyer(eq("createur@test.fr"), anyString(), anyString());
@@ -197,7 +200,7 @@ class EngagementServiceTest {
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(utilisateurRepository.findById(responsableId)).thenReturn(Optional.of(responsable));
 
-        engagementService.terminer(id);
+        engagementService.terminer(id, UUID.randomUUID());
 
         verify(envoyeurEmail).envoyer(eq("alice@test.fr"), anyString(), anyString());
         verify(sessionService, never()).resoudreEmailsParticipants(any());
@@ -213,7 +216,7 @@ class EngagementServiceTest {
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(sessionService.resoudreEmailsParticipants(sessionId)).thenReturn(List.of());
 
-        engagementService.terminer(id);
+        engagementService.terminer(id, UUID.randomUUID());
 
         verify(envoyeurEmail, never()).envoyer(anyString(), anyString(), anyString());
     }
@@ -224,7 +227,7 @@ class EngagementServiceTest {
         Engagement engagement = new Engagement(UUID.randomUUID(), "Envoyer le mail", null, null);
         when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
 
-        assertThatThrownBy(() -> engagementService.terminer(id))
+        assertThatThrownBy(() -> engagementService.terminer(id, UUID.randomUUID()))
                 .isInstanceOf(TransitionEngagementInvalideException.class);
     }
 
@@ -233,8 +236,23 @@ class EngagementServiceTest {
         UUID id = UUID.randomUUID();
         when(engagementRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> engagementService.confirmer(id))
+        assertThatThrownBy(() -> engagementService.confirmer(id, UUID.randomUUID()))
                 .isInstanceOf(EngagementNotFoundException.class);
+    }
+
+    @Test
+    void confirmer_leve_une_exception_si_pas_acces_a_la_session() {
+        UUID id = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Engagement engagement = new Engagement(sessionId, "Envoyer le mail", null, null);
+        when(engagementRepository.findById(id)).thenReturn(Optional.of(engagement));
+        org.mockito.Mockito.doThrow(new com.memoria.core.session.AccesSessionRefuseException(sessionId, utilisateurId))
+                .when(sessionService).verifierAcces(sessionId, utilisateurId);
+
+        assertThatThrownBy(() -> engagementService.confirmer(id, utilisateurId))
+                .isInstanceOf(com.memoria.core.session.AccesSessionRefuseException.class);
+        verify(engagementRepository, never()).save(any());
     }
 
     @Test
@@ -248,7 +266,7 @@ class EngagementServiceTest {
         when(engagementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         Instant nouvelleEcheance = Instant.parse("2026-02-01T00:00:00Z");
 
-        Engagement resultat = engagementService.planifierEcheance(id, nouvelleEcheance);
+        Engagement resultat = engagementService.planifierEcheance(id, nouvelleEcheance, UUID.randomUUID());
 
         assertThat(resultat.getDateEcheance()).isEqualTo(nouvelleEcheance);
         assertThat(resultat.isRappelEcheanceProcheEnvoye()).isFalse();

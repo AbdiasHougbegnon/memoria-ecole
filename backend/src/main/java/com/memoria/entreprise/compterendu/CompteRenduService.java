@@ -51,8 +51,8 @@ public class CompteRenduService {
     // ne veut pas l'ajouter automatiquement en plus du resume DETAILLE deja
     // genere a la fin de session (discipline de couts du projet). Mis en
     // cache des la premiere generation, jamais regenere ensuite.
-    public CompteRendu obtenirOuGenererCompteRendu(UUID sessionId) {
-        sessionService.obtenirSession(sessionId);
+    public CompteRendu obtenirOuGenererCompteRendu(UUID sessionId, UUID utilisateurId) {
+        sessionService.verifierAcces(sessionId, utilisateurId);
 
         Optional<CompteRendu> existant = compteRenduRepository.findBySessionId(sessionId);
         if (existant.isPresent()) {

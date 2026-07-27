@@ -1,6 +1,7 @@
 package com.memoria.core.resume;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +30,11 @@ public class ResumeController {
     }
 
     @PostMapping
-    public ResumeResponse genererResume(@PathVariable UUID sessionId, @PathVariable ResumeType type) {
-        return ResumeResponse.depuis(resumeService.obtenirOuGenererResume(sessionId, type));
+    public ResumeResponse genererResume(
+            @PathVariable UUID sessionId,
+            @PathVariable ResumeType type,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        return ResumeResponse.depuis(resumeService.obtenirOuGenererResume(sessionId, type, utilisateurId));
     }
 }

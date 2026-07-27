@@ -115,7 +115,7 @@ class SessionServiceTest {
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
         when(sessionRepository.save(session)).thenReturn(session);
 
-        Session resultat = sessionService.terminerSession(session.getId());
+        Session resultat = sessionService.terminerSession(session.getId(), UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
         verify(eventPublisher).publishEvent(new SessionTermineeEvent(session.getId()));
@@ -128,7 +128,7 @@ class SessionServiceTest {
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
         when(sessionRepository.save(session)).thenReturn(session);
 
-        Session resultat = sessionService.terminerSession(session.getId());
+        Session resultat = sessionService.terminerSession(session.getId(), UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(SessionStatus.TERMINEE);
         verify(eventPublisher, never()).publishEvent(any());
@@ -139,8 +139,62 @@ class SessionServiceTest {
         UUID idInconnu = UUID.randomUUID();
         when(sessionRepository.findById(idInconnu)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> sessionService.terminerSession(idInconnu))
+        assertThatThrownBy(() -> sessionService.terminerSession(idInconnu, UUID.randomUUID()))
                 .isInstanceOf(SessionNotFoundException.class);
+    }
+
+    @Test
+    void terminerSession_leve_une_exception_si_lutilisateur_na_pas_acces() {
+        UUID createurId = UUID.randomUUID();
+        UUID autreUtilisateurId = UUID.randomUUID();
+        Session session = new Session("Cours de reseaux", createurId, null);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> sessionService.terminerSession(session.getId(), autreUtilisateurId))
+                .isInstanceOf(AccesSessionRefuseException.class);
+        verify(sessionRepository, never()).save(any());
+    }
+
+    @Test
+    void verifierAcces_autorise_le_createur() {
+        UUID createurId = UUID.randomUUID();
+        Session session = new Session("Cours de reseaux", createurId, null);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+
+        sessionService.verifierAcces(session.getId(), createurId);
+    }
+
+    @Test
+    void verifierAcces_autorise_un_membre_du_couloir_rattache() {
+        UUID createurId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Session session = new Session("Cours de reseaux", createurId, couloirId);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, membreId)).thenReturn(true);
+
+        sessionService.verifierAcces(session.getId(), membreId);
+    }
+
+    @Test
+    void verifierAcces_autorise_tout_le_monde_si_la_session_est_anterieure_au_createur() {
+        Session session = new Session("Cours de reseaux");
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+
+        sessionService.verifierAcces(session.getId(), UUID.randomUUID());
+    }
+
+    @Test
+    void verifierAcces_refuse_un_utilisateur_sans_lien_avec_la_session() {
+        UUID createurId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID etranger = UUID.randomUUID();
+        Session session = new Session("Cours de reseaux", createurId, couloirId);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, etranger)).thenReturn(false);
+
+        assertThatThrownBy(() -> sessionService.verifierAcces(session.getId(), etranger))
+                .isInstanceOf(AccesSessionRefuseException.class);
     }
 
     @Test

@@ -41,8 +41,8 @@ public class ResumeCoursService {
     // Entreprise) : un appel Azure OpenAI de plus par session, pas ajoute
     // automatiquement en fin de session. Mis en cache des la premiere
     // generation, jamais regenere ensuite.
-    public ResumeCours obtenirOuGenererResumeCours(UUID sessionId) {
-        sessionService.obtenirSession(sessionId);
+    public ResumeCours obtenirOuGenererResumeCours(UUID sessionId, UUID utilisateurId) {
+        sessionService.verifierAcces(sessionId, utilisateurId);
 
         Optional<ResumeCours> existant = resumeCoursRepository.findBySessionId(sessionId);
         if (existant.isPresent()) {

@@ -72,9 +72,19 @@ public class ResumeService {
         genererEtEnregistrerSiAbsent(sessionId, ResumeType.DETAILLE, transcriptionsReussies);
     }
 
-    // Generation a la demande d'un type de resume (court, detaille, actions).
+    // Generation a la demande d'un type de resume (court, detaille, actions),
+    // depuis une requete HTTP authentifiee -- verifie l'acces a la session.
     // Mis en cache des la premiere generation reussie ou echouee : jamais
     // regenere ensuite, l'utilisateur revoit toujours le meme resultat.
+    public Resume obtenirOuGenererResume(UUID sessionId, ResumeType type, UUID utilisateurId) {
+        sessionService.verifierAcces(sessionId, utilisateurId);
+        return obtenirOuGenererResume(sessionId, type);
+    }
+
+    // Variante sans verification d'acces, reservee aux appelants internes deja
+    // en contexte de confiance (ex. FilMemoireService, declenche par un
+    // evenement systeme a la fin d'une session, pas par une requete HTTP
+    // d'un utilisateur precis) -- voir audit du 2026-07-27.
     public Resume obtenirOuGenererResume(UUID sessionId, ResumeType type) {
         sessionService.obtenirSession(sessionId);
 

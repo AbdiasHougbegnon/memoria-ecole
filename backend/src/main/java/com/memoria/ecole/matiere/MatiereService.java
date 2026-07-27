@@ -1,8 +1,6 @@
 package com.memoria.ecole.matiere;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 
 import org.springframework.stereotype.Service;
 
@@ -25,7 +23,7 @@ public class MatiereService {
     }
 
     public Matiere creerMatiere(String nom, UUID couloirId, UUID utilisateurId) {
-        verifierProprietaireDuCouloir(couloirId, utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(couloirId, utilisateurId);
         return matiereRepository.save(new Matiere(nom, couloirId, utilisateurId));
     }
 
@@ -36,12 +34,5 @@ public class MatiereService {
 
     public List<Matiere> listerMatieresParCouloir(UUID couloirId) {
         return matiereRepository.findByCouloirId(couloirId);
-    }
-
-    private void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = couloirService.obtenirCouloir(couloirId);
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloirId, utilisateurId);
-        }
     }
 }

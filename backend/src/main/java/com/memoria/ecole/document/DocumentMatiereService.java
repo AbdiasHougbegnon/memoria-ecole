@@ -1,8 +1,6 @@
 package com.memoria.ecole.document;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.core.document.ExtracteurDocumentPort;
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.StockageDocumentPort;
@@ -68,7 +66,7 @@ public class DocumentMatiereService {
             UUID matiereId, String nomFichierOriginal, String typeContenu, byte[] contenu, UUID utilisateurId
     ) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
 
         String nomFichier = (nomFichierOriginal == null || nomFichierOriginal.isBlank())
                 ? "document"
@@ -135,12 +133,5 @@ public class DocumentMatiereService {
     public List<DocumentMatiere> listerDocuments(UUID matiereId) {
         matiereService.obtenirMatiere(matiereId);
         return documentMatiereRepository.findByMatiereIdOrderByDateCreationAsc(matiereId);
-    }
-
-    private void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = couloirService.obtenirCouloir(couloirId);
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloirId, utilisateurId);
-        }
     }
 }

@@ -15,13 +15,6 @@ import com.memoria.core.resume.ResumeRepository;
 import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
-import com.memoria.ecole.notion.MaitriseNotionRepository;
-import com.memoria.ecole.qcm.TentativeQcmRepository;
-import com.memoria.ecole.resumecours.ResumeCoursRepository;
-import com.memoria.ecole.tuteurvocal.SeanceTutoratRepository;
-import com.memoria.ecole.tuteurvocal.TourDialogueTutoratRepository;
-import com.memoria.entreprise.compterendu.CompteRenduRepository;
-import com.memoria.entreprise.engagement.EngagementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,31 +42,28 @@ class GouvernanceDonneesServiceTest {
     @Mock private UtilisateurRepository utilisateurRepository;
     @Mock private EmpreinteVocaleService empreinteVocaleService;
     @Mock private EmpreinteVocaleRepository empreinteVocaleRepository;
-    @Mock private SeanceTutoratRepository seanceTutoratRepository;
-    @Mock private TourDialogueTutoratRepository tourDialogueTutoratRepository;
-    @Mock private MaitriseNotionRepository maitriseNotionRepository;
-    @Mock private TentativeQcmRepository tentativeQcmRepository;
     @Mock private CouloirRepository couloirRepository;
     @Mock private CouloirService couloirService;
     @Mock private MembreCouloirRepository membreCouloirRepository;
     @Mock private SessionRepository sessionRepository;
-    @Mock private EngagementRepository engagementRepository;
     @Mock private TranscriptionRepository transcriptionRepository;
     @Mock private ResumeRepository resumeRepository;
-    @Mock private CompteRenduRepository compteRenduRepository;
-    @Mock private ResumeCoursRepository resumeCoursRepository;
     @Mock private SessionPurgeService sessionPurgeService;
     @Mock private JournalRgpdRepository journalRgpdRepository;
+
+    private final EffaceurDonneesUtilisateurPort effaceurEcole = mock(EffaceurDonneesUtilisateurPort.class);
+    private final EffaceurDonneesUtilisateurPort effaceurEntreprise = mock(EffaceurDonneesUtilisateurPort.class);
+    private final ExportateurDonneesUtilisateurPort exportateurEcole = mock(ExportateurDonneesUtilisateurPort.class);
+    private final ExportateurDonneesUtilisateurPort exportateurEntreprise = mock(ExportateurDonneesUtilisateurPort.class);
 
     private GouvernanceDonneesService gouvernanceDonneesService;
 
     @BeforeEach
     void setUp() {
         gouvernanceDonneesService = new GouvernanceDonneesService(
-                utilisateurRepository, empreinteVocaleService, empreinteVocaleRepository, seanceTutoratRepository,
-                tourDialogueTutoratRepository, maitriseNotionRepository, tentativeQcmRepository, couloirRepository, couloirService,
-                membreCouloirRepository, sessionRepository, engagementRepository, transcriptionRepository,
-                resumeRepository, compteRenduRepository, resumeCoursRepository, sessionPurgeService, journalRgpdRepository
+                utilisateurRepository, empreinteVocaleService, empreinteVocaleRepository, couloirRepository, couloirService,
+                membreCouloirRepository, sessionRepository, transcriptionRepository, resumeRepository, sessionPurgeService,
+                journalRgpdRepository, List.of(effaceurEcole, effaceurEntreprise), List.of(exportateurEcole, exportateurEntreprise)
         );
     }
 
@@ -87,20 +77,18 @@ class GouvernanceDonneesServiceTest {
     }
 
     @Test
-    void effacerCompte_revoque_lempreinte_vocale_et_les_donnees_personnelles_exclusives() {
+    void effacerCompte_revoque_lempreinte_vocale_et_delegue_aux_produits() {
         UUID utilisateurId = UUID.randomUUID();
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
-        when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of());
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
 
         gouvernanceDonneesService.effacerCompte(utilisateurId);
 
         verify(empreinteVocaleService).revoquer(utilisateurId);
-        verify(maitriseNotionRepository).deleteByUtilisateurId(utilisateurId);
-        verify(tentativeQcmRepository).deleteByUtilisateurId(utilisateurId);
+        verify(effaceurEcole).effacerDonneesUtilisateur(utilisateurId);
+        verify(effaceurEntreprise).effacerDonneesUtilisateur(utilisateurId);
         verify(membreCouloirRepository).deleteByUtilisateurId(utilisateurId);
-        verify(engagementRepository).anonymiserResponsable(utilisateurId);
         verify(transcriptionRepository).anonymiserSegmentsLocuteur(utilisateurId);
         verify(utilisateurRepository).deleteById(utilisateurId);
     }
@@ -118,7 +106,6 @@ class GouvernanceDonneesServiceTest {
         MembreCouloir proprietaire = membreProprietaire(utilisateurId);
 
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
-        when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of(couloir));
         when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(membreRecent, membreAncien, proprietaire));
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
@@ -137,7 +124,6 @@ class GouvernanceDonneesServiceTest {
         MembreCouloir proprietaire = membreProprietaire(utilisateurId);
 
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
-        when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of(couloir));
         when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(proprietaire));
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
@@ -156,7 +142,6 @@ class GouvernanceDonneesServiceTest {
         Session partagee = new Session("Cours", utilisateurId, couloirId);
 
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
-        when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of());
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of(personnelle, partagee));
 
@@ -217,17 +202,30 @@ class GouvernanceDonneesServiceTest {
         Utilisateur utilisateur = new Utilisateur("jean@test.fr", "hash", ModuleMemoria.ENTREPRISE);
         when(utilisateurRepository.findById(utilisateurId)).thenReturn(Optional.of(utilisateur));
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
-        when(engagementRepository.findByResponsableUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(empreinteVocaleRepository.findByUtilisateurId(utilisateurId)).thenReturn(Optional.empty());
-        when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
-        when(maitriseNotionRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
-        when(tentativeQcmRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
         when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
 
         ExportDonneesUtilisateur export = gouvernanceDonneesService.exporterDonnees(utilisateurId);
 
         assertThat(export.email()).isEqualTo("jean@test.fr");
         assertThat(export.empreinteVocale().presente()).isFalse();
+    }
+
+    @Test
+    void exporterDonnees_agrege_les_engagements_de_tous_les_produits_contributeurs() {
+        UUID utilisateurId = UUID.randomUUID();
+        Utilisateur utilisateur = new Utilisateur("jean@test.fr", "hash", ModuleMemoria.ENTREPRISE);
+        ExportDonneesUtilisateur.EngagementExporte engagement = new ExportDonneesUtilisateur.EngagementExporte(
+                UUID.randomUUID(), UUID.randomUUID(), "Rediger le compte-rendu", null, "EN_COURS");
+        when(utilisateurRepository.findById(utilisateurId)).thenReturn(Optional.of(utilisateur));
+        when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
+        when(empreinteVocaleRepository.findByUtilisateurId(utilisateurId)).thenReturn(Optional.empty());
+        when(membreCouloirRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of());
+        when(exportateurEntreprise.exporterEngagements(utilisateurId)).thenReturn(List.of(engagement));
+
+        ExportDonneesUtilisateur export = gouvernanceDonneesService.exporterDonnees(utilisateurId);
+
+        assertThat(export.engagementsResponsable()).containsExactly(engagement);
     }
 
     // MembreCouloir n'a aucun point d'injection de date (constructeur =

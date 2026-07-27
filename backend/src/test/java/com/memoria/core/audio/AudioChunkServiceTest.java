@@ -49,15 +49,17 @@ class AudioChunkServiceTest {
     @Test
     void enregistrerChunk_stocke_le_binaire_et_sauvegarde_les_metadonnees_quand_nouveau() {
         Session session = new Session("Cours de reseaux");
+        UUID utilisateurId = UUID.randomUUID();
         when(sessionService.obtenirSession(session.getId())).thenReturn(session);
         when(audioChunkRepository.findBySessionIdAndNumeroSequence(session.getId(), 0)).thenReturn(Optional.empty());
         when(stockageAudio.sauvegarder(any(), anyInt(), any())).thenReturn("/data/audio/x/0.chunk");
         when(audioChunkRepository.save(any(AudioChunk.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         byte[] donnees = {1, 2, 3};
-        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(session.getId(), 0, donnees);
+        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(session.getId(), 0, donnees, utilisateurId);
 
         verify(stockageAudio).sauvegarder(session.getId(), 0, donnees);
+        verify(sessionService).verifierAcces(session.getId(), utilisateurId);
         assertThat(resultat.dejaRecu()).isFalse();
         assertThat(resultat.chunk().getSessionId()).isEqualTo(session.getId());
         assertThat(resultat.chunk().getNumeroSequence()).isEqualTo(0);
@@ -67,13 +69,28 @@ class AudioChunkServiceTest {
     }
 
     @Test
+    void enregistrerChunk_leve_une_exception_si_pas_acces_a_la_session() {
+        Session session = new Session("Cours de reseaux");
+        UUID utilisateurId = UUID.randomUUID();
+        when(sessionService.obtenirSession(session.getId())).thenReturn(session);
+        org.mockito.Mockito.doThrow(new com.memoria.core.session.AccesSessionRefuseException(session.getId(), utilisateurId))
+                .when(sessionService).verifierAcces(session.getId(), utilisateurId);
+
+        assertThatThrownBy(() -> audioChunkService.enregistrerChunk(session.getId(), 0, new byte[]{1}, utilisateurId))
+                .isInstanceOf(com.memoria.core.session.AccesSessionRefuseException.class);
+        verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void enregistrerChunk_est_idempotent_quand_le_chunk_a_deja_ete_recu() {
         Session session = new Session("Cours de reseaux");
+        UUID utilisateurId = UUID.randomUUID();
         AudioChunk chunkExistant = new AudioChunk(session.getId(), 0, "/data/audio/x/0.chunk", 3);
         when(sessionService.obtenirSession(session.getId())).thenReturn(session);
         when(audioChunkRepository.findBySessionIdAndNumeroSequence(session.getId(), 0)).thenReturn(Optional.of(chunkExistant));
 
-        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(session.getId(), 0, new byte[]{1, 2, 3});
+        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(session.getId(), 0, new byte[]{1, 2, 3}, utilisateurId);
 
         assertThat(resultat.dejaRecu()).isTrue();
         assertThat(resultat.chunk()).isSameAs(chunkExistant);
@@ -87,7 +104,7 @@ class AudioChunkServiceTest {
         UUID idInconnu = UUID.randomUUID();
         when(sessionService.obtenirSession(idInconnu)).thenThrow(new SessionNotFoundException(idInconnu));
 
-        assertThatThrownBy(() -> audioChunkService.enregistrerChunk(idInconnu, 0, new byte[]{1}))
+        assertThatThrownBy(() -> audioChunkService.enregistrerChunk(idInconnu, 0, new byte[]{1}, UUID.randomUUID()))
                 .isInstanceOf(SessionNotFoundException.class);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
         verify(eventPublisher, never()).publishEvent(any());
@@ -100,7 +117,7 @@ class AudioChunkServiceTest {
         when(session.getStatut()).thenReturn(SessionStatus.TERMINEE);
         when(sessionService.obtenirSession(sessionId)).thenReturn(session);
 
-        assertThatThrownBy(() -> audioChunkService.enregistrerChunk(sessionId, 0, new byte[]{1}))
+        assertThatThrownBy(() -> audioChunkService.enregistrerChunk(sessionId, 0, new byte[]{1}, UUID.randomUUID()))
                 .isInstanceOf(SessionNonActiveException.class);
         verify(stockageAudio, never()).sauvegarder(any(), anyInt(), any());
         verify(eventPublisher, never()).publishEvent(any());

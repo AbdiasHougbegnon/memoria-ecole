@@ -11,16 +11,12 @@ import com.memoria.core.recherche.RecherchePort;
 import com.memoria.core.resume.ResumeRepository;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
-import com.memoria.ecole.qcm.QcmRepository;
-import com.memoria.ecole.qcm.TentativeQcmRepository;
-import com.memoria.ecole.resumecours.ResumeCoursRepository;
-import com.memoria.entreprise.compterendu.CompteRenduRepository;
-import com.memoria.entreprise.engagement.EngagementRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 // Point d'entree unique pour "supprimer completement une session et tout ce
@@ -28,6 +24,12 @@ import java.util.UUID;
 // sessions personnelles) et par la purge de retention (RetentionService,
 // toutes les sessions, sans distinction personnelle/partagee). Voir
 // docs/phases/phase-13-gouvernance-donnees.md.
+//
+// Les donnees specifiques a un produit (Ecole, Entreprise) sont purgees via
+// PurgeurDonneesSessionPort, implemente par chaque produit et collecte
+// automatiquement par Spring -- ce service core ne connait plus aucun type
+// Ecole/Entreprise concret (voir audit du 2026-07-27, avant cette extraction
+// il importait directement QcmRepository, CompteRenduRepository, etc.).
 @Service
 public class SessionPurgeService {
 
@@ -36,51 +38,39 @@ public class SessionPurgeService {
     private final DocumentRepository documentRepository;
     private final TranscriptionRepository transcriptionRepository;
     private final ResumeRepository resumeRepository;
-    private final CompteRenduRepository compteRenduRepository;
-    private final ResumeCoursRepository resumeCoursRepository;
-    private final QcmRepository qcmRepository;
-    private final TentativeQcmRepository tentativeQcmRepository;
     private final IndexRechercheRepository indexRechercheRepository;
     private final AudioChunkRepository audioChunkRepository;
-    private final EngagementRepository engagementRepository;
     private final FilMemoireRepository filMemoireRepository;
     private final SessionRepository sessionRepository;
     private final StockageAudioPort stockageAudio;
     private final StockageDocumentPort stockageDocument;
     private final RecherchePort recherche;
+    private final List<PurgeurDonneesSessionPort> purgeursProduits;
 
     public SessionPurgeService(
             DocumentRepository documentRepository,
             TranscriptionRepository transcriptionRepository,
             ResumeRepository resumeRepository,
-            CompteRenduRepository compteRenduRepository,
-            ResumeCoursRepository resumeCoursRepository,
-            QcmRepository qcmRepository,
-            TentativeQcmRepository tentativeQcmRepository,
             IndexRechercheRepository indexRechercheRepository,
             AudioChunkRepository audioChunkRepository,
-            EngagementRepository engagementRepository,
             FilMemoireRepository filMemoireRepository,
             SessionRepository sessionRepository,
             StockageAudioPort stockageAudio,
             StockageDocumentPort stockageDocument,
-            RecherchePort recherche
+            RecherchePort recherche,
+            List<PurgeurDonneesSessionPort> purgeursProduits
     ) {
         this.documentRepository = documentRepository;
         this.transcriptionRepository = transcriptionRepository;
         this.resumeRepository = resumeRepository;
-        this.compteRenduRepository = compteRenduRepository;
-        this.resumeCoursRepository = resumeCoursRepository;
-        this.qcmRepository = qcmRepository;
-        this.tentativeQcmRepository = tentativeQcmRepository;
         this.indexRechercheRepository = indexRechercheRepository;
         this.audioChunkRepository = audioChunkRepository;
-        this.engagementRepository = engagementRepository;
         this.filMemoireRepository = filMemoireRepository;
         this.sessionRepository = sessionRepository;
         this.stockageAudio = stockageAudio;
         this.stockageDocument = stockageDocument;
         this.recherche = recherche;
+        this.purgeursProduits = purgeursProduits;
     }
 
     @Transactional
@@ -88,13 +78,9 @@ public class SessionPurgeService {
         documentRepository.deleteBySessionId(sessionId);
         transcriptionRepository.deleteBySessionId(sessionId);
         resumeRepository.deleteBySessionId(sessionId);
-        compteRenduRepository.deleteBySessionId(sessionId);
-        resumeCoursRepository.deleteBySessionId(sessionId);
-        qcmRepository.findBySessionId(sessionId).ifPresent(qcm -> tentativeQcmRepository.deleteByQcmId(qcm.getId()));
-        qcmRepository.deleteBySessionId(sessionId);
+        purgeursProduits.forEach(purgeur -> purgeur.purgerDonneesSession(sessionId));
         indexRechercheRepository.deleteBySessionId(sessionId);
         audioChunkRepository.deleteBySessionId(sessionId);
-        engagementRepository.deleteBySessionId(sessionId);
         filMemoireRepository.findBySessionId(sessionId).ifPresent(fil -> retirerOuSupprimerFil(fil, sessionId));
         sessionRepository.deleteById(sessionId);
     }

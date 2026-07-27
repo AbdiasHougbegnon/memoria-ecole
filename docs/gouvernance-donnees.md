@@ -85,6 +85,17 @@ toute l'application, un chantier d'observabilité à part entière, hors de prop
 cette brique. Consultable uniquement par requête directe en base pour l'instant : aucun
 endpoint de consultation n'existe (pas de rôle admin pour le gater).
 
+## 5bis. Note d'architecture (juillet 2026)
+
+`GouvernanceDonneesService` et `SessionPurgeService` n'importent plus aucune classe
+concrète `ecole.*`/`entreprise.*` — chaque produit apporte sa part via les ports
+`EffaceurDonneesUtilisateurPort`/`PurgeurDonneesSessionPort`/
+`ExportateurDonneesUtilisateurPort` (`core.gouvernance`), implémentés par
+`EcoleGouvernanceContributor`/`EntrepriseGouvernanceContributor`. Comportement
+fonctionnel inchangé (voir §2/§3) — seule l'architecture interne a bougé, pour respecter
+la règle "le moteur ne dépend jamais d'un produit" (voir
+`docs/audit-securite-architecture-2026-07.md` §2).
+
 ## 6. Ce qui reste à faire, explicitement
 
 - **Chiffrement au repos et en transit** : ni implémenté dans le code, ni encore documenté

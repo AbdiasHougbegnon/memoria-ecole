@@ -1,6 +1,5 @@
 package com.memoria.ecole.notion;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
@@ -20,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +53,6 @@ class NotionServiceTest {
         UUID matiereId = UUID.randomUUID();
         Matiere matiere = new Matiere("Mathematiques", couloirId, proprietaireId);
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
         when(notionRepository.save(any(Notion.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Notion notion = notionService.creerNotion(matiereId, "Derivees", "Taux de variation instantane", 1, proprietaireId);
@@ -61,18 +60,20 @@ class NotionServiceTest {
         assertThat(notion.getTerme()).isEqualTo("Derivees");
         assertThat(notion.getMatiereId()).isEqualTo(matiereId);
         assertThat(notion.getOrdre()).isEqualTo(1);
+        verify(couloirService).verifierProprietaireDuCouloir(couloirId, proprietaireId);
     }
 
     @Test
     void creerNotion_leve_une_exception_si_pas_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
-        Matiere matiere = new Matiere("Mathematiques", couloirId, proprietaireId);
+        UUID utilisateurId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
 
-        assertThatThrownBy(() -> notionService.creerNotion(matiereId, "Derivees", "def", 1, UUID.randomUUID()))
+        assertThatThrownBy(() -> notionService.creerNotion(matiereId, "Derivees", "def", 1, utilisateurId))
                 .isInstanceOf(PasProprietaireDuCouloirException.class);
         verify(notionRepository, never()).save(any());
     }

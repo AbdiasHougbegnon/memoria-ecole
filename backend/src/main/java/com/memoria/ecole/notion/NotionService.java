@@ -1,8 +1,6 @@
 package com.memoria.ecole.notion;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
 
@@ -35,7 +33,7 @@ public class NotionService {
 
     public Notion creerNotion(UUID matiereId, String terme, String definition, int ordre, UUID utilisateurId) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
         return notionRepository.save(new Notion(matiereId, terme, definition, ordre));
     }
 
@@ -46,7 +44,7 @@ public class NotionService {
             UUID matiereId, String terme, String definition, int ordre, UUID documentSourceId, UUID utilisateurId
     ) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
         return notionRepository.save(new Notion(matiereId, terme, definition, ordre, documentSourceId));
     }
 
@@ -81,12 +79,5 @@ public class NotionService {
                 .orElseGet(() -> new MaitriseNotion(notionId, utilisateurId));
         maitrise.mettreAJour(niveau);
         return maitriseNotionRepository.save(maitrise);
-    }
-
-    private void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = couloirService.obtenirCouloir(couloirId);
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloirId, utilisateurId);
-        }
     }
 }

@@ -1,8 +1,6 @@
 package com.memoria.ecole.seance;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.Notion;
@@ -39,7 +37,7 @@ public class SeanceService {
 
     public Seance creerSeance(String titre, UUID matiereId, UUID utilisateurId) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
         return seanceRepository.save(new Seance(titre, matiereId, matiere.getCouloirId()));
     }
 
@@ -71,7 +69,7 @@ public class SeanceService {
     @Transactional
     public void rattacherNotions(UUID seanceId, List<UUID> notionIds, UUID utilisateurId) {
         Seance seance = obtenirSeance(seanceId);
-        verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
         seanceNotionRepository.deleteBySeanceId(seanceId);
         seanceNotionRepository.flush();
         for (int i = 0; i < notionIds.size(); i++) {
@@ -83,12 +81,5 @@ public class SeanceService {
         return seanceNotionRepository.findBySeanceIdOrderByOrdreAsc(seanceId).stream()
                 .map(seanceNotion -> notionService.obtenirNotion(seanceNotion.getNotionId()))
                 .toList();
-    }
-
-    private void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = couloirService.obtenirCouloir(couloirId);
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloirId, utilisateurId);
-        }
     }
 }

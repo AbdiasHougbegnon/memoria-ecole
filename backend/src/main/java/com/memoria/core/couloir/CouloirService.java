@@ -112,6 +112,14 @@ public class CouloirService {
         return couloirRepository.save(couloir);
     }
 
+    // Point unique de verification "proprietaire du couloir" -- reutilise par
+    // MatiereService/NotionService/SeanceService/NotionCandidateService/
+    // DocumentMatiereService, qui dupliquaient chacun la meme logique avant
+    // (voir audit du 2026-07-27, risque de divergence future).
+    public void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
+        verifierProprietaire(obtenirCouloir(couloirId), utilisateurId);
+    }
+
     private void verifierProprietaire(Couloir couloir, UUID utilisateurId) {
         if (!couloir.getProprietaireId().equals(utilisateurId)) {
             throw new PasProprietaireDuCouloirException(couloir.getId(), utilisateurId);

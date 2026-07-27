@@ -3,6 +3,7 @@ package com.memoria.core.audio;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -27,9 +28,10 @@ public class AudioChunkController {
     public ResponseEntity<EnregistrerChunkResponse> enregistrerChunk(
             @PathVariable UUID sessionId,
             @PathVariable int numeroSequence,
-            @RequestBody byte[] donnees
+            @RequestBody byte[] donnees,
+            @AuthenticationPrincipal UUID utilisateurId
     ) {
-        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(sessionId, numeroSequence, donnees);
+        ResultatEnregistrementChunk resultat = audioChunkService.enregistrerChunk(sessionId, numeroSequence, donnees, utilisateurId);
         HttpStatus statut = resultat.dejaRecu() ? HttpStatus.OK : HttpStatus.CREATED;
         return ResponseEntity.status(statut).body(EnregistrerChunkResponse.depuis(resultat));
     }

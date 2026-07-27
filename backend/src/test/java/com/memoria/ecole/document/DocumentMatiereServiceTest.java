@@ -1,6 +1,5 @@
 package com.memoria.ecole.document;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.core.document.ExtracteurDocumentPort;
@@ -33,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,7 +80,6 @@ class DocumentMatiereServiceTest {
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
         when(stockageDocument.sauvegarder(eq(matiereId), anyString(), any())).thenReturn("/data/documents-matiere/x");
         when(documentMatiereRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -95,14 +94,15 @@ class DocumentMatiereServiceTest {
 
     @Test
     void televerser_leve_une_exception_si_pas_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
-        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+        UUID utilisateurId = UUID.randomUUID();
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
 
         assertThatThrownBy(() -> documentMatiereService.televerser(
-                matiereId, "fiche.pdf", "application/pdf", new byte[]{1}, UUID.randomUUID()
+                matiereId, "fiche.pdf", "application/pdf", new byte[]{1}, utilisateurId
         )).isInstanceOf(PasProprietaireDuCouloirException.class);
         verify(stockageDocument, never()).sauvegarder(any(), any(), any());
     }
@@ -124,7 +124,6 @@ class DocumentMatiereServiceTest {
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
         when(stockageDocument.sauvegarder(eq(matiereId), anyString(), any())).thenReturn("/data/documents-matiere/x");
         when(documentMatiereRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

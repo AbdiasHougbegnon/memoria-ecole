@@ -3,6 +3,7 @@ package com.memoria.entreprise.engagement;
 import com.memoria.core.session.SessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,23 +41,27 @@ public class EngagementController {
     }
 
     @PostMapping("/api/v1/engagements/{id}/confirmer")
-    public EngagementResponse confirmer(@PathVariable UUID id) {
-        return versReponse(engagementService.confirmer(id));
+    public EngagementResponse confirmer(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
+        return versReponse(engagementService.confirmer(id, utilisateurId));
     }
 
     @PostMapping("/api/v1/engagements/{id}/rejeter")
-    public EngagementResponse rejeter(@PathVariable UUID id) {
-        return versReponse(engagementService.rejeter(id));
+    public EngagementResponse rejeter(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
+        return versReponse(engagementService.rejeter(id, utilisateurId));
     }
 
     @PostMapping("/api/v1/engagements/{id}/terminer")
-    public EngagementResponse terminer(@PathVariable UUID id) {
-        return versReponse(engagementService.terminer(id));
+    public EngagementResponse terminer(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
+        return versReponse(engagementService.terminer(id, utilisateurId));
     }
 
     @PostMapping("/api/v1/engagements/{id}/echeance")
-    public EngagementResponse planifierEcheance(@PathVariable UUID id, @Valid @RequestBody PlanifierEcheanceRequest requete) {
-        return versReponse(engagementService.planifierEcheance(id, requete.dateEcheance()));
+    public EngagementResponse planifierEcheance(
+            @PathVariable UUID id,
+            @Valid @RequestBody PlanifierEcheanceRequest requete,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        return versReponse(engagementService.planifierEcheance(id, requete.dateEcheance(), utilisateurId));
     }
 
     private EngagementResponse versReponse(Engagement engagement) {

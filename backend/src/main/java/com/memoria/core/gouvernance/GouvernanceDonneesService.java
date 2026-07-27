@@ -15,20 +15,6 @@ import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.Transcription;
 import com.memoria.core.transcription.TranscriptionRepository;
-import com.memoria.ecole.notion.MaitriseNotion;
-import com.memoria.ecole.notion.MaitriseNotionRepository;
-import com.memoria.ecole.qcm.TentativeQcm;
-import com.memoria.ecole.qcm.TentativeQcmRepository;
-import com.memoria.ecole.resumecours.ResumeCours;
-import com.memoria.ecole.resumecours.ResumeCoursRepository;
-import com.memoria.ecole.tuteurvocal.SeanceTutorat;
-import com.memoria.ecole.tuteurvocal.SeanceTutoratRepository;
-import com.memoria.ecole.tuteurvocal.TourDialogueTutorat;
-import com.memoria.ecole.tuteurvocal.TourDialogueTutoratRepository;
-import com.memoria.entreprise.compterendu.CompteRendu;
-import com.memoria.entreprise.compterendu.CompteRenduRepository;
-import com.memoria.entreprise.engagement.Engagement;
-import com.memoria.entreprise.engagement.EngagementRepository;
 import com.memoria.core.resume.Resume;
 import com.memoria.core.resume.ResumeRepository;
 import org.slf4j.Logger;
@@ -39,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 // Droit a l'effacement + export (voir docs/phases/phase-13-gouvernance-donnees.md).
@@ -47,6 +34,13 @@ import java.util.UUID;
 // aux appels internes a une meme instance Spring (self-invocation), donc le
 // controleur orchestre les deux etapes (voir GouvernanceDonneesController) --
 // c'est exactement le role d'un controleur ("orchestrent, ne decident pas").
+//
+// Les donnees specifiques a un produit (Ecole, Entreprise) sont effacees et
+// exportees via EffaceurDonneesUtilisateurPort/ExportateurDonneesUtilisateurPort,
+// implementes par chaque produit et collectes automatiquement par Spring --
+// ce service core ne connait plus aucun type Ecole/Entreprise concret (voir
+// audit du 2026-07-27, avant cette extraction il importait directement
+// SeanceTutorat, Engagement, ResumeCours, etc.).
 @Service
 public class GouvernanceDonneesService {
 
@@ -55,60 +49,45 @@ public class GouvernanceDonneesService {
     private final UtilisateurRepository utilisateurRepository;
     private final EmpreinteVocaleService empreinteVocaleService;
     private final EmpreinteVocaleRepository empreinteVocaleRepository;
-    private final SeanceTutoratRepository seanceTutoratRepository;
-    private final TourDialogueTutoratRepository tourDialogueTutoratRepository;
-    private final MaitriseNotionRepository maitriseNotionRepository;
-    private final TentativeQcmRepository tentativeQcmRepository;
     private final CouloirRepository couloirRepository;
     private final CouloirService couloirService;
     private final MembreCouloirRepository membreCouloirRepository;
     private final SessionRepository sessionRepository;
-    private final EngagementRepository engagementRepository;
     private final TranscriptionRepository transcriptionRepository;
     private final ResumeRepository resumeRepository;
-    private final CompteRenduRepository compteRenduRepository;
-    private final ResumeCoursRepository resumeCoursRepository;
     private final SessionPurgeService sessionPurgeService;
     private final JournalRgpdRepository journalRgpdRepository;
+    private final List<EffaceurDonneesUtilisateurPort> effaceursProduits;
+    private final List<ExportateurDonneesUtilisateurPort> exportateursProduits;
 
     public GouvernanceDonneesService(
             UtilisateurRepository utilisateurRepository,
             EmpreinteVocaleService empreinteVocaleService,
             EmpreinteVocaleRepository empreinteVocaleRepository,
-            SeanceTutoratRepository seanceTutoratRepository,
-            TourDialogueTutoratRepository tourDialogueTutoratRepository,
-            MaitriseNotionRepository maitriseNotionRepository,
-            TentativeQcmRepository tentativeQcmRepository,
             CouloirRepository couloirRepository,
             CouloirService couloirService,
             MembreCouloirRepository membreCouloirRepository,
             SessionRepository sessionRepository,
-            EngagementRepository engagementRepository,
             TranscriptionRepository transcriptionRepository,
             ResumeRepository resumeRepository,
-            CompteRenduRepository compteRenduRepository,
-            ResumeCoursRepository resumeCoursRepository,
             SessionPurgeService sessionPurgeService,
-            JournalRgpdRepository journalRgpdRepository
+            JournalRgpdRepository journalRgpdRepository,
+            List<EffaceurDonneesUtilisateurPort> effaceursProduits,
+            List<ExportateurDonneesUtilisateurPort> exportateursProduits
     ) {
         this.utilisateurRepository = utilisateurRepository;
         this.empreinteVocaleService = empreinteVocaleService;
         this.empreinteVocaleRepository = empreinteVocaleRepository;
-        this.seanceTutoratRepository = seanceTutoratRepository;
-        this.tourDialogueTutoratRepository = tourDialogueTutoratRepository;
-        this.maitriseNotionRepository = maitriseNotionRepository;
-        this.tentativeQcmRepository = tentativeQcmRepository;
         this.couloirRepository = couloirRepository;
         this.couloirService = couloirService;
         this.membreCouloirRepository = membreCouloirRepository;
         this.sessionRepository = sessionRepository;
-        this.engagementRepository = engagementRepository;
         this.transcriptionRepository = transcriptionRepository;
         this.resumeRepository = resumeRepository;
-        this.compteRenduRepository = compteRenduRepository;
-        this.resumeCoursRepository = resumeCoursRepository;
         this.sessionPurgeService = sessionPurgeService;
         this.journalRgpdRepository = journalRgpdRepository;
+        this.effaceursProduits = effaceursProduits;
+        this.exportateursProduits = exportateursProduits;
     }
 
     // Etape 1 (transactionnelle, Postgres uniquement) : anonymise/supprime
@@ -122,14 +101,7 @@ public class GouvernanceDonneesService {
         }
 
         empreinteVocaleService.revoquer(utilisateurId);
-
-        for (SeanceTutorat seance : seanceTutoratRepository.findByUtilisateurId(utilisateurId)) {
-            tourDialogueTutoratRepository.deleteBySeanceTutoratId(seance.getId());
-            seanceTutoratRepository.delete(seance);
-        }
-
-        maitriseNotionRepository.deleteByUtilisateurId(utilisateurId);
-        tentativeQcmRepository.deleteByUtilisateurId(utilisateurId);
+        effaceursProduits.forEach(effaceur -> effaceur.effacerDonneesUtilisateur(utilisateurId));
 
         for (Couloir couloir : couloirRepository.findByProprietaireId(utilisateurId)) {
             List<MembreCouloir> autresMembres = membreCouloirRepository.findByCouloirId(couloir.getId()).stream()
@@ -154,7 +126,6 @@ public class GouvernanceDonneesService {
             }
         }
 
-        engagementRepository.anonymiserResponsable(utilisateurId);
         transcriptionRepository.anonymiserSegmentsLocuteur(utilisateurId);
 
         utilisateurRepository.deleteById(utilisateurId);
@@ -190,25 +161,24 @@ public class GouvernanceDonneesService {
                 .map(this::exporterSession)
                 .toList();
 
-        List<ExportDonneesUtilisateur.EngagementExporte> engagements = engagementRepository.findByResponsableUtilisateurId(utilisateurId).stream()
-                .map(e -> new ExportDonneesUtilisateur.EngagementExporte(
-                        e.getId(), e.getSessionId(), e.getDescription(), e.getEcheance(), e.getStatut().name()))
+        List<ExportDonneesUtilisateur.EngagementExporte> engagements = exportateursProduits.stream()
+                .flatMap(exportateur -> exportateur.exporterEngagements(utilisateurId).stream())
                 .toList();
 
         ExportDonneesUtilisateur.EmpreinteVocaleExportee empreinte = empreinteVocaleRepository.findByUtilisateurId(utilisateurId)
                 .map(this::exporterEmpreinte)
                 .orElse(new ExportDonneesUtilisateur.EmpreinteVocaleExportee(false, null));
 
-        List<ExportDonneesUtilisateur.SeanceTutoratExportee> seancesTutorat = seanceTutoratRepository.findByUtilisateurId(utilisateurId).stream()
-                .map(this::exporterSeanceTutorat)
+        List<ExportDonneesUtilisateur.SeanceTutoratExportee> seancesTutorat = exportateursProduits.stream()
+                .flatMap(exportateur -> exportateur.exporterSeancesTutorat(utilisateurId).stream())
                 .toList();
 
-        List<ExportDonneesUtilisateur.MaitriseNotionExportee> maitrises = maitriseNotionRepository.findByUtilisateurId(utilisateurId).stream()
-                .map(m -> new ExportDonneesUtilisateur.MaitriseNotionExportee(m.getNotionId(), m.getNiveau().name(), m.getNombreTentatives()))
+        List<ExportDonneesUtilisateur.MaitriseNotionExportee> maitrises = exportateursProduits.stream()
+                .flatMap(exportateur -> exportateur.exporterMaitrises(utilisateurId).stream())
                 .toList();
 
-        List<ExportDonneesUtilisateur.TentativeQcmExportee> tentativesQcm = tentativeQcmRepository.findByUtilisateurId(utilisateurId).stream()
-                .map(t -> new ExportDonneesUtilisateur.TentativeQcmExportee(t.getQcmId(), t.getScore(), t.getNombreQuestions(), t.getNombreTentatives()))
+        List<ExportDonneesUtilisateur.TentativeQcmExportee> tentativesQcm = exportateursProduits.stream()
+                .flatMap(exportateur -> exportateur.exporterTentativesQcm(utilisateurId).stream())
                 .toList();
 
         List<ExportDonneesUtilisateur.CouloirExporte> couloirs = membreCouloirRepository.findByUtilisateurId(utilisateurId).stream()
@@ -239,13 +209,17 @@ public class GouvernanceDonneesService {
                 .map((Resume r) -> new ExportDonneesUtilisateur.ResumeExporte(r.getType().name(), r.getTexteResume()))
                 .toList();
 
-        String compteRendu = compteRenduRepository.findBySessionId(session.getId())
-                .map(CompteRendu::getSynthese)
-                .orElse(null);
+        // Au plus un produit repond present pour une session donnee (Ecole XOR
+        // Entreprise) -- voir ExportateurDonneesUtilisateurPort.
+        String compteRendu = exportateursProduits.stream()
+                .map(exportateur -> exportateur.exporterCompteRenduSession(session.getId()))
+                .flatMap(Optional::stream)
+                .findFirst().orElse(null);
 
-        String resumeCours = resumeCoursRepository.findBySessionId(session.getId())
-                .map(ResumeCours::getSynthese)
-                .orElse(null);
+        String resumeCours = exportateursProduits.stream()
+                .map(exportateur -> exportateur.exporterResumeCoursSession(session.getId()))
+                .flatMap(Optional::stream)
+                .findFirst().orElse(null);
 
         return new ExportDonneesUtilisateur.SessionExportee(
                 session.getId(), session.getTitre(), session.getDateCreation(), session.getCouloirId(),
@@ -255,21 +229,5 @@ public class GouvernanceDonneesService {
 
     private ExportDonneesUtilisateur.EmpreinteVocaleExportee exporterEmpreinte(EmpreinteVocale empreinte) {
         return new ExportDonneesUtilisateur.EmpreinteVocaleExportee(true, empreinte.getDateConsentement());
-    }
-
-    private ExportDonneesUtilisateur.SeanceTutoratExportee exporterSeanceTutorat(SeanceTutorat seance) {
-        List<ExportDonneesUtilisateur.TourExporte> tours = tourDialogueTutoratRepository
-                .findBySeanceTutoratIdOrderByDateCreationAsc(seance.getId()).stream()
-                .map((TourDialogueTutorat t) -> new ExportDonneesUtilisateur.TourExporte(
-                        t.getLocuteur().name(), t.getTexte(), t.getDateCreation()))
-                .toList();
-        // getMode() peut etre null tant que le backfill manuel de la colonne
-        // "mode" (voir docs/phases/phase-19-mode-conversation-libre.md) n'a
-        // pas ete execute sur les lignes anterieures a cet increment.
-        String mode = seance.getMode() != null ? seance.getMode().name() : null;
-        return new ExportDonneesUtilisateur.SeanceTutoratExportee(
-                seance.getId(), seance.getSeanceId(), seance.getStatut().name(), mode,
-                seance.getDateDebut(), seance.getDateFin(), tours
-        );
     }
 }

@@ -1,6 +1,7 @@
 package com.memoria.entreprise.compterendu;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +30,7 @@ public class CompteRenduController {
     }
 
     @PostMapping
-    public CompteRenduResponse genererCompteRendu(@PathVariable UUID sessionId) {
-        return CompteRenduResponse.depuis(compteRenduService.obtenirOuGenererCompteRendu(sessionId));
+    public CompteRenduResponse genererCompteRendu(@PathVariable UUID sessionId, @AuthenticationPrincipal UUID utilisateurId) {
+        return CompteRenduResponse.depuis(compteRenduService.obtenirOuGenererCompteRendu(sessionId, utilisateurId));
     }
 }

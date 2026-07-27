@@ -235,6 +235,7 @@ export interface Notion {
   definition: string
   ordre: number
   dateCreation: string
+  documentSourceId: string | null
 }
 
 export interface DocumentMatiere {
@@ -242,6 +243,7 @@ export interface DocumentMatiere {
   matiereId: string
   type: TypeDocument
   nomFichier: string
+  texteExtrait: string | null
   statut: StatutDocument
   dateCreation: string
 }

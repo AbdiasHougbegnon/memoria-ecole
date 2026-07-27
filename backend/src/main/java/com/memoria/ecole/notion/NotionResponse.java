@@ -3,9 +3,9 @@ package com.memoria.ecole.notion;
 import java.time.Instant;
 import java.util.UUID;
 
-public record NotionResponse(UUID id, UUID matiereId, String terme, String definition, int ordre, Instant dateCreation) {
+public record NotionResponse(UUID id, UUID matiereId, String terme, String definition, int ordre, Instant dateCreation, UUID documentSourceId) {
 
     public static NotionResponse depuis(Notion notion) {
-        return new NotionResponse(notion.getId(), notion.getMatiereId(), notion.getTerme(), notion.getDefinition(), notion.getOrdre(), notion.getDateCreation());
+        return new NotionResponse(notion.getId(), notion.getMatiereId(), notion.getTerme(), notion.getDefinition(), notion.getOrdre(), notion.getDateCreation(), notion.getDocumentSourceId());
     }
 }

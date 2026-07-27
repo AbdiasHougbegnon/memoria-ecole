@@ -1,6 +1,5 @@
 package com.memoria.ecole.seance;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
@@ -22,6 +21,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,7 +58,6 @@ class SeanceServiceTest {
         UUID matiereId = UUID.randomUUID();
         Matiere matiere = new Matiere("Mathematiques", couloirId, proprietaireId);
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
         when(seanceRepository.save(any(Seance.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Seance seance = seanceService.creerSeance("Cours 1 : derivees", matiereId, proprietaireId);
@@ -70,14 +69,15 @@ class SeanceServiceTest {
 
     @Test
     void creerSeance_leve_une_exception_si_pas_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
-        Matiere matiere = new Matiere("Mathematiques", couloirId, proprietaireId);
+        UUID utilisateurId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
 
-        assertThatThrownBy(() -> seanceService.creerSeance("Cours 1", matiereId, UUID.randomUUID()))
+        assertThatThrownBy(() -> seanceService.creerSeance("Cours 1", matiereId, utilisateurId))
                 .isInstanceOf(PasProprietaireDuCouloirException.class);
         verify(seanceRepository, never()).save(any());
     }
@@ -99,7 +99,6 @@ class SeanceServiceTest {
         UUID notion1 = UUID.randomUUID();
         UUID notion2 = UUID.randomUUID();
         when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
 
         seanceService.rattacherNotions(seance.getId(), List.of(notion1, notion2), proprietaireId);
 
@@ -127,7 +126,6 @@ class SeanceServiceTest {
         Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
         UUID notionDejaRattachee = UUID.randomUUID();
         when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
 
         seanceService.rattacherNotions(seance.getId(), List.of(notionDejaRattachee), proprietaireId);
 
@@ -139,13 +137,14 @@ class SeanceServiceTest {
 
     @Test
     void rattacherNotions_leve_une_exception_si_pas_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
         Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
         when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
 
-        assertThatThrownBy(() -> seanceService.rattacherNotions(seance.getId(), List.of(UUID.randomUUID()), UUID.randomUUID()))
+        assertThatThrownBy(() -> seanceService.rattacherNotions(seance.getId(), List.of(UUID.randomUUID()), utilisateurId))
                 .isInstanceOf(PasProprietaireDuCouloirException.class);
         verify(seanceNotionRepository, never()).deleteBySeanceId(any());
     }

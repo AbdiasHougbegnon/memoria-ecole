@@ -3,7 +3,6 @@ package com.memoria.entreprise.compterendu;
 import com.memoria.core.auth.ModuleMemoria;
 import com.memoria.core.auth.Utilisateur;
 import com.memoria.core.auth.UtilisateurRepository;
-import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionNotFoundException;
 import com.memoria.core.session.SessionService;
 import com.memoria.core.transcription.SegmentLocuteur;
@@ -25,6 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,7 +68,7 @@ class CompteRenduServiceTest {
                 new Transcription(sessionId, 1, null, TranscriptionStatut.ECHEC),
                 new Transcription(sessionId, 2, "Nous avons decide X.", TranscriptionStatut.REUSSIE)
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
+        UUID utilisateurId = UUID.randomUUID();
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurCompteRendu.genererCompteRendu("Bonjour a tous.\nNous avons decide X.\n"))
@@ -79,8 +79,9 @@ class CompteRenduServiceTest {
                 ));
         when(compteRenduRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId);
+        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId, utilisateurId);
 
+        verify(sessionService).verifierAcces(sessionId, utilisateurId);
         ArgumentCaptor<CompteRendu> captor = ArgumentCaptor.forClass(CompteRendu.class);
         verify(compteRenduRepository).save(captor.capture());
         CompteRendu compteRendu = captor.getValue();
@@ -107,7 +108,6 @@ class CompteRenduServiceTest {
                 new Transcription(sessionId, 0, "Bonjour", TranscriptionStatut.REUSSIE,
                         List.of(new SegmentLocuteur(1, "Bonjour, je m'en occupe", 0, 2000).avecIdentification(utilisateurId, 0.9)))
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(utilisateurRepository.findById(utilisateurId)).thenReturn(Optional.of(utilisateur));
@@ -118,7 +118,7 @@ class CompteRenduServiceTest {
                 ));
         when(compteRenduRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId);
+        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId, UUID.randomUUID());
 
         assertThat(resultat.getActions().get(0).getResponsable()).isEqualTo("Alice Martin");
         assertThat(resultat.getActions().get(0).getResponsableUtilisateurId()).isEqualTo(utilisateurId);
@@ -130,14 +130,13 @@ class CompteRenduServiceTest {
         List<Transcription> transcriptions = List.of(
                 new Transcription(sessionId, 0, "Bonjour.", TranscriptionStatut.REUSSIE)
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurCompteRendu.genererCompteRendu(any()))
                 .thenThrow(new GenerationCompteRenduException("Azure OpenAI indisponible"));
         when(compteRenduRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId);
+        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId, UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(StatutCompteRendu.ECHEC);
         assertThat(resultat.getSynthese()).isNull();
@@ -153,10 +152,9 @@ class CompteRenduServiceTest {
         CompteRendu dejaGenere = new CompteRendu(
                 sessionId, "Deja fait", List.of(), List.of(), List.of(0), StatutCompteRendu.REUSSI
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.of(dejaGenere));
 
-        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId);
+        CompteRendu resultat = compteRenduService.obtenirOuGenererCompteRendu(sessionId, UUID.randomUUID());
 
         assertThat(resultat).isSameAs(dejaGenere);
         verify(generateurCompteRendu, never()).genererCompteRendu(any());
@@ -167,11 +165,10 @@ class CompteRenduServiceTest {
     @Test
     void obtenirOuGenererCompteRendu_leve_une_exception_si_aucune_transcription_na_reussi() {
         UUID sessionId = UUID.randomUUID();
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Reunion"));
         when(compteRenduRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> compteRenduService.obtenirOuGenererCompteRendu(sessionId))
+        assertThatThrownBy(() -> compteRenduService.obtenirOuGenererCompteRendu(sessionId, UUID.randomUUID()))
                 .isInstanceOf(AucuneTranscriptionDisponibleException.class);
         verify(generateurCompteRendu, never()).genererCompteRendu(any());
     }
@@ -179,9 +176,10 @@ class CompteRenduServiceTest {
     @Test
     void obtenirOuGenererCompteRendu_leve_une_exception_si_la_session_est_introuvable() {
         UUID idInconnu = UUID.randomUUID();
-        when(sessionService.obtenirSession(idInconnu)).thenThrow(new SessionNotFoundException(idInconnu));
+        UUID utilisateurId = UUID.randomUUID();
+        doThrow(new SessionNotFoundException(idInconnu)).when(sessionService).verifierAcces(idInconnu, utilisateurId);
 
-        assertThatThrownBy(() -> compteRenduService.obtenirOuGenererCompteRendu(idInconnu))
+        assertThatThrownBy(() -> compteRenduService.obtenirOuGenererCompteRendu(idInconnu, utilisateurId))
                 .isInstanceOf(SessionNotFoundException.class);
     }
 

@@ -1,6 +1,5 @@
 package com.memoria.ecole.notion;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
@@ -21,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -127,7 +127,6 @@ class NotionCandidateServiceTest {
         NotionCandidate candidate = new NotionCandidate(UUID.randomUUID(), matiereId, "Derivee", "brouillon IA");
         when(notionCandidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
         when(notionCandidateRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         NotionCandidate resultat = notionCandidateService.rejeterCandidate(candidate.getId(), proprietaireId);
@@ -137,15 +136,16 @@ class NotionCandidateServiceTest {
 
     @Test
     void rejeterCandidate_leve_une_exception_si_pas_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
         NotionCandidate candidate = new NotionCandidate(UUID.randomUUID(), matiereId, "Derivee", "brouillon IA");
         when(notionCandidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
-        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
-        when(couloirService.obtenirCouloir(couloirId)).thenReturn(new Couloir("Ing1-SI EPISEN", proprietaireId));
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
 
-        assertThatThrownBy(() -> notionCandidateService.rejeterCandidate(candidate.getId(), UUID.randomUUID()))
+        assertThatThrownBy(() -> notionCandidateService.rejeterCandidate(candidate.getId(), utilisateurId))
                 .isInstanceOf(PasProprietaireDuCouloirException.class);
         assertThat(candidate.getStatut()).isEqualTo(StatutNotionCandidate.EN_ATTENTE);
         verify(notionCandidateRepository, never()).save(any());

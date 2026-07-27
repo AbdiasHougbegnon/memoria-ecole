@@ -57,6 +57,7 @@ export function EngagementsPage() {
   const [engagementOuvert, setEngagementOuvert] = useState<string | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
   const [echeances, setEcheances] = useState<Record<string, string>>({})
+  const [erreur, setErreur] = useState<string | null>(null)
 
   async function rafraichir() {
     setChargement(true)
@@ -74,10 +75,13 @@ export function EngagementsPage() {
   }, [])
 
   async function agir(id: string, action: (id: string) => Promise<Engagement>) {
+    setErreur(null)
     setEnCours(id)
     try {
       const misAJour = await action(id)
       setEngagements((precedent) => precedent.map((e) => (e.id === id ? misAJour : e)))
+    } catch {
+      setErreur("Impossible de mettre a jour l'engagement.")
     } finally {
       setEnCours(null)
     }
@@ -86,10 +90,13 @@ export function EngagementsPage() {
   async function gererPlanificationEcheance(id: string) {
     const valeur = echeances[id]
     if (!valeur) return
+    setErreur(null)
     setEnCours(id)
     try {
       const misAJour = await planifierEcheanceEngagement(id, new Date(valeur).toISOString())
       setEngagements((precedent) => precedent.map((e) => (e.id === id ? misAJour : e)))
+    } catch {
+      setErreur("Impossible de programmer le rappel.")
     } finally {
       setEnCours(null)
     }
@@ -129,7 +136,7 @@ export function EngagementsPage() {
                   return (
                     <button
                       key={engagement.id}
-                      onClick={() => setEngagementOuvert(engagement.id)}
+                      onClick={() => { setErreur(null); setEngagementOuvert(engagement.id) }}
                       className="flex flex-col gap-3 rounded-2xl border bg-white p-3.5 text-left transition-all hover:-translate-y-px hover:shadow-md"
                       style={{ borderColor: 'var(--color-border-soft)' }}
                     >
@@ -206,6 +213,8 @@ export function EngagementsPage() {
                   </Link>
                 </div>
               </div>
+
+              {erreur && <p className="mb-4 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
               {engagementDetail.statut === 'CONFIRME' && (
                 <div className="mb-4 flex items-center gap-2">

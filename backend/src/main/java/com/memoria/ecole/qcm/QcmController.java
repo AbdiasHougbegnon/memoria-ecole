@@ -32,8 +32,8 @@ public class QcmController {
     }
 
     @PostMapping
-    public QcmResponse genererQcm(@PathVariable UUID sessionId) {
-        return QcmResponse.depuis(qcmService.obtenirOuGenererQcm(sessionId));
+    public QcmResponse genererQcm(@PathVariable UUID sessionId, @AuthenticationPrincipal UUID utilisateurId) {
+        return QcmResponse.depuis(qcmService.obtenirOuGenererQcm(sessionId, utilisateurId));
     }
 
     @PostMapping("/tentatives")

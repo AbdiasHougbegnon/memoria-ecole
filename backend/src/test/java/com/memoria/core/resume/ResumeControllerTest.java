@@ -42,7 +42,12 @@ class ResumeControllerTest {
     void genererResume_retourne_le_resume_genere_pour_le_type_demande() throws Exception {
         UUID sessionId = UUID.randomUUID();
         Resume resume = new Resume(sessionId, ResumeType.ACTIONS, "Contexte.", List.of("Faire X"), List.of(0), ResumeStatut.REUSSI);
-        when(resumeService.obtenirOuGenererResume(sessionId, ResumeType.ACTIONS)).thenReturn(resume);
+        // addFilters = false (voir commentaire de classe) : aucun principal
+        // authentifie n'est resolu ici, @AuthenticationPrincipal vaut donc
+        // null -- ce test verifie le mapping HTTP du controleur, pas
+        // l'autorisation (couverte par ResumeServiceTest.verifierAcces via
+        // SessionService).
+        when(resumeService.obtenirOuGenererResume(sessionId, ResumeType.ACTIONS, null)).thenReturn(resume);
 
         mockMvc.perform(post("/api/v1/sessions/{sessionId}/resumes/{type}", sessionId, "ACTIONS"))
                 .andExpect(status().isOk())

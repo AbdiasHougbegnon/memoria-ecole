@@ -30,8 +30,9 @@ public class AudioChunkService {
         this.eventPublisher = eventPublisher;
     }
 
-    public ResultatEnregistrementChunk enregistrerChunk(UUID sessionId, int numeroSequence, byte[] donnees) {
+    public ResultatEnregistrementChunk enregistrerChunk(UUID sessionId, int numeroSequence, byte[] donnees, UUID utilisateurId) {
         Session session = sessionService.obtenirSession(sessionId);
+        sessionService.verifierAcces(sessionId, utilisateurId);
         if (session.getStatut() != SessionStatus.EN_COURS) {
             throw new SessionNonActiveException(sessionId);
         }

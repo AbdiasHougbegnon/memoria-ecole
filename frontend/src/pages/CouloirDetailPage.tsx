@@ -37,6 +37,7 @@ export function CouloirDetailPage() {
   const [nouveauNom, setNouveauNom] = useState('')
   const [renommageEnCours, setRenommageEnCours] = useState(false)
   const [gestionOuverte, setGestionOuverte] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
 
   const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
   const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
@@ -58,10 +59,13 @@ export function CouloirDetailPage() {
 
   async function gererRenommage() {
     if (!id || !nouveauNom.trim()) return
+    setErreur(null)
     setRenommageEnCours(true)
     try {
       const c = await renommerCouloir(id, nouveauNom.trim())
       setCouloir(c)
+    } catch {
+      setErreur('Impossible de renommer le couloir.')
     } finally {
       setRenommageEnCours(false)
     }
@@ -70,28 +74,48 @@ export function CouloirDetailPage() {
   async function gererSuppression() {
     if (!id) return
     if (!window.confirm('Supprimer definitivement ce couloir ?')) return
-    await supprimerCouloir(id)
-    navigate('/couloirs')
+    setErreur(null)
+    try {
+      await supprimerCouloir(id)
+      navigate('/couloirs')
+    } catch {
+      setErreur('Impossible de supprimer le couloir.')
+    }
   }
 
   async function gererRetraitMembre(membreId: string) {
     if (!id) return
-    await retirerMembreCouloir(id, membreId)
-    setMembres((precedent) => precedent.filter((m) => m.utilisateurId !== membreId))
+    setErreur(null)
+    try {
+      await retirerMembreCouloir(id, membreId)
+      setMembres((precedent) => precedent.filter((m) => m.utilisateurId !== membreId))
+    } catch {
+      setErreur('Impossible de retirer ce membre.')
+    }
   }
 
   async function gererQuitter() {
     if (!id) return
     if (!window.confirm('Quitter ce couloir ?')) return
-    await quitterCouloir(id)
-    navigate('/couloirs')
+    setErreur(null)
+    try {
+      await quitterCouloir(id)
+      navigate('/couloirs')
+    } catch {
+      setErreur('Impossible de quitter le couloir.')
+    }
   }
 
   async function gererTransfert(membreId: string, membreEmail: string) {
     if (!id) return
     if (!window.confirm(`Rendre ${membreEmail} proprietaire de ce couloir ? Tu perdras les droits de gestion.`)) return
-    const c = await transfererProprieteCouloir(id, membreId)
-    setCouloir(c)
+    setErreur(null)
+    try {
+      const c = await transfererProprieteCouloir(id, membreId)
+      setCouloir(c)
+    } catch {
+      setErreur('Impossible de transferer la propriete.')
+    }
   }
 
   if (introuvable) {
@@ -131,6 +155,8 @@ export function CouloirDetailPage() {
           </Link>
         )}
       </div>
+
+      {erreur && <p className="mt-3 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
       <div className="mt-7 grid grid-cols-[1.5fr_1fr] gap-6">
         <div className="flex flex-col gap-3.5">

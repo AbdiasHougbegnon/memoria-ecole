@@ -1,6 +1,5 @@
 package com.memoria.ecole.qcm;
 
-import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionNotFoundException;
 import com.memoria.core.session.SessionService;
 import com.memoria.ecole.resumecours.NotionCours;
@@ -22,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,8 +64,8 @@ class QcmServiceTest {
     @Test
     void obtenirOuGenererQcm_genere_et_sauvegarde_a_partir_du_resume_de_cours() {
         UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
         ResumeCours resumeCours = resumeCoursReussi(sessionId);
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours de biologie"));
         when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(resumeCours));
         when(generateurQcm.genererQcm(anyString())).thenReturn(new QcmGenere(List.of(
@@ -78,8 +78,9 @@ class QcmServiceTest {
         )));
         when(qcmRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId);
+        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId, utilisateurId);
 
+        verify(sessionService).verifierAcces(sessionId, utilisateurId);
         ArgumentCaptor<Qcm> captor = ArgumentCaptor.forClass(Qcm.class);
         verify(qcmRepository).save(captor.capture());
         Qcm qcm = captor.getValue();
@@ -97,13 +98,12 @@ class QcmServiceTest {
     void obtenirOuGenererQcm_marque_echec_quand_le_generateur_echoue() {
         UUID sessionId = UUID.randomUUID();
         ResumeCours resumeCours = resumeCoursReussi(sessionId);
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(resumeCours));
         when(generateurQcm.genererQcm(anyString())).thenThrow(new GenerationQcmException("Azure OpenAI indisponible"));
         when(qcmRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId);
+        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId, UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(StatutQcm.ECHEC);
         assertThat(resultat.getQuestions()).isEmpty();
@@ -114,10 +114,9 @@ class QcmServiceTest {
     void obtenirOuGenererQcm_renvoie_le_qcm_deja_en_cache_sans_regenerer() {
         UUID sessionId = UUID.randomUUID();
         Qcm dejaGenere = new Qcm(sessionId, List.of(), List.of(0), StatutQcm.REUSSI);
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.of(dejaGenere));
 
-        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId);
+        Qcm resultat = qcmService.obtenirOuGenererQcm(sessionId, UUID.randomUUID());
 
         assertThat(resultat).isSameAs(dejaGenere);
         verify(generateurQcm, never()).genererQcm(any());
@@ -127,11 +126,10 @@ class QcmServiceTest {
     @Test
     void obtenirOuGenererQcm_leve_une_exception_si_aucun_resume_de_cours_nexiste() {
         UUID sessionId = UUID.randomUUID();
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(sessionId))
+        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(sessionId, UUID.randomUUID()))
                 .isInstanceOf(AucunResumeCoursDisponibleException.class);
         verify(generateurQcm, never()).genererQcm(any());
     }
@@ -140,11 +138,10 @@ class QcmServiceTest {
     void obtenirOuGenererQcm_leve_une_exception_si_le_resume_de_cours_est_en_echec() {
         UUID sessionId = UUID.randomUUID();
         ResumeCours resumeEnEchec = new ResumeCours(sessionId, null, List.of(), List.of(), List.of(0), StatutResumeCours.ECHEC);
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(resumeEnEchec));
 
-        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(sessionId))
+        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(sessionId, UUID.randomUUID()))
                 .isInstanceOf(AucunResumeCoursDisponibleException.class);
         verify(generateurQcm, never()).genererQcm(any());
     }
@@ -152,9 +149,10 @@ class QcmServiceTest {
     @Test
     void obtenirOuGenererQcm_leve_une_exception_si_la_session_est_introuvable() {
         UUID idInconnu = UUID.randomUUID();
-        when(sessionService.obtenirSession(idInconnu)).thenThrow(new SessionNotFoundException(idInconnu));
+        UUID utilisateurId = UUID.randomUUID();
+        doThrow(new SessionNotFoundException(idInconnu)).when(sessionService).verifierAcces(idInconnu, utilisateurId);
 
-        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(idInconnu))
+        assertThatThrownBy(() -> qcmService.obtenirOuGenererQcm(idInconnu, utilisateurId))
                 .isInstanceOf(SessionNotFoundException.class);
     }
 

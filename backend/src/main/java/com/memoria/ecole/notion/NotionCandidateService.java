@@ -1,8 +1,6 @@
 package com.memoria.ecole.notion;
 
-import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
 
@@ -63,7 +61,7 @@ public class NotionCandidateService {
     public NotionCandidate rejeterCandidate(UUID candidateId, UUID utilisateurId) {
         NotionCandidate candidate = obtenirCandidate(candidateId);
         Matiere matiere = matiereService.obtenirMatiere(candidate.getMatiereId());
-        verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
 
         candidate.marquerRejetee();
         return notionCandidateRepository.save(candidate);
@@ -72,12 +70,5 @@ public class NotionCandidateService {
     private NotionCandidate obtenirCandidate(UUID id) {
         return notionCandidateRepository.findById(id)
                 .orElseThrow(() -> new NotionCandidateNotFoundException(id));
-    }
-
-    private void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = couloirService.obtenirCouloir(couloirId);
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloirId, utilisateurId);
-        }
     }
 }

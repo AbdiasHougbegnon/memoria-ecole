@@ -97,20 +97,23 @@ public class EngagementService {
         return engagementRepository.findBySessionIdOrderByDateCreationAsc(sessionId);
     }
 
-    public Engagement confirmer(UUID id) {
+    public Engagement confirmer(UUID id, UUID utilisateurId) {
         Engagement engagement = obtenirEngagement(id);
+        sessionService.verifierAcces(engagement.getSessionId(), utilisateurId);
         engagement.confirmer();
         return engagementRepository.save(engagement);
     }
 
-    public Engagement rejeter(UUID id) {
+    public Engagement rejeter(UUID id, UUID utilisateurId) {
         Engagement engagement = obtenirEngagement(id);
+        sessionService.verifierAcces(engagement.getSessionId(), utilisateurId);
         engagement.rejeter();
         return engagementRepository.save(engagement);
     }
 
-    public Engagement terminer(UUID id) {
+    public Engagement terminer(UUID id, UUID utilisateurId) {
         Engagement engagement = obtenirEngagement(id);
+        sessionService.verifierAcces(engagement.getSessionId(), utilisateurId);
         engagement.terminer();
         Engagement engagementTermine = engagementRepository.save(engagement);
         notifierCompletion(engagementTermine);
@@ -153,8 +156,9 @@ public class EngagementService {
         return sessionService.resoudreEmailsParticipants(engagement.getSessionId());
     }
 
-    public Engagement planifierEcheance(UUID id, Instant dateEcheance) {
+    public Engagement planifierEcheance(UUID id, Instant dateEcheance, UUID utilisateurId) {
         Engagement engagement = obtenirEngagement(id);
+        sessionService.verifierAcces(engagement.getSessionId(), utilisateurId);
         engagement.planifierEcheance(dateEcheance);
         return engagementRepository.save(engagement);
     }

@@ -113,8 +113,9 @@ public class SessionService {
                 .toList();
     }
 
-    public Session terminerSession(UUID id) {
+    public Session terminerSession(UUID id, UUID utilisateurId) {
         Session session = obtenirSession(id);
+        verifierAccesSession(session, utilisateurId);
         boolean etaitDejaTerminee = session.getStatut() == SessionStatus.TERMINEE;
         session.terminer();
         Session sessionSauvegardee = sessionRepository.save(session);
@@ -122,5 +123,31 @@ public class SessionService {
             eventPublisher.publishEvent(new SessionTermineeEvent(id));
         }
         return sessionSauvegardee;
+    }
+
+    // Point unique de verification d'acces a une session, reutilise par tout
+    // service qui mute ou declenche un traitement paye (Azure) sur une
+    // session : AudioChunkService, ResumeService, ResumeCoursService,
+    // QcmService, CompteRenduService, EngagementService (via sessionId de
+    // l'engagement). Autorise le createur, tout membre du couloir de
+    // rattachement, ou n'importe qui si la session est anterieure a
+    // l'introduction du createur (createurId null, meme doctrine que
+    // listerSessionsVisibles -- voir audit du 2026-07-27).
+    public void verifierAcces(UUID sessionId, UUID utilisateurId) {
+        verifierAccesSession(obtenirSession(sessionId), utilisateurId);
+    }
+
+    private void verifierAccesSession(Session session, UUID utilisateurId) {
+        if (session.getCreateurId() == null) {
+            return;
+        }
+        if (session.getCreateurId().equals(utilisateurId)) {
+            return;
+        }
+        if (session.getCouloirId() != null
+                && membreCouloirRepository.existsByCouloirIdAndUtilisateurId(session.getCouloirId(), utilisateurId)) {
+            return;
+        }
+        throw new AccesSessionRefuseException(session.getId(), utilisateurId);
     }
 }

@@ -11,13 +11,6 @@ import com.memoria.core.recherche.RecherchePort;
 import com.memoria.core.resume.ResumeRepository;
 import com.memoria.core.session.SessionRepository;
 import com.memoria.core.transcription.TranscriptionRepository;
-import com.memoria.ecole.qcm.Qcm;
-import com.memoria.ecole.qcm.QcmRepository;
-import com.memoria.ecole.qcm.StatutQcm;
-import com.memoria.ecole.qcm.TentativeQcmRepository;
-import com.memoria.ecole.resumecours.ResumeCoursRepository;
-import com.memoria.entreprise.compterendu.CompteRenduRepository;
-import com.memoria.entreprise.engagement.EngagementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,27 +33,25 @@ class SessionPurgeServiceTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private TranscriptionRepository transcriptionRepository;
     @Mock private ResumeRepository resumeRepository;
-    @Mock private CompteRenduRepository compteRenduRepository;
-    @Mock private ResumeCoursRepository resumeCoursRepository;
-    @Mock private QcmRepository qcmRepository;
-    @Mock private TentativeQcmRepository tentativeQcmRepository;
     @Mock private IndexRechercheRepository indexRechercheRepository;
     @Mock private AudioChunkRepository audioChunkRepository;
-    @Mock private EngagementRepository engagementRepository;
     @Mock private FilMemoireRepository filMemoireRepository;
     @Mock private SessionRepository sessionRepository;
     @Mock private StockageAudioPort stockageAudio;
     @Mock private StockageDocumentPort stockageDocument;
     @Mock private RecherchePort recherche;
 
+    private final PurgeurDonneesSessionPort purgeurEcole = mock(PurgeurDonneesSessionPort.class);
+    private final PurgeurDonneesSessionPort purgeurEntreprise = mock(PurgeurDonneesSessionPort.class);
+
     private SessionPurgeService sessionPurgeService;
 
     @BeforeEach
     void setUp() {
         sessionPurgeService = new SessionPurgeService(
-                documentRepository, transcriptionRepository, resumeRepository, compteRenduRepository,
-                resumeCoursRepository, qcmRepository, tentativeQcmRepository, indexRechercheRepository, audioChunkRepository, engagementRepository,
-                filMemoireRepository, sessionRepository, stockageAudio, stockageDocument, recherche
+                documentRepository, transcriptionRepository, resumeRepository, indexRechercheRepository,
+                audioChunkRepository, filMemoireRepository, sessionRepository, stockageAudio, stockageDocument,
+                recherche, List.of(purgeurEcole, purgeurEntreprise)
         );
     }
 
@@ -73,26 +65,11 @@ class SessionPurgeServiceTest {
         verify(documentRepository).deleteBySessionId(sessionId);
         verify(transcriptionRepository).deleteBySessionId(sessionId);
         verify(resumeRepository).deleteBySessionId(sessionId);
-        verify(compteRenduRepository).deleteBySessionId(sessionId);
-        verify(resumeCoursRepository).deleteBySessionId(sessionId);
-        verify(qcmRepository).deleteBySessionId(sessionId);
+        verify(purgeurEcole).purgerDonneesSession(sessionId);
+        verify(purgeurEntreprise).purgerDonneesSession(sessionId);
         verify(indexRechercheRepository).deleteBySessionId(sessionId);
         verify(audioChunkRepository).deleteBySessionId(sessionId);
-        verify(engagementRepository).deleteBySessionId(sessionId);
         verify(sessionRepository).deleteById(sessionId);
-    }
-
-    @Test
-    void purgerSessionCompletement_supprime_les_tentatives_du_qcm_de_la_session() {
-        UUID sessionId = UUID.randomUUID();
-        Qcm qcm = new Qcm(sessionId, List.of(), List.of(0), StatutQcm.REUSSI);
-        when(filMemoireRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
-        when(qcmRepository.findBySessionId(sessionId)).thenReturn(Optional.of(qcm));
-
-        sessionPurgeService.purgerSessionCompletement(sessionId);
-
-        verify(tentativeQcmRepository).deleteByQcmId(qcm.getId());
-        verify(qcmRepository).deleteBySessionId(sessionId);
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.memoria.ecole.resumecours;
 
-import com.memoria.core.session.Session;
 import com.memoria.core.session.SessionNotFoundException;
 import com.memoria.core.session.SessionService;
 import com.memoria.core.transcription.Transcription;
@@ -20,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,7 +56,7 @@ class ResumeCoursServiceTest {
                 new Transcription(sessionId, 1, null, TranscriptionStatut.ECHEC),
                 new Transcription(sessionId, 2, "La photosynthese convertit la lumiere.", TranscriptionStatut.REUSSIE)
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours de biologie"));
+        UUID utilisateurId = UUID.randomUUID();
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurResumeCours.genererResumeCours("Bonjour a tous. La photosynthese convertit la lumiere."))
@@ -67,8 +67,9 @@ class ResumeCoursServiceTest {
                 ));
         when(resumeCoursRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId);
+        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId, utilisateurId);
 
+        verify(sessionService).verifierAcces(sessionId, utilisateurId);
         ArgumentCaptor<ResumeCours> captor = ArgumentCaptor.forClass(ResumeCours.class);
         verify(resumeCoursRepository).save(captor.capture());
         ResumeCours resumeCours = captor.getValue();
@@ -89,14 +90,13 @@ class ResumeCoursServiceTest {
         List<Transcription> transcriptions = List.of(
                 new Transcription(sessionId, 0, "Bonjour.", TranscriptionStatut.REUSSIE)
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(transcriptions);
         when(generateurResumeCours.genererResumeCours(any()))
                 .thenThrow(new GenerationResumeCoursException("Azure OpenAI indisponible"));
         when(resumeCoursRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId);
+        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId, UUID.randomUUID());
 
         assertThat(resultat.getStatut()).isEqualTo(StatutResumeCours.ECHEC);
         assertThat(resultat.getSynthese()).isNull();
@@ -111,10 +111,9 @@ class ResumeCoursServiceTest {
         ResumeCours dejaGenere = new ResumeCours(
                 sessionId, "Deja fait", List.of(), List.of(), List.of(0), StatutResumeCours.REUSSI
         );
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(dejaGenere));
 
-        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId);
+        ResumeCours resultat = resumeCoursService.obtenirOuGenererResumeCours(sessionId, UUID.randomUUID());
 
         assertThat(resultat).isSameAs(dejaGenere);
         verify(generateurResumeCours, never()).genererResumeCours(any());
@@ -124,11 +123,10 @@ class ResumeCoursServiceTest {
     @Test
     void obtenirOuGenererResumeCours_leve_une_exception_si_aucune_transcription_na_reussi() {
         UUID sessionId = UUID.randomUUID();
-        when(sessionService.obtenirSession(sessionId)).thenReturn(new Session("Cours"));
         when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
         when(transcriptionRepository.findBySessionIdOrderByNumeroSequenceAsc(sessionId)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> resumeCoursService.obtenirOuGenererResumeCours(sessionId))
+        assertThatThrownBy(() -> resumeCoursService.obtenirOuGenererResumeCours(sessionId, UUID.randomUUID()))
                 .isInstanceOf(AucuneTranscriptionDisponibleException.class);
         verify(generateurResumeCours, never()).genererResumeCours(any());
     }
@@ -136,9 +134,10 @@ class ResumeCoursServiceTest {
     @Test
     void obtenirOuGenererResumeCours_leve_une_exception_si_la_session_est_introuvable() {
         UUID idInconnu = UUID.randomUUID();
-        when(sessionService.obtenirSession(idInconnu)).thenThrow(new SessionNotFoundException(idInconnu));
+        UUID utilisateurId = UUID.randomUUID();
+        doThrow(new SessionNotFoundException(idInconnu)).when(sessionService).verifierAcces(idInconnu, utilisateurId);
 
-        assertThatThrownBy(() -> resumeCoursService.obtenirOuGenererResumeCours(idInconnu))
+        assertThatThrownBy(() -> resumeCoursService.obtenirOuGenererResumeCours(idInconnu, utilisateurId))
                 .isInstanceOf(SessionNotFoundException.class);
     }
 
