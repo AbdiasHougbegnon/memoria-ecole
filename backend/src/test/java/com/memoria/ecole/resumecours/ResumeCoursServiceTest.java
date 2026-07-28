@@ -162,4 +162,45 @@ class ResumeCoursServiceTest {
         assertThatThrownBy(() -> resumeCoursService.obtenirResumeCours(sessionId))
                 .isInstanceOf(ResumeCoursNotFoundException.class);
     }
+
+    @Test
+    void genererFichierTexte_verifie_lacces_et_inclut_synthese_notions_et_points_a_revoir() {
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        ResumeCours resumeCours = new ResumeCours(
+                sessionId, "Synthese du cours.",
+                List.of(new NotionCours("Photosynthese", "Conversion de la lumiere en energie")),
+                List.of("Revoir le cycle de Calvin"),
+                List.of(0), StatutResumeCours.REUSSI
+        );
+        when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(resumeCours));
+
+        String fichier = resumeCoursService.genererFichierTexte(sessionId, utilisateurId);
+
+        verify(sessionService).verifierAcces(sessionId, utilisateurId);
+        assertThat(fichier).contains("Synthese du cours.");
+        assertThat(fichier).contains("Photosynthese : Conversion de la lumiere en energie");
+        assertThat(fichier).contains("Revoir le cycle de Calvin");
+    }
+
+    @Test
+    void genererFichierTexte_leve_une_exception_si_aucun_resume_reussi_nexiste() {
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resumeCoursService.genererFichierTexte(sessionId, utilisateurId))
+                .isInstanceOf(ResumeCoursNotFoundException.class);
+    }
+
+    @Test
+    void genererFichierTexte_leve_une_exception_si_le_resume_est_en_echec() {
+        UUID sessionId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        ResumeCours enEchec = new ResumeCours(sessionId, null, List.of(), List.of(), List.of(), StatutResumeCours.ECHEC);
+        when(resumeCoursRepository.findBySessionId(sessionId)).thenReturn(Optional.of(enEchec));
+
+        assertThatThrownBy(() -> resumeCoursService.genererFichierTexte(sessionId, utilisateurId))
+                .isInstanceOf(ResumeCoursNotFoundException.class);
+    }
 }

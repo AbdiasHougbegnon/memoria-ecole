@@ -2,7 +2,11 @@ package com.memoria.ecole.tuteurvocal;
 
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
+import com.memoria.core.document.StatutDocument;
 import com.memoria.core.transcription.TranscripteurPort;
+import com.memoria.ecole.exercice.TravailPapierMatiere;
+import com.memoria.ecole.exercice.TravailPapierMatiereRepository;
+import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.NiveauMaitrise;
@@ -45,6 +49,8 @@ public class TuteurVocalService {
     private final TranscripteurPort transcripteur;
     private final SynthetiseurVocalPort synthetiseurVocal;
     private final GenerateurTourTuteurPort generateurTourTuteur;
+    private final AgregateurContenuMatiereService agregateurContenuMatiereService;
+    private final TravailPapierMatiereRepository travailPapierMatiereRepository;
 
     public TuteurVocalService(
             SeanceTutoratRepository seanceTutoratRepository,
@@ -55,7 +61,9 @@ public class TuteurVocalService {
             CouloirService couloirService,
             TranscripteurPort transcripteur,
             SynthetiseurVocalPort synthetiseurVocal,
-            GenerateurTourTuteurPort generateurTourTuteur
+            GenerateurTourTuteurPort generateurTourTuteur,
+            AgregateurContenuMatiereService agregateurContenuMatiereService,
+            TravailPapierMatiereRepository travailPapierMatiereRepository
     ) {
         this.seanceTutoratRepository = seanceTutoratRepository;
         this.tourDialogueTutoratRepository = tourDialogueTutoratRepository;
@@ -66,6 +74,8 @@ public class TuteurVocalService {
         this.transcripteur = transcripteur;
         this.synthetiseurVocal = synthetiseurVocal;
         this.generateurTourTuteur = generateurTourTuteur;
+        this.travailPapierMatiereRepository = travailPapierMatiereRepository;
+        this.agregateurContenuMatiereService = agregateurContenuMatiereService;
     }
 
     @Transactional
@@ -208,7 +218,7 @@ public class TuteurVocalService {
         Matiere matiere = matiereService.obtenirMatiere(seance.getMatiereId());
 
         var contexte = new GenerateurTourTuteurPort.ContexteTour(
-                matiere.getNom(), construireContexteMatiere(matiere.getId()), historique, texteEtudiant, ModeTutorat.LIBRE
+                matiere.getNom(), construireContexteMatiere(matiere.getId(), seanceTutorat.getUtilisateurId()), historique, texteEtudiant, ModeTutorat.LIBRE
         );
         GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
 
@@ -256,15 +266,45 @@ public class TuteurVocalService {
     // alimentent le tuteur -- jamais le texte brut d'un document, coherent
     // avec la doctrine de tracabilite/traabilite du projet). Se degrade vers
     // le texte generique si la matiere n'a encore aucune notion.
-    private String construireContexteMatiere(UUID matiereId) {
+    //
+    // Phase 22c : elargit deliberement au contenu agrege de la matiere
+    // (resumes de cours + documents, voir AgregateurContenuMatiereService) en
+    // plus des notions validees -- accepte en connaissance de cause que du
+    // contenu non filtre par un enseignant nourrisse aussi le tuteur, pour
+    // une revision progressive sur l'ensemble de la matiere plutot que
+    // seulement les notions explicitement validees. Voir
+    // docs/phases/phase-22-tutorat-progressif.md.
+    private String construireContexteMatiere(UUID matiereId, UUID utilisateurId) {
         List<Notion> notions = notionService.listerNotionsParMatiere(matiereId);
-        if (notions.isEmpty()) {
-            return DEFINITION_MODE_LIBRE;
+        StringBuilder contexte = new StringBuilder(DEFINITION_MODE_LIBRE);
+
+        if (!notions.isEmpty()) {
+            String connaissances = notions.stream()
+                    .map(notion -> "- " + notion.getTerme() + " : " + notion.getDefinition())
+                    .collect(Collectors.joining("\n"));
+            contexte.append("\n\nNotions au programme de cette matiere (appuie-toi dessus si pertinent) :\n").append(connaissances);
         }
-        String connaissances = notions.stream()
-                .map(notion -> "- " + notion.getTerme() + " : " + notion.getDefinition())
-                .collect(Collectors.joining("\n"));
-        return DEFINITION_MODE_LIBRE + "\n\nNotions au programme de cette matiere (appuie-toi dessus si pertinent) :\n" + connaissances;
+
+        String contenuAgrege = agregateurContenuMatiereService.agregerContenu(matiereId);
+        if (!contenuAgrege.isBlank()) {
+            contexte.append("\n\nContenu des cours et documents de cette matiere (resumes deja produits, appuie-toi dessus pour construire une revision progressive) :\n")
+                    .append(contenuAgrege);
+        }
+
+        // Phase 22e : travaux papier soumis par CET etudiant uniquement (pas
+        // ceux des autres) -- personnel, pas du contenu de cours a partager
+        // avec toute la classe, contrairement au reste du contexte agrege.
+        String travauxPapier = travailPapierMatiereRepository
+                .findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiereId, utilisateurId).stream()
+                .filter(travail -> travail.getStatut() == StatutDocument.REUSSI)
+                .map(TravailPapierMatiere::getTexteExtrait)
+                .filter(texte -> texte != null && !texte.isBlank())
+                .collect(Collectors.joining("\n\n"));
+        if (!travauxPapier.isBlank()) {
+            contexte.append("\n\nTravaux papier que cet etudiant a soumis (il peut vouloir en discuter) :\n").append(travauxPapier);
+        }
+
+        return contexte.toString();
     }
 
     private Optional<UUID> choisirProchaineNotion(List<Notion> notionsOrdonnees, UUID utilisateurId) {

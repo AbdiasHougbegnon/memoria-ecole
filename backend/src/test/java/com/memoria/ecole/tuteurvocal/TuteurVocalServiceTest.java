@@ -4,6 +4,8 @@ import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.transcription.ResultatTranscription;
 import com.memoria.core.transcription.TranscripteurPort;
+import com.memoria.ecole.exercice.TravailPapierMatiereRepository;
+import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.NiveauMaitrise;
@@ -58,13 +60,20 @@ class TuteurVocalServiceTest {
     @Mock
     private GenerateurTourTuteurPort generateurTourTuteur;
 
+    @Mock
+    private AgregateurContenuMatiereService agregateurContenuMatiereService;
+
+    @Mock
+    private TravailPapierMatiereRepository travailPapierMatiereRepository;
+
     private TuteurVocalService tuteurVocalService;
 
     @BeforeEach
     void setUp() {
         tuteurVocalService = new TuteurVocalService(
                 seanceTutoratRepository, tourDialogueTutoratRepository, seanceService, notionService, matiereService,
-                couloirService, transcripteur, synthetiseurVocal, generateurTourTuteur
+                couloirService, transcripteur, synthetiseurVocal, generateurTourTuteur, agregateurContenuMatiereService,
+                travailPapierMatiereRepository
         );
     }
 
@@ -306,6 +315,7 @@ class TuteurVocalServiceTest {
         when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(seanceService.obtenirSeance(seanceId)).thenReturn(seance);
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(agregateurContenuMatiereService.agregerContenu(matiere.getId())).thenReturn("");
         when(generateurTourTuteur.genererTour(any())).thenReturn(
                 new GenerateurTourTuteurPort.TourTuteurGenere("Une integrale, c'est...", null, false)
         );
@@ -329,8 +339,8 @@ class TuteurVocalServiceTest {
     }
 
     // Phase 18 -> 19 : les notions validees par l'enseignant (issues des
-    // fiches uploadees) nourrissent le mode LIBRE, jamais le texte brut d'un
-    // document -- voir TuteurVocalService.construireContexteMatiere.
+    // fiches uploadees) nourrissent le mode LIBRE -- voir
+    // TuteurVocalService.construireContexteMatiere.
     @Test
     void soumettreReponse_en_mode_libre_injecte_les_notions_validees_de_la_matiere() {
         UUID utilisateurId = UUID.randomUUID();
@@ -349,6 +359,7 @@ class TuteurVocalServiceTest {
         when(seanceService.obtenirSeance(seanceId)).thenReturn(seance);
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
         when(notionService.listerNotionsParMatiere(matiere.getId())).thenReturn(List.of(notion));
+        when(agregateurContenuMatiereService.agregerContenu(matiere.getId())).thenReturn("");
         when(generateurTourTuteur.genererTour(any())).thenReturn(
                 new GenerateurTourTuteurPort.TourTuteurGenere("Une pile fonctionne en LIFO...", null, false)
         );
@@ -358,6 +369,77 @@ class TuteurVocalServiceTest {
         var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
         org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
         assertThat(contexteCapture.getValue().notionDefinition()).contains("Pile").contains("Structure LIFO");
+    }
+
+    // Phase 22c : elargit deliberement au contenu agrege de la matiere
+    // (resumes de cours + documents), pas seulement les notions validees --
+    // voir AgregateurContenuMatiereService et docs/phases/phase-22-tutorat-progressif.md.
+    @Test
+    void soumettreReponse_en_mode_libre_injecte_le_contenu_agrege_de_la_matiere() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        UUID matiereId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", matiereId, UUID.randomUUID());
+        Matiere matiere = new Matiere("Algorithmique", UUID.randomUUID(), UUID.randomUUID());
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("Recapitule le dernier cours.", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdOrderByDateCreationAsc(seanceTutorat.getId()))
+                .thenReturn(List.of());
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(seanceService.obtenirSeance(seanceId)).thenReturn(seance);
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(notionService.listerNotionsParMatiere(matiere.getId())).thenReturn(List.of());
+        when(agregateurContenuMatiereService.agregerContenu(matiere.getId()))
+                .thenReturn("Le dernier cours portait sur les files (FIFO).");
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("On a vu les files...", null, false)
+        );
+
+        tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().notionDefinition()).contains("Le dernier cours portait sur les files (FIFO).");
+    }
+
+    // Phase 22e : le texte extrait d'un travail papier soumis par CET
+    // etudiant nourrit ses propres conversations avec le tuteur -- voir
+    // TravailPapierService et docs/phases/phase-22-tutorat-progressif.md.
+    @Test
+    void soumettreReponse_en_mode_libre_injecte_les_travaux_papier_de_lutilisateur() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        UUID matiereId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", matiereId, UUID.randomUUID());
+        Matiere matiere = new Matiere("Algorithmique", UUID.randomUUID(), UUID.randomUUID());
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE);
+        com.memoria.ecole.exercice.TravailPapierMatiere travail = new com.memoria.ecole.exercice.TravailPapierMatiere(
+                matiere.getId(), utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "exercice.jpg", "chemin/exercice.jpg"
+        );
+        travail.marquerReussi("Exercice resolu a la main sur les piles et les files.");
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("Peux-tu regarder mon exercice ?", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdOrderByDateCreationAsc(seanceTutorat.getId()))
+                .thenReturn(List.of());
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(seanceService.obtenirSeance(seanceId)).thenReturn(seance);
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(notionService.listerNotionsParMatiere(matiere.getId())).thenReturn(List.of());
+        when(agregateurContenuMatiereService.agregerContenu(matiere.getId())).thenReturn("");
+        when(travailPapierMatiereRepository.findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiere.getId(), utilisateurId))
+                .thenReturn(List.of(travail));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Regardons ca ensemble...", null, false)
+        );
+
+        tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().notionDefinition()).contains("Exercice resolu a la main sur les piles et les files.");
     }
 
     @Test

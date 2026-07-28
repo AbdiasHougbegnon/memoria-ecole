@@ -103,4 +103,36 @@ public class ResumeCoursService {
         return resumeCoursRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new ResumeCoursNotFoundException(sessionId));
     }
+
+    // Fiche telechargeable (phase 22b) : texte brut, pas de PDF -- aucune
+    // dependance de generation PDF dans le projet, proportionne pour ce lot.
+    // Contrairement a obtenirResumeCours (lecture simple, non controlee
+    // aujourd'hui, voir l'audit), le telechargement verifie l'acces : c'est
+    // une action explicite de l'utilisateur, pas un simple GET d'affichage.
+    public String genererFichierTexte(UUID sessionId, UUID utilisateurId) {
+        sessionService.verifierAcces(sessionId, utilisateurId);
+        ResumeCours resumeCours = resumeCoursRepository.findBySessionId(sessionId)
+                .filter(rc -> rc.getStatut() == StatutResumeCours.REUSSI)
+                .orElseThrow(() -> new ResumeCoursNotFoundException(sessionId));
+
+        StringBuilder texte = new StringBuilder();
+        texte.append("Resume de cours\n================\n\n");
+        texte.append(resumeCours.getSynthese()).append("\n");
+
+        if (!resumeCours.getNotions().isEmpty()) {
+            texte.append("\nNotions\n-------\n");
+            for (NotionCours notion : resumeCours.getNotions()) {
+                texte.append("- ").append(notion.getTerme()).append(" : ").append(notion.getDefinition()).append("\n");
+            }
+        }
+
+        if (!resumeCours.getPointsARevoir().isEmpty()) {
+            texte.append("\nPoints a revoir\n---------------\n");
+            for (String point : resumeCours.getPointsARevoir()) {
+                texte.append("- ").append(point).append("\n");
+            }
+        }
+
+        return texte.toString();
+    }
 }

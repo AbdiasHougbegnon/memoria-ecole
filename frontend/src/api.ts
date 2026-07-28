@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, FilMemoire, JournalRgpdEntry, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeQcm, TranscriptionSegment } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, ExerciceMatiere, FilMemoire, JournalRgpdEntry, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, QcmMatiere, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeExerciceSaisieLibre, TentativeQcm, TranscriptionSegment, TravailPapierMatiere } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -195,6 +195,11 @@ export async function genererResumeCours(id: string): Promise<ResumeCours> {
   return reponse.json()
 }
 
+export async function telechargerResumeCours(id: string): Promise<Blob> {
+  const reponse = await verifierReponse(await appelApi(`${BASE}/${id}/resume-cours/telechargement`))
+  return reponse.blob()
+}
+
 export async function obtenirQcm(id: string): Promise<Qcm | null> {
   const reponse = await appelApi(`${BASE}/${id}/qcm`)
   if (reponse.status === 404 || reponse.status === 204) {
@@ -227,6 +232,90 @@ export async function obtenirMaTentativeQcm(id: string): Promise<TentativeQcm | 
     return null
   }
   return (await verifierReponse(reponse)).json()
+}
+
+const BASE_MATIERES = '/api/v1/matieres'
+
+export async function obtenirQcmMatiere(matiereId: string): Promise<QcmMatiere | null> {
+  const reponse = await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function genererQcmMatiere(matiereId: string): Promise<QcmMatiere> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
+export async function soumettreTentativeQcmMatiere(matiereId: string, reponses: number[]): Promise<TentativeQcm> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere/tentatives`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reponses }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirMaTentativeQcmMatiere(matiereId: string): Promise<TentativeQcm | null> {
+  const reponse = await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere/tentatives/moi`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function obtenirExercices(matiereId: string): Promise<ExerciceMatiere | null> {
+  const reponse = await appelApi(`${BASE_MATIERES}/${matiereId}/exercices`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function genererExercices(matiereId: string): Promise<ExerciceMatiere> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/exercices`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
+export async function soumettreReponsesExercices(matiereId: string, reponses: string[]): Promise<TentativeExerciceSaisieLibre> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/exercices/tentatives`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reponses }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function obtenirMaTentativeExercices(matiereId: string): Promise<TentativeExerciceSaisieLibre | null> {
+  const reponse = await appelApi(`${BASE_MATIERES}/${matiereId}/exercices/tentatives/moi`)
+  if (reponse.status === 404 || reponse.status === 204) {
+    return null
+  }
+  return (await verifierReponse(reponse)).json()
+}
+
+export async function soumettreTravailPapier(matiereId: string, fichier: File): Promise<TravailPapierMatiere> {
+  const corps = new FormData()
+  corps.append('fichier', fichier)
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier`, { method: 'POST', body: corps }),
+  )
+  return reponse.json()
+}
+
+export async function listerMesTravauxPapier(matiereId: string): Promise<TravailPapierMatiere[]> {
+  const reponse = await verifierReponse(await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier`))
+  return reponse.json()
 }
 
 export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {

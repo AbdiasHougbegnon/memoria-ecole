@@ -6,6 +6,7 @@ import {
   obtenirQcm,
   obtenirResumeCours,
   soumettreTentativeQcm,
+  telechargerResumeCours,
 } from '../api'
 import type { Qcm, ResumeCours, TentativeQcm } from '../types'
 import { BoutonSecondaire, Carte, SectionTitre } from './SessionDetailPage'
@@ -195,6 +196,21 @@ export function SessionDetailEcole({ sessionId, onVoirSources }: SessionDetailEc
     }
   }
 
+  async function telechargerLeResumeCours() {
+    setErreurResumeCours(null)
+    try {
+      const blob = await telechargerResumeCours(sessionId)
+      const url = URL.createObjectURL(blob)
+      const lien = document.createElement('a')
+      lien.href = url
+      lien.download = `resume-cours-${sessionId}.txt`
+      lien.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setErreurResumeCours('Impossible de telecharger la fiche de resume.')
+    }
+  }
+
   return (
     <>
       {!resumeCours && (
@@ -220,15 +236,25 @@ export function SessionDetailEcole({ sessionId, onVoirSources }: SessionDetailEc
                 style={{ borderColor: '#E4E2F6', background: 'linear-gradient(180deg,#F6F5FE,#FBFAFE)' }}
               >
                 <p className="text-sm leading-relaxed">{resumeCours.synthese}</p>
-                {resumeCours.segmentsSources.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-4">
+                  {resumeCours.segmentsSources.length > 0 && (
+                    <button
+                      onClick={() => onVoirSources(resumeCours.segmentsSources)}
+                      className="text-xs font-semibold"
+                      style={{ color: 'var(--color-brand)' }}
+                    >
+                      Voir les {resumeCours.segmentsSources.length} passage{resumeCours.segmentsSources.length > 1 ? 's' : ''} source
+                    </button>
+                  )}
                   <button
-                    onClick={() => onVoirSources(resumeCours.segmentsSources)}
-                    className="mt-3 text-xs font-semibold"
-                    style={{ color: 'var(--color-brand)' }}
+                    onClick={() => void telechargerLeResumeCours()}
+                    className="text-xs font-semibold"
+                    style={{ color: 'var(--color-ink-muted)' }}
                   >
-                    Voir les {resumeCours.segmentsSources.length} passage{resumeCours.segmentsSources.length > 1 ? 's' : ''} source
+                    Telecharger la fiche
                   </button>
-                )}
+                </div>
+                {erreurResumeCours && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurResumeCours}</p>}
               </div>
             </section>
           )}

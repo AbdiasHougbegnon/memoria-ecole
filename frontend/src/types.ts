@@ -146,6 +146,52 @@ export interface Qcm {
   dateCreation: string
 }
 
+// QCM de revision sur toute la matiere (phase 22c) -- pas de segmentsSources,
+// contrairement a Qcm : le contenu source s'etend sur plusieurs sessions et
+// documents.
+export interface QcmMatiere {
+  questions: QuestionQcm[]
+  statut: StatutQcm
+  dateCreation: string
+}
+
+// Exercices a reponse libre sur toute la matiere (phase 22d) -- questions
+// ouvertes notees qualitativement par l'IA, a cote du QCM de matiere.
+export interface QuestionSaisieLibre {
+  enonce: string
+}
+
+export interface ExerciceMatiere {
+  questions: QuestionSaisieLibre[]
+  statut: StatutQcm
+  dateCreation: string
+}
+
+export interface ReponseEvaluee {
+  reponse: string
+  niveau: NiveauMaitrise | null
+  retour: string
+}
+
+export interface TentativeExerciceSaisieLibre {
+  reponses: ReponseEvaluee[]
+  nombreTentatives: number
+  dateMiseAJour: string
+}
+
+// Photo d'un travail fait sur papier, soumise par l'etudiant (phase 22e) --
+// personnel, contrairement a DocumentMatiere qui est du contenu de cours
+// televerse par l'enseignant.
+export interface TravailPapierMatiere {
+  id: string
+  matiereId: string
+  type: TypeDocument
+  nomFichier: string
+  texteExtrait: string | null
+  statut: StatutDocument
+  dateCreation: string
+}
+
 export interface TentativeQcm {
   reponsesChoisies: number[]
   score: number

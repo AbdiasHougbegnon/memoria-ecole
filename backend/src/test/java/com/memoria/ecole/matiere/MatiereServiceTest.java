@@ -1,6 +1,7 @@
 package com.memoria.ecole.matiere;
 
 import com.memoria.core.couloir.CouloirService;
+import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -81,5 +82,28 @@ class MatiereServiceTest {
         List<Matiere> resultat = matiereService.listerMatieresParCouloir(couloirId);
 
         assertThat(resultat).containsExactly(matiere);
+    }
+
+    @Test
+    void verifierMembreDuCouloir_ne_leve_rien_si_lutilisateur_est_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
+        when(matiereRepository.findById(matiere.getId())).thenReturn(Optional.of(matiere));
+        when(couloirService.estMembre(couloirId, utilisateurId)).thenReturn(true);
+
+        matiereService.verifierMembreDuCouloir(matiere.getId(), utilisateurId);
+    }
+
+    @Test
+    void verifierMembreDuCouloir_leve_une_exception_si_lutilisateur_nest_pas_membre() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
+        when(matiereRepository.findById(matiere.getId())).thenReturn(Optional.of(matiere));
+        when(couloirService.estMembre(couloirId, utilisateurId)).thenReturn(false);
+
+        assertThatThrownBy(() -> matiereService.verifierMembreDuCouloir(matiere.getId(), utilisateurId))
+                .isInstanceOf(PasMembreDuCouloirException.class);
     }
 }

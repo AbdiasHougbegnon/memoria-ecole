@@ -1,6 +1,7 @@
 package com.memoria.ecole.matiere;
 
 import com.memoria.core.couloir.CouloirService;
+import com.memoria.core.couloir.PasMembreDuCouloirException;
 
 import org.springframework.stereotype.Service;
 
@@ -34,5 +35,17 @@ public class MatiereService {
 
     public List<Matiere> listerMatieresParCouloir(UUID couloirId) {
         return matiereRepository.findByCouloirId(couloirId);
+    }
+
+    // Membre OU proprietaire du couloir (contrairement a creerMatiere, reserve
+    // au proprietaire) : consulter/reviser une matiere est ouvert a tout le
+    // couloir, seule la modification du contenu pedagogique est reservee a
+    // l'enseignant. Partage par QcmMatiereService et ExerciceSaisieLibreService
+    // (phase 22c/22d) pour eviter de dupliquer ce controle une troisieme fois.
+    public void verifierMembreDuCouloir(UUID matiereId, UUID utilisateurId) {
+        Matiere matiere = obtenirMatiere(matiereId);
+        if (!couloirService.estMembre(matiere.getCouloirId(), utilisateurId)) {
+            throw new PasMembreDuCouloirException(matiere.getCouloirId(), utilisateurId);
+        }
     }
 }

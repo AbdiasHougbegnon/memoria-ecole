@@ -8,6 +8,8 @@ import com.memoria.core.couloir.PasMembreDuCouloirException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +50,7 @@ public class SessionService {
         if (!consentementEnregistrement) {
             throw new ConsentementEnregistrementRequisException();
         }
-        Session session = new Session(titre, createurId, null);
+        Session session = new Session(titreOuGenere(titre), createurId, null);
         session.confirmerConsentementEnregistrement();
         return sessionRepository.save(session);
     }
@@ -63,9 +65,23 @@ public class SessionService {
         if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, createurId)) {
             throw new PasMembreDuCouloirException(couloirId, createurId);
         }
+        titre = titreOuGenere(titre);
         Session session = new Session(titre, createurId, couloirId);
         session.confirmerConsentementEnregistrement();
         return sessionRepository.save(session);
+    }
+
+    // Titre desormais optionnel (phase 22a) : un titre plus specifique (ex. nom
+    // de la matiere) peut etre calcule cote client avant l'appel -- le moteur
+    // ne connait pas le concept de matiere (Ecole), donc ce repli generique
+    // reste volontairement neutre. Jamais de null en base (Session.titre
+    // reste nullable=false), juste un gabarit, pas un appel IA pour formatter
+    // une date.
+    private static String titreOuGenere(String titre) {
+        if (titre != null && !titre.isBlank()) {
+            return titre;
+        }
+        return "Session du " + DateTimeFormatter.ofPattern("dd/MM/yyyy").format(LocalDate.now());
     }
 
     public List<Session> listerSessionsParCouloir(UUID couloirId) {

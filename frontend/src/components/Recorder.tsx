@@ -219,12 +219,19 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
     }
   }
 
+  // Si l'utilisateur ne saisit pas de titre et choisit une matiere, on en
+  // deduit un titre plus utile que le repli generique du backend ("Session du
+  // <date>") -- le moteur (core/session) ne connait pas le concept de matiere
+  // (Ecole), donc cette logique reste cote client plutot que de faire fuiter
+  // du vocabulaire Ecole dans SessionService.
+  function titreDepuisMatiere(): string {
+    const matiere = matieres.find((m) => m.id === matiereId)
+    if (!matiere) return ''
+    return `${matiere.nom} — ${new Date().toLocaleDateString('fr-FR')}`
+  }
+
   async function demarrer() {
     setErreur(null)
-    if (!titre.trim()) {
-      setErreur('Donne un titre a la session avant de demarrer.')
-      return
-    }
     if (!consentementEnregistrement) {
       setErreur("Confirme avoir informe les participants avant de demarrer l'enregistrement.")
       return
@@ -232,7 +239,8 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const { id } = await creerSession(titre.trim(), couloirId || undefined, consentementEnregistrement)
+      const titreFinal = titre.trim() || titreDepuisMatiere()
+      const { id } = await creerSession(titreFinal, couloirId || undefined, consentementEnregistrement)
       if (matiereId) {
         rattacherMatiereSession(id, matiereId).catch(() => {})
       }
@@ -342,7 +350,7 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="text"
-          placeholder="Titre de la session"
+          placeholder="Titre de la session (optionnel)"
           value={titre}
           disabled={enregistrement}
           onChange={(e) => setTitre(e.target.value)}

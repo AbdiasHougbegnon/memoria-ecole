@@ -221,6 +221,18 @@ class SessionServiceTest {
     }
 
     @Test
+    void creerSession_avec_couloir_genere_un_titre_si_absent() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        when(membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, utilisateurId)).thenReturn(true);
+        when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Session session = sessionService.creerSession("  ", couloirId, utilisateurId, true);
+
+        assertThat(session.getTitre()).startsWith("Session du ");
+    }
+
+    @Test
     void creerSession_avec_couloir_leve_une_exception_si_lutilisateur_nest_pas_membre() {
         UUID couloirId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
@@ -252,6 +264,16 @@ class SessionServiceTest {
         assertThat(session.getCreateurId()).isEqualTo(utilisateurId);
         assertThat(session.getCouloirId()).isNull();
         assertThat(session.getDateConsentementEnregistrement()).isNotNull();
+    }
+
+    @Test
+    void creerSession_avec_createur_genere_un_titre_si_null() {
+        UUID utilisateurId = UUID.randomUUID();
+        when(sessionRepository.save(any(Session.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Session session = sessionService.creerSession(null, utilisateurId, true);
+
+        assertThat(session.getTitre()).startsWith("Session du ");
     }
 
     @Test

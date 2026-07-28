@@ -177,6 +177,26 @@ public class GestionnaireExceptionsApi {
     public void gererAucunResumeCoursDisponiblePourQcm() {
     }
 
+    @ExceptionHandler(com.memoria.ecole.qcm.QcmMatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererQcmMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.qcm.AucunContenuMatiereDisponibleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererAucunContenuMatiereDisponiblePourQcm() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.exercice.ExerciceMatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererExerciceMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.exercice.AucunContenuDisponiblePourExerciceException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererAucunContenuDisponiblePourExercice() {
+    }
+
     @ExceptionHandler(com.memoria.ecole.session.MatiereIncompatibleAvecSessionException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererMatiereIncompatibleAvecSession() {
