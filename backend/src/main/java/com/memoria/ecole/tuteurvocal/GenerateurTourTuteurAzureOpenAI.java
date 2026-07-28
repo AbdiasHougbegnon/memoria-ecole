@@ -30,6 +30,41 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     private static final Logger LOG = LoggerFactory.getLogger(GenerateurTourTuteurAzureOpenAI.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    // Regle anti-hallucination d'action commune aux deux modes : le tuteur
+    // n'a AUCUNE capacite reelle au-dela de generer ce texte (pas d'appel
+    // outil, pas d'action serveur declenchee par cette classe -- voir
+    // TuteurVocalService.soumettreReponse) -- sans cette regle explicite, le
+    // modele invente volontiers des actions plausibles (envoyer un email,
+    // generer un fichier, l'ajouter a un "espace tutorat") qui n'ont jamais
+    // lieu, ce qui viole frontalement la doctrine IA du projet ("l'IA n'est
+    // jamais la source de verite", memoria-master-prompt.md) -- voir
+    // docs/phases/phase-24-correction-travail-papier-navigation.md pour
+    // l'incident constate qui a motive cet ajout.
+    private static final String REGLE_PAS_DACTION_REELLE = """
+            Tu n'as aucune capacite reelle au-dela de repondre par la parole : tu ne peux ni
+            envoyer d'email, ni generer ou televerser un fichier, ni creer un lien de
+            telechargement, ni modifier une session, un resume, un document ou une matiere,
+            meme si l'etudiant te le demande explicitement ou insiste. Ne dis JAMAIS que tu as
+            fait ou que tu vas faire une de ces actions. Si l'etudiant te demande d'accomplir
+            une de ces actions, dis-lui clairement que tu ne peux pas le faire toi-meme et
+            oriente-le vers l'interface reelle si tu sais ou cela se trouve (ex: le
+            telechargement du resume se fait depuis la page de la session, le televersement de
+            documents depuis l'onglet Documents de la matiere).
+            """;
+
+    // Meme logique pour les faits : ne t'appuie que sur ce qui est reellement
+    // fourni dans le contexte de ce tour (notion, historique, contenu
+    // agrege) -- jamais sur des connaissances generiques presentees comme
+    // specifiques a cette matiere ou cette session (ex: inventer le nom, la
+    // date ou le contenu d'une session qui n'a pas ete fournie).
+    private static final String REGLE_PAS_DINVENTION_DE_FAITS = """
+            Ne t'appuie que sur les informations reellement fournies ci-dessus et dans
+            l'historique de la conversation. Si l'etudiant te demande une information
+            specifique que tu n'as pas (par exemple le contenu ou le titre exact d'une session
+            ou d'un document non fourni ici), dis-le clairement plutot que d'inventer une
+            reponse plausible.
+            """;
+
     private static final String CONSIGNE_TEMPLATE = """
             Tu es un tuteur vocal qui enseigne une notion a un etudiant, en francais, a l'oral
             (phrases courtes et naturelles, pas de listes a puces, pas de markdown -- ce texte
@@ -45,6 +80,9 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
             reformulation plus simple, exemple concret different) plutot que de repeter la meme
             explication. Si sa reponse est correcte et montre une comprehension solide, felicite-le
             brievement et indique que la notion est maitrisee.
+
+            %s
+            %s
 
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
@@ -76,6 +114,9 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
             des notions au programme sont fournies ci-dessus, ancre tes reponses dessus en
             priorite plutot que sur des connaissances generiques. Ne force jamais une evaluation
             de maitrise, ce n'est pas l'objectif de ce mode.
+
+            %s
+            %s
 
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
@@ -121,11 +162,15 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
     @Override
     public TourTuteurGenere genererTour(ContexteTour contexte) {
         String consigne = contexte.mode() == ModeTutorat.LIBRE
-                ? CONSIGNE_LIBRE.formatted(contexte.notionTerme(), contexte.notionDefinition())
+                ? CONSIGNE_LIBRE.formatted(
+                        contexte.notionTerme(), contexte.notionDefinition(),
+                        REGLE_PAS_DACTION_REELLE, REGLE_PAS_DINVENTION_DE_FAITS
+                )
                 : CONSIGNE_TEMPLATE.formatted(
                         contexte.notionTerme(),
                         contexte.notionDefinition(),
-                        contexte.mode() == ModeTutorat.EXERCICE ? MODE_EXERCICE : MODE_EXPLICATION
+                        contexte.mode() == ModeTutorat.EXERCICE ? MODE_EXERCICE : MODE_EXPLICATION,
+                        REGLE_PAS_DACTION_REELLE, REGLE_PAS_DINVENTION_DE_FAITS
                 );
         String input = construireInput(contexte);
 
