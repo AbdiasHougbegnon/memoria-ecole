@@ -337,79 +337,98 @@ export function Recorder({ onSessionTerminee }: RecorderProps) {
         </div>
       )}
       {!enregistrement && (
-        <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
-          <input
-            type="checkbox"
-            checked={consentementEnregistrement}
-            onChange={(e) => setConsentementEnregistrement(e.target.checked)}
-            className="mt-0.5"
-          />
-          <span>J'ai informe les participants que cette session sera enregistree.</span>
-        </label>
-      )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          type="text"
-          placeholder="Titre de la session (optionnel)"
-          value={titre}
-          disabled={enregistrement}
-          onChange={(e) => setTitre(e.target.value)}
-          className="flex-1 rounded-lg border px-3.5 py-2.5 text-sm outline-none disabled:opacity-60"
-          style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
-        />
-        {couloirs.length > 0 && (
-          <select
-            value={couloirId}
-            disabled={enregistrement}
-            onChange={(e) => setCouloirId(e.target.value)}
-            className="rounded-lg border px-3 py-2.5 text-sm outline-none disabled:opacity-60"
-            style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
-          >
-            <option value="">Aucun (personnel)</option>
-            {couloirs.map((couloir) => (
-              <option key={couloir.id} value={couloir.id}>
-                {couloir.nom}
-              </option>
-            ))}
-          </select>
-        )}
-        {estModuleEcole && matieres.length > 0 && (
-          <select
-            value={matiereId}
-            disabled={enregistrement}
-            onChange={(e) => setMatiereId(e.target.value)}
-            className="rounded-lg border px-3 py-2.5 text-sm outline-none disabled:opacity-60"
-            style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
-          >
-            <option value="">Aucune matiere</option>
-            {matieres.map((matiere) => (
-              <option key={matiere.id} value={matiere.id}>
-                {matiere.nom}
-              </option>
-            ))}
-          </select>
-        )}
-        {!enregistrement ? (
+        <>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold" style={{ color: 'var(--color-ink-muted)' }}>
+              Titre de la session
+            </label>
+            <input
+              type="text"
+              placeholder="Optionnel -- genere automatiquement si laisse vide"
+              value={titre}
+              onChange={(e) => setTitre(e.target.value)}
+              className="w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+              style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+            />
+          </div>
+
+          {(couloirs.length > 0 || (estModuleEcole && matieres.length > 0)) && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {couloirs.length > 0 && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold" style={{ color: 'var(--color-ink-muted)' }}>
+                    Couloir
+                  </label>
+                  <select
+                    value={couloirId}
+                    onChange={(e) => setCouloirId(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  >
+                    <option value="">Aucun (personnel)</option>
+                    {couloirs.map((couloir) => (
+                      <option key={couloir.id} value={couloir.id}>
+                        {couloir.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {estModuleEcole && matieres.length > 0 && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold" style={{ color: 'var(--color-ink-muted)' }}>
+                    Matiere
+                  </label>
+                  <select
+                    value={matiereId}
+                    onChange={(e) => setMatiereId(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
+                    style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+                  >
+                    <option value="">Aucune matiere</option>
+                    {matieres.map((matiere) => (
+                      <option key={matiere.id} value={matiere.id}>
+                        {matiere.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          <label className="mt-3.5 flex items-start gap-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+            <input
+              type="checkbox"
+              checked={consentementEnregistrement}
+              onChange={(e) => setConsentementEnregistrement(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>J'ai informe les participants que cette session sera enregistree.</span>
+          </label>
+
           <button
             onClick={demarrer}
             disabled={!consentementEnregistrement}
-            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: 'var(--color-brand)', boxShadow: '0 2px 10px rgba(75,70,214,.3)' }}
           >
             <span className="inline-block h-2 w-2 rounded-full bg-white" />
-            Demarrer
+            Demarrer l'enregistrement
           </button>
-        ) : (
-          <button
-            onClick={arreter}
-            className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-            style={{ background: 'var(--color-ink)' }}
-          >
-            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--color-live)' }} />
-            Terminer
-          </button>
-        )}
-      </div>
+        </>
+      )}
+
+      {enregistrement && (
+        <button
+          onClick={arreter}
+          className="flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+          style={{ background: 'var(--color-ink)' }}
+        >
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--color-live)' }} />
+          Terminer
+        </button>
+      )}
       {enregistrement && (
         <p className="mt-3 flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-live)' }}>
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: 'var(--color-live)', animation: 'mem-pulse 1.4s ease-in-out infinite' }} />

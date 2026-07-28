@@ -2,6 +2,8 @@ package com.memoria.ecole.qcm;
 
 import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.MatiereService;
+import com.memoria.ecole.notion.Notion;
+import com.memoria.ecole.notion.NotionService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // QCM de revision progressive sur toute la matiere (phase 22c) -- a cote du
 // QCM par session (QcmService) qui reste utile pour reviser un cours precis.
@@ -23,6 +26,7 @@ public class QcmMatiereService {
 
     private final QcmMatiereRepository qcmMatiereRepository;
     private final MatiereService matiereService;
+    private final NotionService notionService;
     private final AgregateurContenuMatiereService agregateurContenuMatiereService;
     private final GenerateurQcmPort generateurQcm;
     private final TentativeQcmRepository tentativeQcmRepository;
@@ -30,12 +34,14 @@ public class QcmMatiereService {
     public QcmMatiereService(
             QcmMatiereRepository qcmMatiereRepository,
             MatiereService matiereService,
+            NotionService notionService,
             AgregateurContenuMatiereService agregateurContenuMatiereService,
             GenerateurQcmPort generateurQcm,
             TentativeQcmRepository tentativeQcmRepository
     ) {
         this.qcmMatiereRepository = qcmMatiereRepository;
         this.matiereService = matiereService;
+        this.notionService = notionService;
         this.agregateurContenuMatiereService = agregateurContenuMatiereService;
         this.generateurQcm = generateurQcm;
         this.tentativeQcmRepository = tentativeQcmRepository;
@@ -52,7 +58,11 @@ public class QcmMatiereService {
             return existant.get();
         }
 
-        String contenu = agregateurContenuMatiereService.agregerContenu(matiereId);
+        // Les notions validees sont listees explicitement (pas seulement
+        // noyees dans les resumes agreges) pour que le nombre de questions
+        // generees suive la richesse reelle du programme -- voir
+        // GenerateurQcmAzureOpenAI.CONSIGNE, plus de nombre fixe de questions.
+        String contenu = construireContenuAvecNotions(matiereId);
         if (contenu.isBlank()) {
             throw new AucunContenuMatiereDisponibleException(matiereId);
         }
@@ -75,6 +85,24 @@ public class QcmMatiereService {
             LOG.warn("Echec de la generation du QCM de matiere pour la matiere {}", matiereId, e);
             return enregistrerSiAbsent(matiereId, List.of(), StatutQcm.ECHEC);
         }
+    }
+
+    private String construireContenuAvecNotions(UUID matiereId) {
+        List<Notion> notions = notionService.listerNotionsParMatiere(matiereId);
+        String contenuAgrege = agregateurContenuMatiereService.agregerContenu(matiereId);
+
+        StringBuilder contenu = new StringBuilder();
+        if (!notions.isEmpty()) {
+            String listeNotions = notions.stream()
+                    .map(notion -> "- " + notion.getTerme() + " : " + notion.getDefinition())
+                    .collect(Collectors.joining("\n"));
+            contenu.append("Notions au programme (a couvrir chacune par au moins une question) :\n")
+                    .append(listeNotions).append("\n\n");
+        }
+        if (!contenuAgrege.isBlank()) {
+            contenu.append("Contenu des cours et documents de la matiere :\n").append(contenuAgrege);
+        }
+        return contenu.toString();
     }
 
     private QcmMatiere enregistrerSiAbsent(UUID matiereId, List<QuestionQcm> questions, StatutQcm statut) {

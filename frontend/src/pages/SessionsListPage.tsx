@@ -42,9 +42,14 @@ function CarteSession({ session }: { session: Session }) {
   )
 }
 
+const TAILLE_PAGE_INITIALE = 8
+const INCREMENT_PAGE = 12
+
 export function SessionsListPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [chargement, setChargement] = useState(true)
+  const [recherche, setRecherche] = useState('')
+  const [nombreAffiche, setNombreAffiche] = useState<Record<string, number>>({})
   const navigate = useNavigate()
 
   async function rafraichir() {
@@ -60,8 +65,16 @@ export function SessionsListPage() {
     void rafraichir()
   }, [])
 
+  const rechercheNormalisee = recherche.trim().toLowerCase()
+  const sessionsFiltrees = rechercheNormalisee
+    ? sessions.filter((s) => s.titre.toLowerCase().includes(rechercheNormalisee))
+    : sessions
+
+  // Avec des centaines de sessions, tout afficher d'un coup rend la page
+  // ecrasante -- chaque groupe de statut se limite a une page initiale, avec
+  // un bouton pour en charger davantage plutot que de tout rendre a la fois.
   const groupes = GROUPES
-    .map((g) => ({ ...g, items: sessions.filter((s) => s.statut === g.statut) }))
+    .map((g) => ({ ...g, items: sessionsFiltrees.filter((s) => s.statut === g.statut) }))
     .filter((g) => g.items.length > 0)
 
   return (
@@ -83,22 +96,51 @@ export function SessionsListPage() {
         <p className="mt-9 text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucune session pour le moment.</p>
       )}
 
-      {groupes.map((groupe) => (
-        <div key={groupe.statut} className="mt-9">
-          <div className="mb-3 flex items-center gap-2.5">
-            <span className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: groupe.dot }} />
-            <h2 className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink)' }}>{groupe.label}</h2>
-            <span className="text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>{groupe.items.length}</span>
+      {!chargement && sessions.length > TAILLE_PAGE_INITIALE && (
+        <input
+          type="text"
+          placeholder="Rechercher une session par titre..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          className="mt-8 w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+          style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+        />
+      )}
+
+      {!chargement && sessionsFiltrees.length === 0 && sessions.length > 0 && (
+        <p className="mt-9 text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucune session ne correspond a cette recherche.</p>
+      )}
+
+      {groupes.map((groupe) => {
+        const affiche = nombreAffiche[groupe.statut] ?? TAILLE_PAGE_INITIALE
+        const visibles = groupe.items.slice(0, affiche)
+        const reste = groupe.items.length - visibles.length
+        return (
+          <div key={groupe.statut} className="mt-9">
+            <div className="mb-3 flex items-center gap-2.5">
+              <span className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: groupe.dot }} />
+              <h2 className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink)' }}>{groupe.label}</h2>
+              <span className="text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-faint)' }}>{groupe.items.length}</span>
+            </div>
+            <ul className="flex flex-col gap-2.5">
+              {visibles.map((session) => (
+                <li key={session.id}>
+                  <CarteSession session={session} />
+                </li>
+              ))}
+            </ul>
+            {reste > 0 && (
+              <button
+                onClick={() => setNombreAffiche((prev) => ({ ...prev, [groupe.statut]: affiche + INCREMENT_PAGE }))}
+                className="mt-3 w-full rounded-lg border py-2 text-xs font-semibold"
+                style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}
+              >
+                Afficher {Math.min(reste, INCREMENT_PAGE)} de plus ({reste} restantes)
+              </button>
+            )}
           </div>
-          <ul className="flex flex-col gap-2.5">
-            {groupe.items.map((session) => (
-              <li key={session.id}>
-                <CarteSession session={session} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

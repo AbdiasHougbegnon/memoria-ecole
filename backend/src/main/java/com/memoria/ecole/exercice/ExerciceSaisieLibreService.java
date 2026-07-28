@@ -2,6 +2,8 @@ package com.memoria.ecole.exercice;
 
 import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.MatiereService;
+import com.memoria.ecole.notion.Notion;
+import com.memoria.ecole.notion.NotionService;
 import com.memoria.ecole.qcm.StatutQcm;
 
 import org.slf4j.Logger;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // Exercices a reponse libre sur toute la matiere (phase 22d), a cote du QCM
 // de matiere (QcmMatiereService) : questions ouvertes, notees qualitativement
@@ -25,6 +28,7 @@ public class ExerciceSaisieLibreService {
 
     private final ExerciceMatiereRepository exerciceMatiereRepository;
     private final MatiereService matiereService;
+    private final NotionService notionService;
     private final AgregateurContenuMatiereService agregateurContenuMatiereService;
     private final GenerateurExerciceSaisieLibrePort generateurExercice;
     private final TentativeExerciceSaisieLibreRepository tentativeRepository;
@@ -32,12 +36,14 @@ public class ExerciceSaisieLibreService {
     public ExerciceSaisieLibreService(
             ExerciceMatiereRepository exerciceMatiereRepository,
             MatiereService matiereService,
+            NotionService notionService,
             AgregateurContenuMatiereService agregateurContenuMatiereService,
             GenerateurExerciceSaisieLibrePort generateurExercice,
             TentativeExerciceSaisieLibreRepository tentativeRepository
     ) {
         this.exerciceMatiereRepository = exerciceMatiereRepository;
         this.matiereService = matiereService;
+        this.notionService = notionService;
         this.agregateurContenuMatiereService = agregateurContenuMatiereService;
         this.generateurExercice = generateurExercice;
         this.tentativeRepository = tentativeRepository;
@@ -53,7 +59,11 @@ public class ExerciceSaisieLibreService {
             return existant.get();
         }
 
-        String contenu = agregateurContenuMatiereService.agregerContenu(matiereId);
+        // Notions listees explicitement pour que le nombre de questions
+        // suive la richesse reelle du programme -- voir
+        // GenerateurExerciceSaisieLibreAzureOpenAI.CONSIGNE_GENERATION, plus
+        // de nombre fixe de questions.
+        String contenu = construireContenuAvecNotions(matiereId);
         if (contenu.isBlank()) {
             throw new AucunContenuDisponiblePourExerciceException(matiereId);
         }
@@ -68,6 +78,24 @@ public class ExerciceSaisieLibreService {
             LOG.warn("Echec de la generation des exercices pour la matiere {}", matiereId, e);
             return enregistrerSiAbsent(matiereId, List.of(), StatutQcm.ECHEC);
         }
+    }
+
+    private String construireContenuAvecNotions(UUID matiereId) {
+        List<Notion> notions = notionService.listerNotionsParMatiere(matiereId);
+        String contenuAgrege = agregateurContenuMatiereService.agregerContenu(matiereId);
+
+        StringBuilder contenu = new StringBuilder();
+        if (!notions.isEmpty()) {
+            String listeNotions = notions.stream()
+                    .map(notion -> "- " + notion.getTerme() + " : " + notion.getDefinition())
+                    .collect(Collectors.joining("\n"));
+            contenu.append("Notions au programme (a couvrir chacune par au moins une question) :\n")
+                    .append(listeNotions).append("\n\n");
+        }
+        if (!contenuAgrege.isBlank()) {
+            contenu.append("Contenu des cours et documents de la matiere :\n").append(contenuAgrege);
+        }
+        return contenu.toString();
     }
 
     private ExerciceMatiere enregistrerSiAbsent(UUID matiereId, List<QuestionSaisieLibre> questions, StatutQcm statut) {

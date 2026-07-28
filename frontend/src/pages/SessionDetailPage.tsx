@@ -338,14 +338,21 @@ export function SessionDetailPage() {
             {transcriptions.length === 0 && (
               <p className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>Aucun segment transcrit pour le moment.</p>
             )}
-            <TranscriptionListe
-              segments={transcriptions}
-              segmentsEnSurbrillance={segmentsEnSurbrillance}
-              onRefSegment={(numero, el) => {
-                if (el) refsSegments.current.set(numero, el)
-              }}
-              onEcouterSegment={(numero) => void jouerAudioSegment(numero)}
-            />
+            {transcriptions.length > 0 && (
+              <div
+                className="max-h-[420px] overflow-y-auto rounded-lg border p-3"
+                style={{ borderColor: 'var(--color-border-soft)' }}
+              >
+                <TranscriptionListe
+                  segments={transcriptions}
+                  segmentsEnSurbrillance={segmentsEnSurbrillance}
+                  onRefSegment={(numero, el) => {
+                    if (el) refsSegments.current.set(numero, el)
+                  }}
+                  onEcouterSegment={(numero) => void jouerAudioSegment(numero)}
+                />
+              </div>
+            )}
           </section>
         </div>
 

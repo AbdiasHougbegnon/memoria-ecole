@@ -25,9 +25,13 @@ public class GenerateurQcmAzureOpenAI implements GenerateurQcmPort {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private static final String CONSIGNE = """
-            Tu es un assistant pedagogique qui construit un QCM de revision a partir de la synthese
-            et des notions d'un cours, en francais. Genere exactement 5 questions a choix multiple,
-            chacune avec exactement 4 propositions de reponse dont une seule est correcte.
+            Tu es un assistant pedagogique qui construit un QCM de revision a partir du contenu
+            fourni (notions au programme et/ou resumes de cours et documents), en francais.
+            Le nombre de questions doit refleter la richesse du contenu, jamais un nombre fixe :
+            si une liste "Notions au programme" est fournie, genere au moins une question par
+            notion listee, plus des questions supplementaires sur le reste du contenu si
+            pertinent -- entre 3 et 20 questions au total selon ce qui est fourni. Chaque
+            question a exactement 4 propositions de reponse dont une seule est correcte.
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
               "questions": [

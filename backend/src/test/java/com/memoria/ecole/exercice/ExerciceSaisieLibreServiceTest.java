@@ -4,6 +4,8 @@ import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.NiveauMaitrise;
+import com.memoria.ecole.notion.Notion;
+import com.memoria.ecole.notion.NotionService;
 import com.memoria.ecole.qcm.StatutQcm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ class ExerciceSaisieLibreServiceTest {
 
     @Mock private ExerciceMatiereRepository exerciceMatiereRepository;
     @Mock private MatiereService matiereService;
+    @Mock private NotionService notionService;
     @Mock private AgregateurContenuMatiereService agregateurContenuMatiereService;
     @Mock private GenerateurExerciceSaisieLibrePort generateurExercice;
     @Mock private TentativeExerciceSaisieLibreRepository tentativeRepository;
@@ -40,7 +43,7 @@ class ExerciceSaisieLibreServiceTest {
     @BeforeEach
     void setUp() {
         service = new ExerciceSaisieLibreService(
-                exerciceMatiereRepository, matiereService, agregateurContenuMatiereService,
+                exerciceMatiereRepository, matiereService, notionService, agregateurContenuMatiereService,
                 generateurExercice, tentativeRepository
         );
     }
@@ -51,6 +54,7 @@ class ExerciceSaisieLibreServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
         when(exerciceMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of());
         when(agregateurContenuMatiereService.agregerContenu(matiereId)).thenReturn("Contenu de plusieurs cours.");
         when(generateurExercice.genererExercices(any())).thenReturn(new ExercicesGeneres(List.of(
                 new QuestionSaisieLibreExtraite("Explique les listes chainees.", "Doit mentionner noeud et pointeur")
@@ -64,6 +68,27 @@ class ExerciceSaisieLibreServiceTest {
         assertThat(captor.getValue().getQuestions()).hasSize(1);
         assertThat(captor.getValue().getStatut()).isEqualTo(StatutQcm.REUSSI);
         assertThat(resultat).isEqualTo(captor.getValue());
+    }
+
+    @Test
+    void obtenirOuGenererExercices_inclut_les_notions_dans_le_contenu_envoye_au_generateur() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Notion notion = new Notion(matiereId, "Pile", "Structure LIFO", 0);
+        doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
+        when(exerciceMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of(notion));
+        when(agregateurContenuMatiereService.agregerContenu(matiereId)).thenReturn("");
+        when(generateurExercice.genererExercices(any())).thenReturn(new ExercicesGeneres(List.of(
+                new QuestionSaisieLibreExtraite("Explique la pile.", "Doit mentionner LIFO")
+        )));
+        when(exerciceMatiereRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.obtenirOuGenererExercices(matiereId, utilisateurId);
+
+        ArgumentCaptor<String> contenuCapture = ArgumentCaptor.forClass(String.class);
+        verify(generateurExercice).genererExercices(contenuCapture.capture());
+        assertThat(contenuCapture.getValue()).contains("Pile : Structure LIFO");
     }
 
     @Test
@@ -84,6 +109,7 @@ class ExerciceSaisieLibreServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
         when(exerciceMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of());
         when(agregateurContenuMatiereService.agregerContenu(matiereId)).thenReturn("");
 
         assertThatThrownBy(() -> service.obtenirOuGenererExercices(matiereId, utilisateurId))

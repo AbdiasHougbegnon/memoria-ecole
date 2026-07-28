@@ -3,6 +3,8 @@ package com.memoria.ecole.qcm;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
 import com.memoria.ecole.matiere.MatiereService;
+import com.memoria.ecole.notion.Notion;
+import com.memoria.ecole.notion.NotionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,7 @@ class QcmMatiereServiceTest {
 
     @Mock private QcmMatiereRepository qcmMatiereRepository;
     @Mock private MatiereService matiereService;
+    @Mock private NotionService notionService;
     @Mock private AgregateurContenuMatiereService agregateurContenuMatiereService;
     @Mock private GenerateurQcmPort generateurQcm;
     @Mock private TentativeQcmRepository tentativeQcmRepository;
@@ -37,7 +40,7 @@ class QcmMatiereServiceTest {
     @BeforeEach
     void setUp() {
         qcmMatiereService = new QcmMatiereService(
-                qcmMatiereRepository, matiereService, agregateurContenuMatiereService,
+                qcmMatiereRepository, matiereService, notionService, agregateurContenuMatiereService,
                 generateurQcm, tentativeQcmRepository
         );
     }
@@ -48,6 +51,7 @@ class QcmMatiereServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
         when(qcmMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of());
         when(agregateurContenuMatiereService.agregerContenu(matiereId))
                 .thenReturn("Synthese de plusieurs cours sur les structures de donnees.");
         when(generateurQcm.genererQcm(any())).thenReturn(new QcmGenere(List.of(
@@ -63,6 +67,27 @@ class QcmMatiereServiceTest {
         assertThat(captor.getValue().getQuestions()).hasSize(1);
         assertThat(captor.getValue().getStatut()).isEqualTo(StatutQcm.REUSSI);
         assertThat(resultat).isEqualTo(captor.getValue());
+    }
+
+    @Test
+    void obtenirOuGenererQcmMatiere_inclut_les_notions_dans_le_contenu_envoye_au_generateur() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Notion notion = new Notion(matiereId, "Pile", "Structure LIFO", 0);
+        doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
+        when(qcmMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of(notion));
+        when(agregateurContenuMatiereService.agregerContenu(matiereId)).thenReturn("");
+        when(generateurQcm.genererQcm(any())).thenReturn(new QcmGenere(List.of(
+                new QuestionExtraite("Qu'est-ce qu'une pile ?", List.of("LIFO", "FIFO", "Arbre", "Graphe"), 0, "Explication")
+        )));
+        when(qcmMatiereRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        qcmMatiereService.obtenirOuGenererQcmMatiere(matiereId, utilisateurId);
+
+        ArgumentCaptor<String> contenuCapture = ArgumentCaptor.forClass(String.class);
+        verify(generateurQcm).genererQcm(contenuCapture.capture());
+        assertThat(contenuCapture.getValue()).contains("Pile : Structure LIFO");
     }
 
     @Test
@@ -83,6 +108,7 @@ class QcmMatiereServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         doNothing().when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
         when(qcmMatiereRepository.findByMatiereId(matiereId)).thenReturn(Optional.empty());
+        when(notionService.listerNotionsParMatiere(matiereId)).thenReturn(List.of());
         when(agregateurContenuMatiereService.agregerContenu(matiereId)).thenReturn("");
 
         assertThatThrownBy(() -> qcmMatiereService.obtenirOuGenererQcmMatiere(matiereId, utilisateurId))

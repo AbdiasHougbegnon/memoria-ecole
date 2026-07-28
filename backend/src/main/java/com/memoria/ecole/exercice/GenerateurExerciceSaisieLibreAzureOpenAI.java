@@ -31,9 +31,13 @@ public class GenerateurExerciceSaisieLibreAzureOpenAI implements GenerateurExerc
 
     private static final String CONSIGNE_GENERATION = """
             Tu es un assistant pedagogique qui construit des exercices de revision a reponse
-            libre (pas de QCM) a partir du contenu de plusieurs cours et documents d'une matiere,
-            en francais. Genere exactement 3 questions ouvertes qui demandent une reponse redigee,
-            pas un choix parmi des propositions.
+            libre (pas de QCM) a partir du contenu fourni (notions au programme et/ou resumes de
+            cours et documents d'une matiere), en francais. Chaque question demande une reponse
+            redigee, pas un choix parmi des propositions. Le nombre de questions doit refleter la
+            richesse du contenu, jamais un nombre fixe : si une liste "Notions au programme" est
+            fournie, genere au moins une question par notion listee, plus des questions
+            supplementaires sur le reste du contenu si pertinent -- entre 2 et 12 questions au
+            total selon ce qui est fourni.
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
               "questions": [

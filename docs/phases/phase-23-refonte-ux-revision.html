@@ -1,0 +1,236 @@
+<title>Memoria — Dossier technique : refonte UX de la révision par matière</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  .mono { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; }
+  code, .chip { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .fact strong { color: var(--text); font-weight: 600; }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 100px; font-size: 0.72rem; font-family: ui-monospace, monospace; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); white-space: nowrap; }
+  .pill.entity { color: var(--accent-strong); border-color: var(--accent-wash); background: var(--accent-wash); }
+  .pill.warn { color: var(--warn); border-color: var(--warn); background: transparent; }
+
+  pre { margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .bug { display: grid; grid-template-columns: 28px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .bug:last-child { border-bottom: none; }
+  .bug .n { font-family: ui-monospace, monospace; color: var(--text-faint); font-size: 0.85rem; padding-top: 2px; }
+  .bug h4 { font-size: 0.98rem; grid-column: 2; }
+  .bug .why { grid-column: 2; font-size: 0.88rem; color: var(--text-muted); }
+  .bug pre { grid-column: 2; margin: 4px 0; }
+
+  .tag-banner { display: flex; align-items: center; gap: 12px; background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; color: var(--text); flex-wrap: wrap; }
+  .tag-banner .pill.entity { background: var(--surface); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+  .verif-line .warn-txt { color: var(--warn); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Révision (phase 23)</span>
+    <h1 class="title">Refonte UX de la révision par matière</h1>
+    <p class="dek">Réponse directe à un retour utilisateur sévère : page matière surchargée, QCM/exercices à nombre de questions fixe, transcription sans limite, liste de sessions non pensée pour l'échelle, formulaire de nouvelle session peu présentable.</p>
+    <div class="factrow">
+      <span class="fact"><strong>348</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">3 pages séparées au lieu d'un écran unique</span>
+      <span class="fact">QCM/exercices pilotés par le contenu, pas un compte fixe</span>
+      <span class="fact">vérifié en conditions réelles (Playwright, 88 sessions réelles)</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Cinq griefs distincts</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Retour direct sur <code>/matieres/:id</code> telle que livrée en phase 22 : notions, séances, documents, notions candidates, QCM, exercices et travail papier empilés sur un seul écran — "trop long", "coincé", "pas du tout sérieux". Plus trois griefs indépendants de la mise en page : nombre de questions fixe pour le QCM/exercices, transcription de session sans limite de hauteur, liste de sessions et formulaire de nouvelle session non pensés pour l'échelle (300 sessions citées en exemple).</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Pages séparées, pas des onglets d'état</strong> — choix explicite de l'utilisateur entre onglets pilotés par état React et vraies routes. Résultat : <code>/matieres/:id</code>, <code>/matieres/:id/documents</code>, <code>/matieres/:id/revision</code>, chacune avec son propre appel réseau ciblé, au prix de dupliquer le chargement <code>matiere</code>/<code>couloir</code> dans chacune plutôt que de le remonter dans un layout commun.</li>
+          <li><strong>Révision : sous-onglets, pas trois sections empilées</strong> — QCM / Exercices / Travail papier restent groupés (trois façons de réviser la même matière) mais affichés un par un via un sélecteur à bulles, pour ne pas reproduire l'erreur de la phase 22 à plus petite échelle.</li>
+          <li><strong>QCM/exercices pilotés par le contenu</strong> — la liste des notions validées est injectée explicitement dans le contenu envoyé à l'IA ("Notions au programme, à couvrir chacune par au moins une question"), et les consignes passent d'un compte fixe à une fourchette (3–20 pour le QCM, 2–12 pour les exercices).</li>
+          <li><strong>Pagination côté client, pas un nouvel endpoint paginé</strong> — <code>GET /api/v1/sessions</code> reste inchangé (le volume actuel reste un payload JSON négligeable) ; chaque groupe de statut affiche 8 sessions au chargement avec un bouton "Afficher N de plus", plus une recherche par titre.</li>
+          <li><strong>Formulaire de session vertical et étiqueté</strong> — titre seul sur sa ligne, couloir/matière côte à côte avec libellés, champs masqués pendant l'enregistrement (au lieu d'être visibles mais désactivés).</li>
+          <li><strong>Transcription bornée</strong> — conteneur <code>max-h-[420px] overflow-y-auto</code>, le <code>scrollIntoView</code> du drilldown source continue de fonctionner normalement à l'intérieur.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <div class="bug">
+          <span class="n">1</span>
+          <h4>QcmMatiereService.java, ExerciceSaisieLibreService.java (édités)</h4>
+          <p class="why" style="margin-top:0"><code>NotionService</code> injecté, nouvelle méthode privée <code>construireContenuAvecNotions</code> préfixant le contenu agrégé par la liste des notions au programme.</p>
+        </div>
+        <div class="bug">
+          <span class="n">2</span>
+          <h4>GenerateurQcmAzureOpenAI.java, GenerateurExerciceSaisieLibreAzureOpenAI.java (édités)</h4>
+          <pre><code>"entre 3 et 20 questions au total selon ce qui est fourni" (QCM)
+"entre 2 et 12 questions au total selon ce qui est fourni" (exercices)</code></pre>
+          <p class="why">Remplace les consignes a compte fixe ("exactement 5" / "exactement 3").</p>
+        </div>
+        <div class="bug">
+          <span class="n">3</span>
+          <h4>components/MatiereSousNav.tsx (nouveau)</h4>
+          <p class="why" style="margin-top:0">Sous-navigation partagée : retour, titre, 3 onglets (Aperçu / Documents / Révision).</p>
+        </div>
+        <div class="bug">
+          <span class="n">4</span>
+          <h4>pages/MatiereApercuPage.tsx, MatiereDocumentsPage.tsx, MatiereRevisionPage.tsx (nouveaux)</h4>
+          <p class="why" style="margin-top:0">Remplacent l'ancien MatiereDetailPage.tsx (supprimé). Révision affiche QCM/Exercices/Travail papier en sous-onglets.</p>
+        </div>
+        <div class="bug">
+          <span class="n">5</span>
+          <h4>App.tsx (édité)</h4>
+          <p class="why" style="margin-top:0">Trois routes au lieu d'une seule vers l'ancienne page.</p>
+        </div>
+        <div class="bug">
+          <span class="n">6</span>
+          <h4>pages/SessionsListPage.tsx (édité)</h4>
+          <p class="why" style="margin-top:0">Pagination par groupe de statut (8 initiaux, +12 par clic) et recherche par titre.</p>
+        </div>
+        <div class="bug">
+          <span class="n">7</span>
+          <h4>components/Recorder.tsx (édité)</h4>
+          <p class="why" style="margin-top:0">Formulaire réorganisé en colonnes étiquetées ; champs masqués pendant l'enregistrement.</p>
+        </div>
+        <div class="bug">
+          <span class="n">8</span>
+          <h4>pages/SessionDetailPage.tsx (édité)</h4>
+          <p class="why" style="margin-top:0">Transcription dans un conteneur borné et défilant (max-h-[420px]).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 348 tests, 0 finding SpotBugs/FindSecBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Playwright : 3 pages matière (compte reel, matiere Algorithmique)</span><span class="ok-txt">rendu propre, 0 erreur console</span></div>
+        <div class="verif-line"><span class="route">Liste de sessions : compte de test avec 88 sessions reelles</span><span class="ok-txt">8 affichees, "Afficher 12 de plus (80 restantes)"</span></div>
+        <div class="verif-line"><span class="route">Clic "Afficher plus"</span><span class="ok-txt">20 cartes affichees</span></div>
+        <div class="verif-line"><span class="route">Recherche par titre "Algorithmique"</span><span class="ok-txt">3 resultats corrects</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pagination côté client, pas côté serveur</strong> — au-delà de quelques milliers de sessions, le payload initial grossirait sans borne ; pas un problème à l'échelle actuelle du produit (instance dédiée par client).</li>
+        <li><strong>QCM/exercices déjà en cache pour une matière</strong> ne sont pas régénérés automatiquement avec la nouvelle logique de comptage — seul un nouveau contenu ou une matière encore sans QCM en bénéficie immédiatement.</li>
+        <li><strong>Pas de vérification avec un appel Azure OpenAI réel</strong> sur le nouveau prompt à fourchette variable (le compte de test avait déjà un QCM en cache) — couverture assurée par les tests unitaires uniquement à ce stade.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-23-refonte-ux-revision</code></li>
+          <li>Pour vérifier un QCM réellement régénéré avec la nouvelle logique de comptage : créer une matière neuve avec plusieurs notions et au moins un document/résumé, puis générer son QCM pour la première fois (pas de cache existant).</li>
+        </ul>
+      </div>
+      <div class="tag-banner">
+        <span class="pill entity mono">tag</span>
+        <span><code>phase-23-refonte-ux-revision</code> — vérifiée par build + tests + conditions réelles (Playwright, compte de test avec données réelles).</span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur la refonte UX de la révision par matière (phase 23).
+    </footer>
+  </main>
+</div>
