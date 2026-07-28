@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,6 +44,16 @@ public class NotionController {
         return notionService.listerNotionsParMatiere(matiereId).stream()
                 .map(NotionResponse::depuis)
                 .toList();
+    }
+
+    @DeleteMapping("/{notionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerNotion(
+            @PathVariable UUID matiereId,
+            @PathVariable UUID notionId,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        notionService.supprimerNotion(notionId, utilisateurId);
     }
 
     public record CreerNotionRequest(

@@ -37,6 +37,17 @@ public class TuteurVocalController {
         return ResultatTourResponse.depuis(tuteurVocalService.demarrerTutorat(seanceId, utilisateurId, requete.mode()));
     }
 
+    // Entree directe depuis le menu de navigation (voir Layout.tsx cote
+    // frontend), sans passer par une seance choisie au prealable.
+    @PostMapping("/matieres/{matiereId}/tutorat")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResultatTourResponse demarrerTutoratPourMatiere(
+            @PathVariable UUID matiereId,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        return ResultatTourResponse.depuis(tuteurVocalService.demarrerTutoratLibrePourMatiere(matiereId, utilisateurId));
+    }
+
     @GetMapping("/tutorat/{id}")
     public EtatTutoratResponse obtenirEtat(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
         SeanceTutorat seanceTutorat = tuteurVocalService.obtenirEtatTutorat(id, utilisateurId);

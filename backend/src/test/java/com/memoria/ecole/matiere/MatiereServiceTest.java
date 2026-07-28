@@ -1,5 +1,6 @@
 package com.memoria.ecole.matiere;
 
+import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
@@ -82,6 +83,22 @@ class MatiereServiceTest {
         List<Matiere> resultat = matiereService.listerMatieresParCouloir(couloirId);
 
         assertThat(resultat).containsExactly(matiere);
+    }
+
+    @Test
+    void listerMesMatieres_regroupe_les_matieres_de_tous_les_couloirs_de_lutilisateur() {
+        UUID utilisateurId = UUID.randomUUID();
+        Couloir couloir1 = new Couloir("Ing1-SI", UUID.randomUUID());
+        Couloir couloir2 = new Couloir("Ing1-Info", UUID.randomUUID());
+        Matiere matiere1 = new Matiere("Mathematiques", couloir1.getId(), UUID.randomUUID());
+        Matiere matiere2 = new Matiere("Algorithmique", couloir2.getId(), UUID.randomUUID());
+        when(couloirService.listerMesCouloirs(utilisateurId)).thenReturn(List.of(couloir1, couloir2));
+        when(matiereRepository.findByCouloirId(couloir1.getId())).thenReturn(List.of(matiere1));
+        when(matiereRepository.findByCouloirId(couloir2.getId())).thenReturn(List.of(matiere2));
+
+        List<Matiere> resultat = matiereService.listerMesMatieres(utilisateurId);
+
+        assertThat(resultat).containsExactly(matiere1, matiere2);
     }
 
     @Test

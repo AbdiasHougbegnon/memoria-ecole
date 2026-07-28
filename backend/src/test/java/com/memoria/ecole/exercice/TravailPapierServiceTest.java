@@ -5,6 +5,7 @@ import com.memoria.core.document.ExtracteurDocumentPort;
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.StockageDocumentPort;
 import com.memoria.ecole.matiere.MatiereService;
+import com.memoria.ecole.notion.NiveauMaitrise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +32,7 @@ class TravailPapierServiceTest {
     @Mock private TravailPapierMatiereRepository travailPapierRepository;
     @Mock private StockageDocumentPort stockageDocument;
     @Mock private ExtracteurDocumentPort extracteurDocument;
+    @Mock private CorrecteurTravailPapierPort correcteurTravailPapier;
     @Mock private MatiereService matiereService;
     @Mock private ApplicationEventPublisher eventPublisher;
 
@@ -39,7 +41,8 @@ class TravailPapierServiceTest {
     @BeforeEach
     void setUp() {
         service = new TravailPapierService(
-                travailPapierRepository, stockageDocument, extracteurDocument, matiereService, eventPublisher
+                travailPapierRepository, stockageDocument, extracteurDocument, correcteurTravailPapier,
+                matiereService, eventPublisher
         );
     }
 
@@ -71,7 +74,7 @@ class TravailPapierServiceTest {
     }
 
     @Test
-    void surTravailPapierTeleverse_marque_reussi_avec_le_texte_extrait() throws Exception {
+    void surTravailPapierTeleverse_marque_reussi_avec_le_texte_extrait_et_la_correction() throws Exception {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         java.nio.file.Path fichierTemp = java.nio.file.Files.createTempFile("travail-papier-test", ".jpg");
@@ -82,6 +85,8 @@ class TravailPapierServiceTest {
             );
             when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
             when(extracteurDocument.extraireTexte(any())).thenReturn("Exercice resolu a la main.");
+            when(correcteurTravailPapier.corriger("Exercice resolu a la main."))
+                    .thenReturn(new CorrectionTravailPapier(NiveauMaitrise.EN_COURS, "Le raisonnement est correct mais la conclusion est erronee."));
 
             service.surTravailPapierTeleverse(new TravailPapierTeleverseEvent(travail.getId()));
 
@@ -89,6 +94,34 @@ class TravailPapierServiceTest {
             verify(travailPapierRepository).save(captor.capture());
             assertThat(captor.getValue().getStatut()).isEqualTo(StatutDocument.REUSSI);
             assertThat(captor.getValue().getTexteExtrait()).isEqualTo("Exercice resolu a la main.");
+            assertThat(captor.getValue().getCorrectionNiveau()).isEqualTo(NiveauMaitrise.EN_COURS);
+            assertThat(captor.getValue().getCorrectionTexte()).isEqualTo("Le raisonnement est correct mais la conclusion est erronee.");
+        } finally {
+            java.nio.file.Files.deleteIfExists(fichierTemp);
+        }
+    }
+
+    @Test
+    void surTravailPapierTeleverse_garde_le_texte_extrait_meme_si_la_correction_echoue() throws Exception {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        java.nio.file.Path fichierTemp = java.nio.file.Files.createTempFile("travail-papier-test", ".jpg");
+        java.nio.file.Files.write(fichierTemp, new byte[]{1, 2, 3});
+        try {
+            TravailPapierMatiere travail = new TravailPapierMatiere(
+                    matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "photo.jpg", fichierTemp.toString()
+            );
+            when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+            when(extracteurDocument.extraireTexte(any())).thenReturn("Exercice resolu a la main.");
+            when(correcteurTravailPapier.corriger(any())).thenThrow(new RuntimeException("Azure OpenAI indisponible"));
+
+            service.surTravailPapierTeleverse(new TravailPapierTeleverseEvent(travail.getId()));
+
+            ArgumentCaptor<TravailPapierMatiere> captor = ArgumentCaptor.forClass(TravailPapierMatiere.class);
+            verify(travailPapierRepository).save(captor.capture());
+            assertThat(captor.getValue().getStatut()).isEqualTo(StatutDocument.REUSSI);
+            assertThat(captor.getValue().getTexteExtrait()).isEqualTo("Exercice resolu a la main.");
+            assertThat(captor.getValue().getCorrectionNiveau()).isNull();
         } finally {
             java.nio.file.Files.deleteIfExists(fichierTemp);
         }

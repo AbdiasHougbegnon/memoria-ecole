@@ -229,6 +229,16 @@ public class TuteurVocalService {
         return new ResultatTour(seanceTutoratId, tourTuteur.getId(), genere.texteTuteur(), null, null, false);
     }
 
+    // Point d'entree "Tutorat" direct depuis le menu de navigation (pas besoin
+    // de creer/choisir une seance au prealable) : delegue entierement a
+    // demarrerTutorat (idempotence, reprise en cours, etc. deja geres) apres
+    // avoir resolu/cree la seance partagee "Discussion libre" de la matiere.
+    @Transactional
+    public ResultatTour demarrerTutoratLibrePourMatiere(UUID matiereId, UUID utilisateurId) {
+        Seance seance = seanceService.obtenirOuCreerSeanceDiscussionLibre(matiereId, utilisateurId);
+        return demarrerTutorat(seance.getId(), utilisateurId, ModeTutorat.LIBRE);
+    }
+
     public SeanceTutorat obtenirEtatTutorat(UUID seanceTutoratId, UUID utilisateurId) {
         return obtenirEtVerifierProprietaire(seanceTutoratId, utilisateurId);
     }
@@ -294,14 +304,24 @@ public class TuteurVocalService {
         // Phase 22e : travaux papier soumis par CET etudiant uniquement (pas
         // ceux des autres) -- personnel, pas du contenu de cours a partager
         // avec toute la classe, contrairement au reste du contexte agrege.
+        // Phase 24 : inclut aussi la correction deja generee (pas seulement le
+        // texte brut) -- le tuteur doit pouvoir discuter de CE QUI A ETE
+        // CORRIGE, pas juste retranscrire ce que l'etudiant a ecrit.
         String travauxPapier = travailPapierMatiereRepository
                 .findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiereId, utilisateurId).stream()
                 .filter(travail -> travail.getStatut() == StatutDocument.REUSSI)
-                .map(TravailPapierMatiere::getTexteExtrait)
-                .filter(texte -> texte != null && !texte.isBlank())
+                .filter(travail -> travail.getTexteExtrait() != null && !travail.getTexteExtrait().isBlank())
+                .map(travail -> {
+                    String bloc = "Travail soumis :\n" + travail.getTexteExtrait();
+                    if (travail.getCorrectionTexte() != null && !travail.getCorrectionTexte().isBlank()) {
+                        bloc += "\nCorrection deja donnee a l'etudiant (niveau " + travail.getCorrectionNiveau() + ") :\n"
+                                + travail.getCorrectionTexte();
+                    }
+                    return bloc;
+                })
                 .collect(Collectors.joining("\n\n"));
         if (!travauxPapier.isBlank()) {
-            contexte.append("\n\nTravaux papier que cet etudiant a soumis (il peut vouloir en discuter) :\n").append(travauxPapier);
+            contexte.append("\n\nTravaux papier que cet etudiant a soumis, avec leur correction (il peut vouloir en discuter) :\n").append(travauxPapier);
         }
 
         return contexte.toString();

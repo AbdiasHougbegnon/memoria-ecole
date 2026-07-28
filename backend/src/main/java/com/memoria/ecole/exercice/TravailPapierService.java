@@ -24,6 +24,11 @@ import java.util.UUID;
 // cours a proposer a toute la classe. Ouvert a tout membre du couloir
 // (contrairement a DocumentMatiereService, reserve au proprietaire) :
 // soumettre son propre travail n'est pas modifier le contenu pedagogique.
+//
+// Le meme listener enchaine aussi la correction automatique (CorrecteurTravailPapierPort)
+// juste apres l'extraction : avant cet increment, le travail n'etait que
+// transcrit et stocke, jamais analyse/corrige, ce qui ne repondait pas au
+// besoin reel de l'etudiant (voir docs/phases/phase-24-correction-travail-papier-navigation.md).
 @Service
 public class TravailPapierService {
 
@@ -32,6 +37,7 @@ public class TravailPapierService {
     private final TravailPapierMatiereRepository travailPapierRepository;
     private final StockageDocumentPort stockageDocument;
     private final ExtracteurDocumentPort extracteurDocument;
+    private final CorrecteurTravailPapierPort correcteurTravailPapier;
     private final MatiereService matiereService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -39,12 +45,14 @@ public class TravailPapierService {
             TravailPapierMatiereRepository travailPapierRepository,
             StockageDocumentPort stockageDocument,
             ExtracteurDocumentPort extracteurDocument,
+            CorrecteurTravailPapierPort correcteurTravailPapier,
             MatiereService matiereService,
             ApplicationEventPublisher eventPublisher
     ) {
         this.travailPapierRepository = travailPapierRepository;
         this.stockageDocument = stockageDocument;
         this.extracteurDocument = extracteurDocument;
+        this.correcteurTravailPapier = correcteurTravailPapier;
         this.matiereService = matiereService;
         this.eventPublisher = eventPublisher;
     }
@@ -75,13 +83,27 @@ public class TravailPapierService {
             return;
         }
 
+        String texte;
         try {
             byte[] contenu = Files.readAllBytes(Path.of(travail.getCheminStockage()));
-            String texte = extracteurDocument.extraireTexte(contenu);
-            travail.marquerReussi(texte);
+            texte = extracteurDocument.extraireTexte(contenu);
         } catch (IOException | RuntimeException e) {
             LOG.warn("Echec de l'extraction du travail papier {}", travail.getId(), e);
             travail.marquerEchec();
+            travailPapierRepository.save(travail);
+            return;
+        }
+
+        travail.marquerReussi(texte);
+        // L'extraction a reussi : le texte reste consultable et discutable avec
+        // le tuteur meme si la correction automatique echoue -- meme doctrine
+        // degradee que ExerciceSaisieLibreService.soumettreReponses (une panne
+        // Azure OpenAI ne doit pas faire perdre le travail deja extrait).
+        try {
+            CorrectionTravailPapier correction = correcteurTravailPapier.corriger(texte);
+            travail.enregistrerCorrection(correction.niveau(), correction.correction());
+        } catch (RuntimeException e) {
+            LOG.warn("Echec de la correction du travail papier {}", travail.getId(), e);
         }
         travailPapierRepository.save(travail);
     }

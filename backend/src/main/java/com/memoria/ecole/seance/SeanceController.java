@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,6 +57,12 @@ public class SeanceController {
     @GetMapping("/seances/{seanceId}")
     public SeanceResponse obtenirSeance(@PathVariable UUID seanceId) {
         return SeanceResponse.depuis(seanceService.obtenirSeance(seanceId));
+    }
+
+    @DeleteMapping("/seances/{seanceId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerSeance(@PathVariable UUID seanceId, @AuthenticationPrincipal UUID utilisateurId) {
+        seanceService.supprimerSeance(seanceId, utilisateurId);
     }
 
     @PutMapping("/seances/{seanceId}/notions")

@@ -299,6 +299,27 @@ class TuteurVocalServiceTest {
     }
 
     @Test
+    void demarrerTutoratLibrePourMatiere_resout_la_seance_discussion_libre_puis_demarre_en_mode_libre() {
+        UUID matiereId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Seance seanceDiscussionLibre = new Seance("Discussion libre", matiereId, couloirId);
+
+        when(seanceService.obtenirOuCreerSeanceDiscussionLibre(matiereId, utilisateurId)).thenReturn(seanceDiscussionLibre);
+        when(seanceService.obtenirSeance(seanceDiscussionLibre.getId())).thenReturn(seanceDiscussionLibre);
+        when(couloirService.estMembre(couloirId, utilisateurId)).thenReturn(true);
+        when(seanceTutoratRepository.findBySeanceIdAndUtilisateurIdAndStatut(
+                seanceDiscussionLibre.getId(), utilisateurId, StatutSeanceTutorat.EN_COURS
+        )).thenReturn(Optional.empty());
+        when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ResultatTour resultat = tuteurVocalService.demarrerTutoratLibrePourMatiere(matiereId, utilisateurId);
+
+        assertThat(resultat.tourId()).isNull();
+        assertThat(resultat.seanceTerminee()).isFalse();
+    }
+
+    @Test
     void soumettreReponse_en_mode_libre_utilise_lhistorique_complet_et_najamais_evalue_de_maitrise() {
         UUID utilisateurId = UUID.randomUUID();
         UUID seanceId = UUID.randomUUID();

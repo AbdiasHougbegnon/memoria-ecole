@@ -37,6 +37,18 @@ public class MatiereService {
         return matiereRepository.findByCouloirId(couloirId);
     }
 
+    // Vue transverse "mes matieres" (tous couloirs confondus) pour les entrees
+    // de menu Revision/Tutorat -- avant cet increment, une matiere n'etait
+    // accessible qu'en passant par son couloir, ce qui obligeait l'etudiant a
+    // se souvenir de quel couloir contenait quelle matiere avant meme de
+    // pouvoir reviser. Reutilise listerMesCouloirs, pas de nouvelle requete
+    // repository necessaire.
+    public List<Matiere> listerMesMatieres(UUID utilisateurId) {
+        return couloirService.listerMesCouloirs(utilisateurId).stream()
+                .flatMap(couloir -> matiereRepository.findByCouloirId(couloir.getId()).stream())
+                .toList();
+    }
+
     // Membre OU proprietaire du couloir (contrairement a creerMatiere, reserve
     // au proprietaire) : consulter/reviser une matiere est ouvert a tout le
     // couloir, seule la modification du contenu pedagogique est reservee a

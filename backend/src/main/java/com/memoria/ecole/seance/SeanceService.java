@@ -15,6 +15,11 @@ import java.util.UUID;
 @Service
 public class SeanceService {
 
+    // Titre repere pour retrouver/reutiliser la seance partagee "tutorat
+    // libre direct depuis le menu" d'une matiere -- voir
+    // obtenirOuCreerSeanceDiscussionLibre.
+    private static final String TITRE_SEANCE_DISCUSSION_LIBRE = "Discussion libre";
+
     private final SeanceRepository seanceRepository;
     private final SeanceNotionRepository seanceNotionRepository;
     private final MatiereService matiereService;
@@ -48,6 +53,36 @@ public class SeanceService {
 
     public List<Seance> listerSeancesParMatiere(UUID matiereId) {
         return seanceRepository.findByMatiereId(matiereId);
+    }
+
+    // Meme raisonnement que NotionService.supprimerNotion : nettoyage
+    // explicite des rattachements avant la seance elle-meme (jointure plate
+    // sans contrainte FK). Les SeanceTutorat/TourDialogueTutorat deja
+    // rattaches restent en base (reference brute, comme les sessions apres
+    // suppression d'un couloir) : consultables tels quels, mais reprendre le
+    // tutorat echouera si la seance a disparu -- degradation jugee acceptable,
+    // voir docs/phases/phase-24-correction-travail-papier-navigation.md.
+    @Transactional
+    public void supprimerSeance(UUID seanceId, UUID utilisateurId) {
+        Seance seance = obtenirSeance(seanceId);
+        couloirService.verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
+        seanceNotionRepository.deleteBySeanceId(seanceId);
+        seanceRepository.deleteById(seanceId);
+    }
+
+    // Point d'entree "Tutorat" direct depuis le menu (pas besoin de creer/choisir
+    // une seance au prealable) : reutilise une seance partagee "Discussion libre"
+    // par matiere plutot que d'ajouter un nouveau concept d'ancrage. Ouvert a
+    // tout membre du couloir (verifierMembreDuCouloir, pas proprietaire) --
+    // contrairement a creerSeance, ceci ne cree pas de contenu pedagogique,
+    // juste le point d'entree partage d'une discussion libre deja prevue par
+    // le modele existant (SeanceDetailPage permet deja "Discussion libre" sans
+    // aucune notion rattachee).
+    public Seance obtenirOuCreerSeanceDiscussionLibre(UUID matiereId, UUID utilisateurId) {
+        Matiere matiere = matiereService.obtenirMatiere(matiereId);
+        matiereService.verifierMembreDuCouloir(matiereId, utilisateurId);
+        return seanceRepository.findByMatiereIdAndTitre(matiereId, TITRE_SEANCE_DISCUSSION_LIBRE)
+                .orElseGet(() -> seanceRepository.save(new Seance(TITRE_SEANCE_DISCUSSION_LIBRE, matiereId, matiere.getCouloirId())));
     }
 
     // Remplace entierement l'ensemble des notions rattachees (supprime puis

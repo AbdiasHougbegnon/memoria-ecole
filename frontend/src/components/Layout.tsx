@@ -51,6 +51,28 @@ function IconeCouloirs() {
   )
 }
 
+function IconeRevision() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+      <rect x="3" y="2.5" width="12" height="13" rx="1.6" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="6" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="6" y1="9" x2="12" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="6" y1="12" x2="9.5" y2="12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconeTutorat() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+      <path d="M3 4.5 H15 V11.5 H8 L5 14 V11.5 H3 Z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
+      <circle cx="6.5" cy="8" r="0.9" fill="currentColor" />
+      <circle cx="9" cy="8" r="0.9" fill="currentColor" />
+      <circle cx="11.5" cy="8" r="0.9" fill="currentColor" />
+    </svg>
+  )
+}
+
 function IconeEngagements() {
   return (
     <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
@@ -190,6 +212,22 @@ export function Layout({ children }: { children: ReactNode }) {
               <LienNav to="/tableau-de-bord" actif={location.pathname === '/tableau-de-bord'}>
                 <IconeTableauDeBord />
                 Tableau de bord
+              </LienNav>
+            </>
+          )}
+
+          {module === 'ECOLE' && (
+            <>
+              <div className="px-2.5 pt-3.5 pb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
+                Ecole
+              </div>
+              <LienNav to="/revision" actif={location.pathname === '/revision'}>
+                <IconeRevision />
+                Revision
+              </LienNav>
+              <LienNav to="/tutorat" actif={location.pathname === '/tutorat'}>
+                <IconeTutorat />
+                Tutorat
               </LienNav>
             </>
           )}

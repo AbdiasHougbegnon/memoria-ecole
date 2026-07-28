@@ -528,6 +528,14 @@ export async function obtenirMatiere(id: string): Promise<Matiere> {
   return reponse.json()
 }
 
+// Vue transverse (tous couloirs confondus), alimente les entrees de menu
+// Revision/Tutorat -- eviter d'obliger l'etudiant a se souvenir de quel
+// couloir contient quelle matiere avant de pouvoir reviser.
+export async function listerMesMatieres(): Promise<Matiere[]> {
+  const reponse = await verifierReponse(await appelApi('/api/v1/matieres'))
+  return reponse.json()
+}
+
 export async function rattacherMatiereSession(sessionId: string, matiereId: string): Promise<void> {
   await verifierReponse(
     await appelApi(`/api/v1/ecole/sessions/${sessionId}/matiere`, {
@@ -552,6 +560,10 @@ export async function creerNotion(matiereId: string, terme: string, definition: 
 export async function listerNotionsParMatiere(matiereId: string): Promise<Notion[]> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/notions`))
   return reponse.json()
+}
+
+export async function supprimerNotion(matiereId: string, notionId: string): Promise<void> {
+  await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/notions/${notionId}`, { method: 'DELETE' }))
 }
 
 // --- Contenu pilote par documents (phase 18 : fiche televersee -> notions candidates -> validation enseignant) ---
@@ -614,6 +626,10 @@ export async function obtenirSeance(seanceId: string): Promise<Seance> {
   return reponse.json()
 }
 
+export async function supprimerSeance(seanceId: string): Promise<void> {
+  await verifierReponse(await appelApi(`/api/v1/seances/${seanceId}`, { method: 'DELETE' }))
+}
+
 export async function rattacherNotions(seanceId: string, notionIds: string[]): Promise<Notion[]> {
   const reponse = await verifierReponse(
     await appelApi(`/api/v1/seances/${seanceId}/notions`, {
@@ -643,6 +659,14 @@ export async function demarrerTutorat(seanceId: string, mode: ModeTutorat): Prom
       body: JSON.stringify({ mode }),
     }),
   )
+  return reponse.json()
+}
+
+// Entree directe depuis le menu de navigation (pas besoin de choisir une
+// seance au prealable) : demarre toujours en mode LIBRE, sur une seance
+// "Discussion libre" partagee resolue/creee cote serveur.
+export async function demarrerTutoratMatiere(matiereId: string): Promise<ResultatTour> {
+  const reponse = await verifierReponse(await appelApi(`/api/v1/matieres/${matiereId}/tutorat`, { method: 'POST' }))
   return reponse.json()
 }
 

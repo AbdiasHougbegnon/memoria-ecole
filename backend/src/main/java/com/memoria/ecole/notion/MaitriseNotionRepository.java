@@ -18,4 +18,6 @@ public interface MaitriseNotionRepository extends JpaRepository<MaitriseNotion, 
     List<MaitriseNotion> findByUtilisateurId(UUID utilisateurId);
 
     void deleteByUtilisateurId(UUID utilisateurId);
+
+    void deleteByNotionId(UUID notionId);
 }

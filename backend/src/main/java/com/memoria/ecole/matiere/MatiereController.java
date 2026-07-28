@@ -40,6 +40,13 @@ public class MatiereController {
                 .toList();
     }
 
+    @GetMapping("/matieres")
+    public List<MatiereResponse> listerMesMatieres(@AuthenticationPrincipal UUID utilisateurId) {
+        return matiereService.listerMesMatieres(utilisateurId).stream()
+                .map(MatiereResponse::depuis)
+                .toList();
+    }
+
     @GetMapping("/matieres/{id}")
     public MatiereResponse obtenirMatiere(@PathVariable UUID id) {
         return MatiereResponse.depuis(matiereService.obtenirMatiere(id));

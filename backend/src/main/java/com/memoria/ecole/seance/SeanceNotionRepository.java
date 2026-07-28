@@ -10,4 +10,6 @@ public interface SeanceNotionRepository extends JpaRepository<SeanceNotion, UUID
     List<SeanceNotion> findBySeanceIdOrderByOrdreAsc(UUID seanceId);
 
     void deleteBySeanceId(UUID seanceId);
+
+    void deleteByNotionId(UUID notionId);
 }

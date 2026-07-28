@@ -150,6 +150,68 @@ class SeanceServiceTest {
     }
 
     @Test
+    void supprimerSeance_nettoie_les_rattachements_puis_supprime_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
+        when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
+
+        seanceService.supprimerSeance(seance.getId(), proprietaireId);
+
+        verify(couloirService).verifierProprietaireDuCouloir(couloirId, proprietaireId);
+        verify(seanceNotionRepository).deleteBySeanceId(seance.getId());
+        verify(seanceRepository).deleteById(seance.getId());
+    }
+
+    @Test
+    void supprimerSeance_leve_une_exception_si_pas_proprietaire_du_couloir() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
+        when(seanceRepository.findById(seance.getId())).thenReturn(Optional.of(seance));
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
+
+        assertThatThrownBy(() -> seanceService.supprimerSeance(seance.getId(), utilisateurId))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+        verify(seanceRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void obtenirOuCreerSeanceDiscussionLibre_reutilise_la_seance_existante_si_elle_existe_deja() {
+        UUID matiereId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
+        Seance existante = new Seance("Discussion libre", matiereId, couloirId);
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(seanceRepository.findByMatiereIdAndTitre(matiereId, "Discussion libre")).thenReturn(Optional.of(existante));
+
+        Seance resultat = seanceService.obtenirOuCreerSeanceDiscussionLibre(matiereId, membreId);
+
+        assertThat(resultat).isSameAs(existante);
+        verify(matiereService).verifierMembreDuCouloir(matiereId, membreId);
+        verify(seanceRepository, never()).save(any());
+    }
+
+    @Test
+    void obtenirOuCreerSeanceDiscussionLibre_en_cree_une_si_aucune_nexiste() {
+        UUID matiereId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID membreId = UUID.randomUUID();
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        when(seanceRepository.findByMatiereIdAndTitre(matiereId, "Discussion libre")).thenReturn(Optional.empty());
+        when(seanceRepository.save(any(Seance.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Seance resultat = seanceService.obtenirOuCreerSeanceDiscussionLibre(matiereId, membreId);
+
+        assertThat(resultat.getTitre()).isEqualTo("Discussion libre");
+        assertThat(resultat.getMatiereId()).isEqualTo(matiereId);
+        assertThat(resultat.getCouloirId()).isEqualTo(couloirId);
+    }
+
+    @Test
     void listerNotionsDeSeance_retourne_les_notions_dans_lordre() {
         UUID seanceId = UUID.randomUUID();
         UUID notion1Id = UUID.randomUUID();

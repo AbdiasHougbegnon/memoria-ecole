@@ -17,6 +17,8 @@ import { ImporterMatieresPage } from './pages/ImporterMatieresPage'
 import { MatiereApercuPage } from './pages/MatiereApercuPage'
 import { MatiereDocumentsPage } from './pages/MatiereDocumentsPage'
 import { MatiereRevisionPage } from './pages/MatiereRevisionPage'
+import { RevisionMatieresPage } from './pages/RevisionMatieresPage'
+import { TutoratMatieresPage } from './pages/TutoratMatieresPage'
 import { SeanceDetailPage } from './pages/SeanceDetailPage'
 import { TuteurVocalPage } from './pages/TuteurVocalPage'
 import { AdminPage } from './pages/AdminPage'
@@ -48,6 +50,8 @@ function App() {
           <Route path="/matieres/:id" element={<RouteProtegee module="ECOLE"><MatiereApercuPage /></RouteProtegee>} />
           <Route path="/matieres/:id/documents" element={<RouteProtegee module="ECOLE"><MatiereDocumentsPage /></RouteProtegee>} />
           <Route path="/matieres/:id/revision" element={<RouteProtegee module="ECOLE"><MatiereRevisionPage /></RouteProtegee>} />
+          <Route path="/revision" element={<RouteProtegee module="ECOLE"><RevisionMatieresPage /></RouteProtegee>} />
+          <Route path="/tutorat" element={<RouteProtegee module="ECOLE"><TutoratMatieresPage /></RouteProtegee>} />
           <Route path="/seances/:id" element={<RouteProtegee module="ECOLE"><SeanceDetailPage /></RouteProtegee>} />
           <Route path="/tutorat/:seanceTutoratId" element={<RouteProtegee module="ECOLE"><TuteurVocalPage /></RouteProtegee>} />
         </Routes>

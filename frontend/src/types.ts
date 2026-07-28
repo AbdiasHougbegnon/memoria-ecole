@@ -188,6 +188,8 @@ export interface TravailPapierMatiere {
   type: TypeDocument
   nomFichier: string
   texteExtrait: string | null
+  correctionNiveau: NiveauMaitrise | null
+  correctionTexte: string | null
   statut: StatutDocument
   dateCreation: string
 }

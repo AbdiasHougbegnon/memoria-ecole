@@ -424,15 +424,32 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
       </div>
 
       {!chargement && (
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-3 flex flex-col gap-2.5">
           {travaux.map((travail) => (
             <li
               key={travail.id}
-              className="flex items-center justify-between rounded-lg border bg-white px-3.5 py-2 text-sm"
+              className="rounded-lg border bg-white px-3.5 py-2.5 text-sm"
               style={{ borderColor: 'var(--color-border-soft)' }}
             >
-              <span>{travail.nomFichier}</span>
-              <span className="text-xs" style={{ color: 'var(--color-ink-muted)' }}>{LIBELLE_STATUT_TRAVAIL[travail.statut]}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{travail.nomFichier}</span>
+                <span className="text-xs" style={{ color: 'var(--color-ink-muted)' }}>{LIBELLE_STATUT_TRAVAIL[travail.statut]}</span>
+              </div>
+              {travail.statut === 'REUSSI' && (
+                travail.correctionTexte ? (
+                  <div className="mt-2 rounded-lg p-2.5" style={{ background: '#F4F2EE' }}>
+                    <span
+                      className="text-xs font-semibold"
+                      style={{ color: travail.correctionNiveau ? COULEUR_NIVEAU[travail.correctionNiveau] : 'var(--color-ink-muted)' }}
+                    >
+                      {travail.correctionNiveau ? LIBELLE_NIVEAU[travail.correctionNiveau] : 'Correction indisponible'}
+                    </span>
+                    <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{travail.correctionTexte}</p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>
+                )
+              )}
             </li>
           ))}
           {travaux.length === 0 && (

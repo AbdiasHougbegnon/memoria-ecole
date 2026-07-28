@@ -2,6 +2,7 @@ package com.memoria.ecole.exercice;
 
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.TypeDocument;
+import com.memoria.ecole.notion.NiveauMaitrise;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +47,20 @@ public class TravailPapierMatiere {
     @Column(name = "texte_extrait", columnDefinition = "text")
     private String texteExtrait;
 
+    // Correction automatique generee par l'IA juste apres l'extraction du
+    // texte (voir TravailPapierService.surTravailPapierTeleverse) -- avant
+    // cet increment, le travail papier n'etait que stocke et transcrit, sans
+    // jamais etre corrige, ce qui ne repondait pas au besoin reel de
+    // l'etudiant ("l'IA analyse ce que j'ai fait et corrige"). Nullable :
+    // reste absent si la correction echoue alors que l'extraction a reussi
+    // (meme doctrine degradee que ExerciceSaisieLibreService.soumettreReponses).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "correction_niveau")
+    private NiveauMaitrise correctionNiveau;
+
+    @Column(name = "correction_texte", columnDefinition = "text")
+    private String correctionTexte;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatutDocument statut;
@@ -71,6 +86,11 @@ public class TravailPapierMatiere {
     public void marquerReussi(String texteExtrait) {
         this.texteExtrait = texteExtrait;
         this.statut = StatutDocument.REUSSI;
+    }
+
+    public void enregistrerCorrection(NiveauMaitrise correctionNiveau, String correctionTexte) {
+        this.correctionNiveau = correctionNiveau;
+        this.correctionTexte = correctionTexte;
     }
 
     public void marquerEchec() {
@@ -103,6 +123,14 @@ public class TravailPapierMatiere {
 
     public String getTexteExtrait() {
         return texteExtrait;
+    }
+
+    public NiveauMaitrise getCorrectionNiveau() {
+        return correctionNiveau;
+    }
+
+    public String getCorrectionTexte() {
+        return correctionTexte;
     }
 
     public StatutDocument getStatut() {

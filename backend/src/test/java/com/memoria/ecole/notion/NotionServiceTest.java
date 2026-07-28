@@ -4,6 +4,7 @@ import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereService;
+import com.memoria.ecole.seance.SeanceNotionRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,9 @@ class NotionServiceTest {
     private MaitriseNotionRepository maitriseNotionRepository;
 
     @Mock
+    private SeanceNotionRepository seanceNotionRepository;
+
+    @Mock
     private MatiereService matiereService;
 
     @Mock
@@ -43,7 +47,9 @@ class NotionServiceTest {
 
     @BeforeEach
     void setUp() {
-        notionService = new NotionService(notionRepository, maitriseNotionRepository, matiereService, couloirService);
+        notionService = new NotionService(
+                notionRepository, maitriseNotionRepository, seanceNotionRepository, matiereService, couloirService
+        );
     }
 
     @Test
@@ -138,6 +144,42 @@ class NotionServiceTest {
 
         assertThat(resultat.getNiveau()).isEqualTo(NiveauMaitrise.EN_COURS);
         assertThat(resultat.getNombreTentatives()).isEqualTo(1);
+    }
+
+    @Test
+    void supprimerNotion_nettoie_les_maitrises_et_rattachements_puis_supprime_si_proprietaire() {
+        UUID proprietaireId = UUID.randomUUID();
+        UUID couloirId = UUID.randomUUID();
+        UUID matiereId = UUID.randomUUID();
+        UUID notionId = UUID.randomUUID();
+        Notion notion = new Notion(matiereId, "Derivees", "def", 0);
+        Matiere matiere = new Matiere("Mathematiques", couloirId, proprietaireId);
+        when(notionRepository.findById(notion.getId())).thenReturn(Optional.of(notion));
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+
+        notionService.supprimerNotion(notion.getId(), proprietaireId);
+
+        verify(couloirService).verifierProprietaireDuCouloir(couloirId, proprietaireId);
+        verify(maitriseNotionRepository).deleteByNotionId(notion.getId());
+        verify(seanceNotionRepository).deleteByNotionId(notion.getId());
+        verify(notionRepository).deleteById(notion.getId());
+    }
+
+    @Test
+    void supprimerNotion_leve_une_exception_si_pas_proprietaire_du_couloir() {
+        UUID couloirId = UUID.randomUUID();
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Notion notion = new Notion(matiereId, "Derivees", "def", 0);
+        Matiere matiere = new Matiere("Mathematiques", couloirId, UUID.randomUUID());
+        when(notionRepository.findById(notion.getId())).thenReturn(Optional.of(notion));
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(matiere);
+        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
+
+        assertThatThrownBy(() -> notionService.supprimerNotion(notion.getId(), utilisateurId))
+                .isInstanceOf(PasProprietaireDuCouloirException.class);
+        verify(notionRepository, never()).deleteById(any());
     }
 
     @Test
