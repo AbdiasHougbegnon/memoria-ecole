@@ -2,31 +2,30 @@ package com.memoria.ecole.exercice;
 
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.TypeDocument;
-import com.memoria.ecole.notion.NiveauMaitrise;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
-// Photo d'un travail fait sur papier par un etudiant (phase 22e) -- miroir de
-// DocumentMatiere (ecole.document) mais rattache a l'etudiant qui l'envoie,
-// pas seulement a la matiere : DocumentMatiere est du contenu de cours
-// televerse par l'enseignant (alimente le QCM/tuteur de toute la matiere via
-// AgregateurContenuMatiereService), un travail papier est personnel a
-// l'etudiant qui l'a soumis (n'alimente que SES PROPRES conversations avec le
-// tuteur, voir TuteurVocalService.construireContexteMatiere).
+// Travail fait sur papier par un etudiant, soumis en deux photos separees
+// (phase 28) -- l'enonce (le sujet) et sa propre reponse -- pour que la
+// correction s'appuie sur l'enonce reel plutot que de le deviner a partir de
+// la seule reponse (limite assumee des phases 24/26/27, levee ici a la
+// demande explicite de l'utilisateur). Miroir de DocumentMatiere
+// (ecole.document) mais rattache a l'etudiant qui l'envoie, pas seulement a
+// la matiere : DocumentMatiere est du contenu de cours televerse par
+// l'enseignant, un travail papier est personnel a l'etudiant qui l'a soumis
+// (n'alimente que SES PROPRES conversations avec le tuteur, voir
+// TuteurVocalService.construireContexteMatiere).
+// Le decoupage en exercices individuels (enonce/reponse/correction) vit sur
+// ExercicePapier (jointure plate via travailPapierId), pas ici : cette entite
+// ne porte que le pipeline global (fichiers, extraction, statut).
 @Entity
 @Table(name = "travaux_papier_matiere")
 public class TravailPapierMatiere {
@@ -41,39 +40,30 @@ public class TravailPapierMatiere {
     private UUID utilisateurId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TypeDocument type;
+    @Column(name = "type_enonce", nullable = false)
+    private TypeDocument typeEnonce;
 
-    @Column(name = "nom_fichier", nullable = false)
-    private String nomFichier;
+    @Column(name = "nom_fichier_enonce", nullable = false)
+    private String nomFichierEnonce;
 
-    @Column(name = "chemin_stockage", nullable = false)
-    private String cheminStockage;
+    @Column(name = "chemin_stockage_enonce", nullable = false)
+    private String cheminStockageEnonce;
 
-    @Column(name = "texte_extrait", columnDefinition = "text")
-    private String texteExtrait;
-
-    // Correction automatique generee par l'IA juste apres l'extraction du
-    // texte (voir TravailPapierService.surTravailPapierTeleverse) -- avant
-    // cet increment, le travail papier n'etait que stocke et transcrit, sans
-    // jamais etre corrige, ce qui ne repondait pas au besoin reel de
-    // l'etudiant ("l'IA analyse ce que j'ai fait et corrige"). Nullable :
-    // reste absent si la correction echoue alors que l'extraction a reussi
-    // (meme doctrine degradee que ExerciceSaisieLibreService.soumettreReponses).
     @Enumerated(EnumType.STRING)
-    @Column(name = "correction_niveau")
-    private NiveauMaitrise correctionNiveau;
+    @Column(name = "type_reponse", nullable = false)
+    private TypeDocument typeReponse;
 
-    @Column(name = "correction_synthese", columnDefinition = "text")
-    private String correctionSynthese;
+    @Column(name = "nom_fichier_reponse", nullable = false)
+    private String nomFichierReponse;
 
-    // Decoupee en points identifiables (phase 27) plutot qu'un seul bloc de
-    // texte -- un mur de texte etait juge illisible et impossible a reviser
-    // point par point cote frontend.
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "travail_papier_points_correction", joinColumns = @JoinColumn(name = "travail_papier_id"))
-    @OrderColumn(name = "position")
-    private List<PointCorrection> pointsCorrection = List.of();
+    @Column(name = "chemin_stockage_reponse", nullable = false)
+    private String cheminStockageReponse;
+
+    @Column(name = "texte_extrait_enonce", columnDefinition = "text")
+    private String texteExtraitEnonce;
+
+    @Column(name = "texte_extrait_reponse", columnDefinition = "text")
+    private String texteExtraitReponse;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -86,26 +76,28 @@ public class TravailPapierMatiere {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
-    public TravailPapierMatiere(UUID matiereId, UUID utilisateurId, TypeDocument type, String nomFichier, String cheminStockage) {
+    public TravailPapierMatiere(
+            UUID matiereId, UUID utilisateurId,
+            TypeDocument typeEnonce, String nomFichierEnonce, String cheminStockageEnonce,
+            TypeDocument typeReponse, String nomFichierReponse, String cheminStockageReponse
+    ) {
         this.id = UUID.randomUUID();
         this.matiereId = matiereId;
         this.utilisateurId = utilisateurId;
-        this.type = type;
-        this.nomFichier = nomFichier;
-        this.cheminStockage = cheminStockage;
+        this.typeEnonce = typeEnonce;
+        this.nomFichierEnonce = nomFichierEnonce;
+        this.cheminStockageEnonce = cheminStockageEnonce;
+        this.typeReponse = typeReponse;
+        this.nomFichierReponse = nomFichierReponse;
+        this.cheminStockageReponse = cheminStockageReponse;
         this.statut = StatutDocument.EN_ATTENTE;
         this.dateCreation = Instant.now();
     }
 
-    public void marquerReussi(String texteExtrait) {
-        this.texteExtrait = texteExtrait;
+    public void marquerReussi(String texteExtraitEnonce, String texteExtraitReponse) {
+        this.texteExtraitEnonce = texteExtraitEnonce;
+        this.texteExtraitReponse = texteExtraitReponse;
         this.statut = StatutDocument.REUSSI;
-    }
-
-    public void enregistrerCorrection(NiveauMaitrise correctionNiveau, String correctionSynthese, List<PointCorrection> pointsCorrection) {
-        this.correctionNiveau = correctionNiveau;
-        this.correctionSynthese = correctionSynthese;
-        this.pointsCorrection = pointsCorrection;
     }
 
     public void marquerEchec() {
@@ -124,32 +116,36 @@ public class TravailPapierMatiere {
         return utilisateurId;
     }
 
-    public TypeDocument getType() {
-        return type;
+    public TypeDocument getTypeEnonce() {
+        return typeEnonce;
     }
 
-    public String getNomFichier() {
-        return nomFichier;
+    public String getNomFichierEnonce() {
+        return nomFichierEnonce;
     }
 
-    public String getCheminStockage() {
-        return cheminStockage;
+    public String getCheminStockageEnonce() {
+        return cheminStockageEnonce;
     }
 
-    public String getTexteExtrait() {
-        return texteExtrait;
+    public TypeDocument getTypeReponse() {
+        return typeReponse;
     }
 
-    public NiveauMaitrise getCorrectionNiveau() {
-        return correctionNiveau;
+    public String getNomFichierReponse() {
+        return nomFichierReponse;
     }
 
-    public String getCorrectionSynthese() {
-        return correctionSynthese;
+    public String getCheminStockageReponse() {
+        return cheminStockageReponse;
     }
 
-    public List<PointCorrection> getPointsCorrection() {
-        return pointsCorrection;
+    public String getTexteExtraitEnonce() {
+        return texteExtraitEnonce;
+    }
+
+    public String getTexteExtraitReponse() {
+        return texteExtraitReponse;
     }
 
     public StatutDocument getStatut() {

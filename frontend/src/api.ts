@@ -304,9 +304,12 @@ export async function obtenirMaTentativeExercices(matiereId: string): Promise<Te
   return (await verifierReponse(reponse)).json()
 }
 
-export async function soumettreTravailPapier(matiereId: string, fichier: File): Promise<TravailPapierMatiere> {
+// Deux photos separees (phase 28) : l'enonce et la reponse de l'etudiant,
+// pour que la correction s'appuie sur l'enonce reel.
+export async function soumettreTravailPapier(matiereId: string, fichierEnonce: File, fichierReponse: File): Promise<TravailPapierMatiere> {
   const corps = new FormData()
-  corps.append('fichier', fichier)
+  corps.append('fichierEnonce', fichierEnonce)
+  corps.append('fichierReponse', fichierReponse)
   const reponse = await verifierReponse(
     await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier`, { method: 'POST', body: corps }),
   )

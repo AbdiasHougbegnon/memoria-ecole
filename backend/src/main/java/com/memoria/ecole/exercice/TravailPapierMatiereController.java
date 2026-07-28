@@ -26,17 +26,23 @@ public class TravailPapierMatiereController {
         this.travailPapierService = travailPapierService;
     }
 
+    // Deux photos separees (phase 28) : l'enonce et la reponse de l'etudiant,
+    // pour que la correction s'appuie sur l'enonce reel.
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public TravailPapierMatiereResponse soumettre(
             @PathVariable UUID matiereId,
-            @RequestParam("fichier") MultipartFile fichier,
+            @RequestParam("fichierEnonce") MultipartFile fichierEnonce,
+            @RequestParam("fichierReponse") MultipartFile fichierReponse,
             @AuthenticationPrincipal UUID utilisateurId
     ) throws IOException {
         TravailPapierMatiere travail = travailPapierService.soumettre(
-                matiereId, fichier.getOriginalFilename(), fichier.getContentType(), fichier.getBytes(), utilisateurId
+                matiereId,
+                fichierEnonce.getOriginalFilename(), fichierEnonce.getContentType(), fichierEnonce.getBytes(),
+                fichierReponse.getOriginalFilename(), fichierReponse.getContentType(), fichierReponse.getBytes(),
+                utilisateurId
         );
-        return TravailPapierMatiereResponse.depuis(travail);
+        return TravailPapierMatiereResponse.depuis(travail, List.of());
     }
 
     @GetMapping
@@ -45,20 +51,19 @@ public class TravailPapierMatiereController {
             @AuthenticationPrincipal UUID utilisateurId
     ) {
         return travailPapierService.listerMesTravaux(matiereId, utilisateurId).stream()
-                .map(TravailPapierMatiereResponse::depuis)
+                .map(travail -> TravailPapierMatiereResponse.depuis(travail, travailPapierService.listerExercices(travail.getId())))
                 .toList();
     }
 
-    // Reessai manuel pour les travaux soumis avant l'ajout de la correction
-    // automatique (phase 24).
+    // Reessai manuel pour les travaux dont la correction n'a pas encore
+    // reussi (phase 26).
     @PostMapping("/{travailId}/corriger")
     public TravailPapierMatiereResponse reessayerCorrection(
             @PathVariable UUID matiereId,
             @PathVariable UUID travailId,
             @AuthenticationPrincipal UUID utilisateurId
     ) {
-        return TravailPapierMatiereResponse.depuis(
-                travailPapierService.reessayerCorrection(matiereId, travailId, utilisateurId)
-        );
+        TravailPapierMatiere travail = travailPapierService.reessayerCorrection(matiereId, travailId, utilisateurId);
+        return TravailPapierMatiereResponse.depuis(travail, travailPapierService.listerExercices(travail.getId()));
     }
 }

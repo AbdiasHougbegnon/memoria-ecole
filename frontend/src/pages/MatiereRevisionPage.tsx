@@ -16,7 +16,7 @@ import {
   soumettreTravailPapier,
 } from '../api'
 import { MatiereSousNav } from '../components/MatiereSousNav'
-import type { Couloir, ExerciceMatiere, Matiere, QcmMatiere, TentativeExerciceSaisieLibre, TentativeQcm, TravailPapierMatiere } from '../types'
+import type { Couloir, ExerciceMatiere, ExercicePapier, Matiere, QcmMatiere, TentativeExerciceSaisieLibre, TentativeQcm, TravailPapierMatiere } from '../types'
 
 const INTERVALLE_POLLING_DOCUMENTS_MS = 4000
 
@@ -357,10 +357,10 @@ const LIBELLE_STATUT_TRAVAIL: Record<string, string> = {
   ECHEC: "Echec de l'analyse",
 }
 
-// Affiche la correction decoupee en points repliables/depliables plutot
-// qu'un seul bloc de texte -- un mur de texte etait juge illisible et
+// Affiche la correction d'un exercice decoupee en points repliables/depliables
+// plutot qu'un seul bloc de texte -- un mur de texte etait juge illisible et
 // impossible a reviser point par point (retour utilisateur direct).
-function CorrectionTravailPapierAffichage({ travail }: { travail: TravailPapierMatiere }) {
+function CorrectionExerciceAffichage({ exercice }: { exercice: ExercicePapier }) {
   const [ouverts, setOuverts] = useState<Set<number>>(new Set())
 
   function basculer(index: number) {
@@ -374,58 +374,63 @@ function CorrectionTravailPapierAffichage({ travail }: { travail: TravailPapierM
 
   function toutBasculer() {
     setOuverts((prev) =>
-      prev.size === travail.pointsCorrection.length
+      prev.size === exercice.pointsCorrection.length
         ? new Set()
-        : new Set(travail.pointsCorrection.map((_, i) => i)),
+        : new Set(exercice.pointsCorrection.map((_, i) => i)),
     )
   }
 
-  const toutDeplie = ouverts.size === travail.pointsCorrection.length && travail.pointsCorrection.length > 0
+  const toutDeplie = ouverts.size === exercice.pointsCorrection.length && exercice.pointsCorrection.length > 0
 
   return (
-    <div className="mt-2 rounded-lg p-2.5" style={{ background: '#F4F2EE' }}>
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className="text-xs font-semibold"
-          style={{ color: travail.correctionNiveau ? COULEUR_NIVEAU[travail.correctionNiveau] : 'var(--color-ink-muted)' }}
-        >
-          {travail.correctionNiveau ? LIBELLE_NIVEAU[travail.correctionNiveau] : 'Correction indisponible'}
-        </span>
-        {travail.pointsCorrection.length > 1 && (
-          <button type="button" onClick={toutBasculer} className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>
-            {toutDeplie ? 'Tout replier' : 'Tout deplier'}
-          </button>
+    <div className="rounded-lg border bg-white p-3" style={{ borderColor: 'var(--color-border-soft)' }}>
+      <p className="text-sm font-semibold">{exercice.enonce}</p>
+      <p className="mt-1 text-xs italic" style={{ color: 'var(--color-ink-muted)' }}>{exercice.reponseEtudiant}</p>
+
+      <div className="mt-2.5 rounded-lg p-2.5" style={{ background: '#F4F2EE' }}>
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-xs font-semibold"
+            style={{ color: exercice.correctionNiveau ? COULEUR_NIVEAU[exercice.correctionNiveau] : 'var(--color-ink-muted)' }}
+          >
+            {exercice.correctionNiveau ? LIBELLE_NIVEAU[exercice.correctionNiveau] : 'Correction indisponible'}
+          </span>
+          {exercice.pointsCorrection.length > 1 && (
+            <button type="button" onClick={toutBasculer} className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>
+              {toutDeplie ? 'Tout replier' : 'Tout deplier'}
+            </button>
+          )}
+        </div>
+
+        {exercice.correctionSynthese && (
+          <p className="mt-1.5 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{exercice.correctionSynthese}</p>
         )}
+
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {exercice.pointsCorrection.map((point, index) => {
+            const ouvert = ouverts.has(index)
+            return (
+              <li key={index} className="overflow-hidden rounded-lg border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
+                <button
+                  type="button"
+                  onClick={() => basculer(index)}
+                  aria-expanded={ouvert}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold"
+                >
+                  <span>{point.sujet}</span>
+                  <span style={{ color: 'var(--color-ink-faint)' }}>{ouvert ? '−' : '+'}</span>
+                </button>
+                {ouvert && (
+                  <div className="border-t px-3 py-2.5 text-xs leading-relaxed" style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}>
+                    <p><strong style={{ color: 'var(--color-ink)' }}>Constat — </strong>{point.constat}</p>
+                    <p className="mt-1.5"><strong style={{ color: 'var(--color-ink)' }}>Correction attendue — </strong>{point.correctionAttendue}</p>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       </div>
-
-      {travail.correctionSynthese && (
-        <p className="mt-1.5 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{travail.correctionSynthese}</p>
-      )}
-
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {travail.pointsCorrection.map((point, index) => {
-          const ouvert = ouverts.has(index)
-          return (
-            <li key={index} className="overflow-hidden rounded-lg border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
-              <button
-                type="button"
-                onClick={() => basculer(index)}
-                aria-expanded={ouvert}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold"
-              >
-                <span>{point.sujet}</span>
-                <span style={{ color: 'var(--color-ink-faint)' }}>{ouvert ? '−' : '+'}</span>
-              </button>
-              {ouvert && (
-                <div className="border-t px-3 py-2.5 text-xs leading-relaxed" style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}>
-                  <p><strong style={{ color: 'var(--color-ink)' }}>Constat — </strong>{point.constat}</p>
-                  <p className="mt-1.5"><strong style={{ color: 'var(--color-ink)' }}>Correction attendue — </strong>{point.correctionAttendue}</p>
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ul>
     </div>
   )
 }
@@ -437,6 +442,8 @@ function CorrectionTravailPapierAffichage({ travail }: { travail: TravailPapierM
 function SectionTravailPapier({ matiereId }: { matiereId: string }) {
   const [travaux, setTravaux] = useState<TravailPapierMatiere[]>([])
   const [chargement, setChargement] = useState(true)
+  const [fichierEnonce, setFichierEnonce] = useState<File | null>(null)
+  const [fichierReponse, setFichierReponse] = useState<File | null>(null)
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
   const [correctionEnCoursId, setCorrectionEnCoursId] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -463,14 +470,18 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
     return () => window.clearInterval(intervalle)
   }, [matiereId, travaux])
 
-  async function envoyer(e: React.ChangeEvent<HTMLInputElement>) {
-    const fichier = e.target.files?.[0]
-    e.target.value = ''
-    if (!fichier) return
+  // Deux photos separees (phase 28) : l'enonce et la reponse de l'etudiant,
+  // pour que la correction s'appuie sur l'enonce reel plutot que de le
+  // deviner a partir de la seule reponse.
+  async function envoyer(e: React.FormEvent) {
+    e.preventDefault()
+    if (!fichierEnonce || !fichierReponse) return
     setErreur(null)
     setEnvoiEnCours(true)
     try {
-      await soumettreTravailPapier(matiereId, fichier)
+      await soumettreTravailPapier(matiereId, fichierEnonce, fichierReponse)
+      setFichierEnonce(null)
+      setFichierReponse(null)
       await rafraichir()
     } catch {
       setErreur("Impossible d'envoyer ce travail.")
@@ -504,19 +515,46 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
         partage avec le reste de la classe.
       </p>
 
-      <div className="mt-3">
-        <label
-          className="inline-block cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
-          style={{ background: 'var(--color-brand)', opacity: envoiEnCours ? 0.6 : 1 }}
+      <form
+        onSubmit={(e) => void envoyer(e)}
+        className="mt-3 flex flex-col gap-2.5 rounded-xl border p-3.5 sm:flex-row sm:items-end"
+        style={{ borderColor: 'var(--color-border-soft)', background: '#FBFAF7' }}
+      >
+        <div className="flex-1">
+          <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Photo de l'enonce</label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setFichierEnonce(e.target.files?.[0] ?? null)}
+            disabled={envoiEnCours}
+            className="w-full rounded-lg border px-3 py-2 text-xs outline-none"
+            style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Photo de ta reponse</label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setFichierReponse(e.target.files?.[0] ?? null)}
+            disabled={envoiEnCours}
+            className="w-full rounded-lg border px-3 py-2 text-xs outline-none"
+            style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={envoiEnCours || !fichierEnonce || !fichierReponse}
+          className="rounded-lg px-3.5 py-2 text-xs font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
         >
-          {envoiEnCours ? 'Envoi en cours...' : 'Envoyer une photo'}
-          <input type="file" accept="image/*,.pdf" onChange={(e) => void envoyer(e)} disabled={envoiEnCours} className="hidden" />
-        </label>
-        {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
-      </div>
+          {envoiEnCours ? 'Envoi en cours...' : 'Envoyer'}
+        </button>
+      </form>
+      {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
       {!chargement && (
-        <ul className="mt-3 flex flex-col gap-2.5">
+        <ul className="mt-3 flex flex-col gap-3">
           {travaux.map((travail) => (
             <li
               key={travail.id}
@@ -524,12 +562,16 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
               style={{ borderColor: 'var(--color-border-soft)' }}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold">{travail.nomFichier}</span>
+                <span className="font-semibold">{travail.nomFichierEnonce} + {travail.nomFichierReponse}</span>
                 <span className="text-xs" style={{ color: 'var(--color-ink-muted)' }}>{LIBELLE_STATUT_TRAVAIL[travail.statut]}</span>
               </div>
               {travail.statut === 'REUSSI' && (
-                travail.correctionSynthese || travail.pointsCorrection.length > 0 ? (
-                  <CorrectionTravailPapierAffichage travail={travail} />
+                travail.exercices.length > 0 ? (
+                  <div className="mt-2.5 flex flex-col gap-2.5">
+                    {travail.exercices.map((exercice) => (
+                      <CorrectionExerciceAffichage key={exercice.id} exercice={exercice} />
+                    ))}
+                  </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2">
                     <p className="text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>

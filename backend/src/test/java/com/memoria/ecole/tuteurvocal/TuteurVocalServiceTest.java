@@ -66,6 +66,9 @@ class TuteurVocalServiceTest {
     @Mock
     private TravailPapierMatiereRepository travailPapierMatiereRepository;
 
+    @Mock
+    private com.memoria.ecole.exercice.ExercicePapierRepository exercicePapierRepository;
+
     private TuteurVocalService tuteurVocalService;
 
     @BeforeEach
@@ -73,7 +76,7 @@ class TuteurVocalServiceTest {
         tuteurVocalService = new TuteurVocalService(
                 seanceTutoratRepository, tourDialogueTutoratRepository, seanceService, notionService, matiereService,
                 couloirService, transcripteur, synthetiseurVocal, generateurTourTuteur, agregateurContenuMatiereService,
-                travailPapierMatiereRepository
+                travailPapierMatiereRepository, exercicePapierRepository
         );
     }
 
@@ -437,9 +440,15 @@ class TuteurVocalServiceTest {
         Matiere matiere = new Matiere("Algorithmique", UUID.randomUUID(), UUID.randomUUID());
         SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE);
         com.memoria.ecole.exercice.TravailPapierMatiere travail = new com.memoria.ecole.exercice.TravailPapierMatiere(
-                matiere.getId(), utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "exercice.jpg", "chemin/exercice.jpg"
+                matiere.getId(), utilisateurId,
+                com.memoria.core.document.TypeDocument.PHOTO, "enonce.jpg", "chemin/enonce.jpg",
+                com.memoria.core.document.TypeDocument.PHOTO, "reponse.jpg", "chemin/reponse.jpg"
         );
-        travail.marquerReussi("Exercice resolu a la main sur les piles et les files.");
+        travail.marquerReussi("Explique les listes chainees et les piles.", "Exercice resolu a la main sur les piles et les files.");
+        com.memoria.ecole.exercice.ExercicePapier exercice = new com.memoria.ecole.exercice.ExercicePapier(
+                travail.getId(), 0, "Explique les listes chainees et les piles.",
+                "Exercice resolu a la main sur les piles et les files.", null, null, List.of()
+        );
 
         when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
         when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("Peux-tu regarder mon exercice ?", List.of()));
@@ -452,6 +461,8 @@ class TuteurVocalServiceTest {
         when(agregateurContenuMatiereService.agregerContenu(matiere.getId())).thenReturn("");
         when(travailPapierMatiereRepository.findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiere.getId(), utilisateurId))
                 .thenReturn(List.of(travail));
+        when(exercicePapierRepository.findByTravailPapierIdOrderByOrdreAsc(travail.getId()))
+                .thenReturn(List.of(exercice));
         when(generateurTourTuteur.genererTour(any())).thenReturn(
                 new GenerateurTourTuteurPort.TourTuteurGenere("Regardons ca ensemble...", null, false)
         );

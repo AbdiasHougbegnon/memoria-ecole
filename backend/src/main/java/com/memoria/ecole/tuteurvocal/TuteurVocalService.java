@@ -4,6 +4,8 @@ import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.transcription.TranscripteurPort;
+import com.memoria.ecole.exercice.ExercicePapier;
+import com.memoria.ecole.exercice.ExercicePapierRepository;
 import com.memoria.ecole.exercice.TravailPapierMatiere;
 import com.memoria.ecole.exercice.TravailPapierMatiereRepository;
 import com.memoria.ecole.matiere.AgregateurContenuMatiereService;
@@ -51,6 +53,7 @@ public class TuteurVocalService {
     private final GenerateurTourTuteurPort generateurTourTuteur;
     private final AgregateurContenuMatiereService agregateurContenuMatiereService;
     private final TravailPapierMatiereRepository travailPapierMatiereRepository;
+    private final ExercicePapierRepository exercicePapierRepository;
 
     public TuteurVocalService(
             SeanceTutoratRepository seanceTutoratRepository,
@@ -63,7 +66,8 @@ public class TuteurVocalService {
             SynthetiseurVocalPort synthetiseurVocal,
             GenerateurTourTuteurPort generateurTourTuteur,
             AgregateurContenuMatiereService agregateurContenuMatiereService,
-            TravailPapierMatiereRepository travailPapierMatiereRepository
+            TravailPapierMatiereRepository travailPapierMatiereRepository,
+            ExercicePapierRepository exercicePapierRepository
     ) {
         this.seanceTutoratRepository = seanceTutoratRepository;
         this.tourDialogueTutoratRepository = tourDialogueTutoratRepository;
@@ -75,6 +79,7 @@ public class TuteurVocalService {
         this.synthetiseurVocal = synthetiseurVocal;
         this.generateurTourTuteur = generateurTourTuteur;
         this.travailPapierMatiereRepository = travailPapierMatiereRepository;
+        this.exercicePapierRepository = exercicePapierRepository;
         this.agregateurContenuMatiereService = agregateurContenuMatiereService;
     }
 
@@ -307,21 +312,32 @@ public class TuteurVocalService {
         // Phase 24 : inclut aussi la correction deja generee (pas seulement le
         // texte brut) -- le tuteur doit pouvoir discuter de CE QUI A ETE
         // CORRIGE, pas juste retranscrire ce que l'etudiant a ecrit.
+        // Phase 28 : chaque travail est decoupe en exercices individuels
+        // (enonce reel + reponse + correction), plus fiable qu'un seul bloc
+        // de texte reconstitue.
         String travauxPapier = travailPapierMatiereRepository
                 .findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiereId, utilisateurId).stream()
                 .filter(travail -> travail.getStatut() == StatutDocument.REUSSI)
-                .filter(travail -> travail.getTexteExtrait() != null && !travail.getTexteExtrait().isBlank())
                 .map(travail -> {
-                    String bloc = "Travail soumis :\n" + travail.getTexteExtrait();
-                    if (travail.getCorrectionSynthese() != null && !travail.getCorrectionSynthese().isBlank()) {
-                        String pointsTexte = travail.getPointsCorrection().stream()
-                                .map(point -> "- " + point.getSujet() + " : " + point.getConstat() + " " + point.getCorrectionAttendue())
-                                .collect(Collectors.joining("\n"));
-                        bloc += "\nCorrection deja donnee a l'etudiant (niveau " + travail.getCorrectionNiveau() + ") : "
-                                + travail.getCorrectionSynthese() + "\n" + pointsTexte;
+                    List<ExercicePapier> exercices = exercicePapierRepository.findByTravailPapierIdOrderByOrdreAsc(travail.getId());
+                    if (exercices.isEmpty()) {
+                        return "";
                     }
-                    return bloc;
+                    return exercices.stream()
+                            .map(exercice -> {
+                                String bloc = "Enonce : " + exercice.getEnonce() + "\nReponse de l'etudiant : " + exercice.getReponseEtudiant();
+                                if (exercice.getCorrectionSynthese() != null && !exercice.getCorrectionSynthese().isBlank()) {
+                                    String pointsTexte = exercice.getPointsCorrection().stream()
+                                            .map(point -> "- " + point.getSujet() + " : " + point.getConstat() + " " + point.getCorrectionAttendue())
+                                            .collect(Collectors.joining("\n"));
+                                    bloc += "\nCorrection deja donnee a l'etudiant (niveau " + exercice.getCorrectionNiveau() + ") : "
+                                            + exercice.getCorrectionSynthese() + "\n" + pointsTexte;
+                                }
+                                return bloc;
+                            })
+                            .collect(Collectors.joining("\n\n"));
                 })
+                .filter(bloc -> !bloc.isBlank())
                 .collect(Collectors.joining("\n\n"));
         if (!travauxPapier.isBlank()) {
             contexte.append("\n\nTravaux papier que cet etudiant a soumis, avec leur correction (il peut vouloir en discuter) :\n").append(travauxPapier);

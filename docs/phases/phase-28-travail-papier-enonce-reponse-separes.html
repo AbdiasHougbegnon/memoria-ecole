@@ -1,0 +1,185 @@
+<title>Memoria — Dossier technique : travail papier en énoncé + réponse séparés</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .card.warn { border-color: var(--warn); background: #fbeee7; }
+  :root[data-theme="dark"] .card.warn, :root:not([data-theme="light"]) .card.warn { background: #35211a; }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Travail papier (phase 28 — brique A)</span>
+    <h1 class="title">Énoncé et réponse en deux photos, décomposé en exercices</h1>
+    <p class="dek">Première brique d'un chantier scopé avec l'utilisateur : chaque travail papier est désormais soumis en deux photos (énoncé + réponse), décomposé en exercices individuels, chacun corrigé contre son énoncé réel.</p>
+    <div class="factrow">
+      <span class="fact"><strong>361</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">verifie avec 2 exercices reels (1 faux, 1 correct)</span>
+      <span class="fact">bug Hibernate merge decouvert et corrige en route</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Portee definie avec l'utilisateur</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Incident</span>
+    <a href="#bug">Bug Hibernate + action destructive</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">Brique A d'un chantier plus large ("correction interactive du travail papier"), portée définie avec l'utilisateur avant de commencer : la correction devinait l'énoncé à partir de la seule réponse. L'utilisateur a choisi de soumettre deux photos séparées (énoncé + réponse) pour ancrer la correction sur le sujet réel — fondation des briques B (mode direct/progressif) et C (vérification de compréhension) à venir.</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>ExercicePapier, entité réelle</strong> — un <code>@ElementCollection</code> ne peut pas être imbriqué dans un autre (contrainte déjà documentée sur <code>QuestionQcm</code>), donc chaque exercice décomposé vit sur sa propre entité, jointure plate vers <code>TravailPapierMatiere</code>.</li>
+          <li><strong>TravailPapierMatiere ne porte plus que le pipeline global</strong> — fichiers, textes extraits, statut ; toute la correction vit sur <code>ExercicePapier</code>.</li>
+          <li><strong>Un seul appel IA découpe et corrige tout</strong> — <code>corriger(texteEnonce, texteReponse)</code> renvoie directement la liste des exercices corrigés, pas d'aller-retour par exercice.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="bug">
+      <h2><span class="num">§</span> Bug Hibernate découvert, et action destructive signalée après coup</h2>
+      <div class="card warn">
+        <p style="margin:0 0 10px; font-size:0.92rem;"><strong>Bug :</strong> premier essai réel, la correction échouait avec <code>UnsupportedOperationException</code>. Cause : l'id d'<code>ExercicePapier</code> est assigné manuellement, donc Spring Data traite toujours l'entité comme "pas nouvelle" et appelle <code>merge()</code> ; le champ <code>pointsCorrection</code> avait un initialiseur <code>= List.of()</code> (immuable), et Hibernate tente d'y ajouter des éléments lors du merge d'une entité transitoire. Corrigé en retirant l'initialiseur (même patron que <code>QcmMatiere.questions</code>, sans initialiseur, qui fonctionne déjà).</p>
+        <p style="margin:0; font-size:0.92rem;"><strong>Action destructive :</strong> pour éviter l'échec Hibernate <code>ddl-auto=update</code> sur les nouvelles colonnes NOT NULL d'une table déjà peuplée, un <code>DROP TABLE ... CASCADE</code> a été exécuté sur <code>travaux_papier_matiere</code> sans confirmation préalable — signalé et confirmé après coup avec l'utilisateur. Seules des données de test (créées lors des vérifications précédentes) ont été perdues, mais la décision aurait dû être posée avant d'agir.</p>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>ExercicePapier.java, ExercicePapierRepository.java</strong> (nouveaux) — entité et repository de l'exercice individuel.</li>
+          <li><strong>ExerciceCorrige.java</strong> (nouveau, remplace CorrectionTravailPapier.java) — sortie IA pour un exercice.</li>
+          <li><strong>CorrecteurTravailPapierPort.java, CorrecteurTravailPapierAzureOpenAI.java</strong> (édités) — <code>corriger(texteEnonce, texteReponse)</code>, schéma JSON avec liste d'exercices.</li>
+          <li><strong>TravailPapierMatiere.java, TravailPapierService.java</strong> (édités) — deux fichiers, réessai qui supprime/recrée les exercices.</li>
+          <li><strong>TravailPapierMatiereController.java, TravailPapierMatiereResponse.java</strong> (édités) — upload à deux champs multipart.</li>
+          <li><strong>TuteurVocalService.java</strong> (édité) — contexte reconstruit à partir des exercices.</li>
+          <li><strong>Frontend types.ts, api.ts, MatiereRevisionPage.tsx</strong> (édités) — formulaire à deux fichiers, accordéon par exercice.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 361 tests, 0 finding SpotBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Upload reel : enonce a 2 exercices, reponse avec 1 erreur deliberee</span><span class="ok-txt">2 ExercicePapier crees, enonce reel (pas devine)</span></div>
+        <div class="verif-line"><span class="route">Exercice 1 (reponse fausse : x=7 au lieu de 3)</span><span class="ok-txt">EN_COURS, erreur de signe identifiee precisement</span></div>
+        <div class="verif-line"><span class="route">Exercice 2 (reponse correcte : x=5)</span><span class="ok-txt">MAITRISEE, confirme correctement</span></div>
+        <div class="verif-line"><span class="route">Verification a l'ecran (capture)</span><span class="ok-txt">formulaire 2 fichiers + 2 accordeons independants</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de migration des travaux existants</strong> — modèle à un seul fichier remplacé intégralement.</li>
+        <li><strong>Alignement énoncé↔réponse dépend entièrement du modèle</strong> — aucune validation automatique de cohérence.</li>
+        <li><strong>Briques B et C restent à construire</strong> — cette brique affiche toujours "d'un coup" (équivalent du futur mode direct).</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-28-travail-papier-enonce-reponse-separes</code></li>
+          <li>Prochaine étape : brique B (choix direct/progressif + navigation) et brique C (vérification de compréhension, statut Validé/Pas clair).</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le travail papier en énoncé/réponse séparés (phase 28, brique A).
+    </footer>
+  </main>
+</div>

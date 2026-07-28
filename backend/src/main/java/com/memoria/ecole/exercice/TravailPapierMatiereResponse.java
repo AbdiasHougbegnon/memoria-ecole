@@ -1,8 +1,6 @@
 package com.memoria.ecole.exercice;
 
 import com.memoria.core.document.StatutDocument;
-import com.memoria.core.document.TypeDocument;
-import com.memoria.ecole.notion.NiveauMaitrise;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,28 +9,40 @@ import java.util.UUID;
 public record TravailPapierMatiereResponse(
         UUID id,
         UUID matiereId,
-        TypeDocument type,
-        String nomFichier,
-        String texteExtrait,
-        NiveauMaitrise correctionNiveau,
-        String correctionSynthese,
-        List<PointCorrectionResponse> pointsCorrection,
+        String nomFichierEnonce,
+        String nomFichierReponse,
         StatutDocument statut,
-        Instant dateCreation
+        Instant dateCreation,
+        List<ExercicePapierResponse> exercices
 ) {
-    public static TravailPapierMatiereResponse depuis(TravailPapierMatiere travail) {
+    public static TravailPapierMatiereResponse depuis(TravailPapierMatiere travail, List<ExercicePapier> exercices) {
         return new TravailPapierMatiereResponse(
                 travail.getId(),
                 travail.getMatiereId(),
-                travail.getType(),
-                travail.getNomFichier(),
-                travail.getTexteExtrait(),
-                travail.getCorrectionNiveau(),
-                travail.getCorrectionSynthese(),
-                travail.getPointsCorrection().stream().map(PointCorrectionResponse::depuis).toList(),
+                travail.getNomFichierEnonce(),
+                travail.getNomFichierReponse(),
                 travail.getStatut(),
-                travail.getDateCreation()
+                travail.getDateCreation(),
+                exercices.stream().map(ExercicePapierResponse::depuis).toList()
         );
+    }
+
+    public record ExercicePapierResponse(
+            UUID id, int ordre, String enonce, String reponseEtudiant,
+            com.memoria.ecole.notion.NiveauMaitrise correctionNiveau, String correctionSynthese,
+            List<TravailPapierMatiereResponse.PointCorrectionResponse> pointsCorrection
+    ) {
+        public static ExercicePapierResponse depuis(ExercicePapier exercice) {
+            return new ExercicePapierResponse(
+                    exercice.getId(),
+                    exercice.getOrdre(),
+                    exercice.getEnonce(),
+                    exercice.getReponseEtudiant(),
+                    exercice.getCorrectionNiveau(),
+                    exercice.getCorrectionSynthese(),
+                    exercice.getPointsCorrection().stream().map(PointCorrectionResponse::depuis).toList()
+            );
+        }
     }
 
     public record PointCorrectionResponse(String sujet, String constat, String correctionAttendue) {

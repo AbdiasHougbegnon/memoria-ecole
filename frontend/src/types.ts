@@ -188,17 +188,27 @@ export interface PointCorrection {
   correctionAttendue: string
 }
 
-export interface TravailPapierMatiere {
+// Un exercice individuel decoupe a partir des deux photos soumises (enonce +
+// reponse, phase 28) -- la correction s'appuie sur l'enonce reel plutot que
+// de le deviner a partir de la seule reponse.
+export interface ExercicePapier {
   id: string
-  matiereId: string
-  type: TypeDocument
-  nomFichier: string
-  texteExtrait: string | null
+  ordre: number
+  enonce: string
+  reponseEtudiant: string
   correctionNiveau: NiveauMaitrise | null
   correctionSynthese: string | null
   pointsCorrection: PointCorrection[]
+}
+
+export interface TravailPapierMatiere {
+  id: string
+  matiereId: string
+  nomFichierEnonce: string
+  nomFichierReponse: string
   statut: StatutDocument
   dateCreation: string
+  exercices: ExercicePapier[]
 }
 
 export interface TentativeQcm {

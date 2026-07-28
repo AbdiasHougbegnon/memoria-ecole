@@ -4,6 +4,7 @@ import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.document.ExtracteurDocumentPort;
 import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.StockageDocumentPort;
+import com.memoria.core.document.TypeDocument;
 import com.memoria.ecole.matiere.MatiereService;
 import com.memoria.ecole.notion.NiveauMaitrise;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,6 +34,7 @@ import static org.mockito.Mockito.when;
 class TravailPapierServiceTest {
 
     @Mock private TravailPapierMatiereRepository travailPapierRepository;
+    @Mock private ExercicePapierRepository exercicePapierRepository;
     @Mock private StockageDocumentPort stockageDocument;
     @Mock private ExtracteurDocumentPort extracteurDocument;
     @Mock private CorrecteurTravailPapierPort correcteurTravailPapier;
@@ -41,22 +46,29 @@ class TravailPapierServiceTest {
     @BeforeEach
     void setUp() {
         service = new TravailPapierService(
-                travailPapierRepository, stockageDocument, extracteurDocument, correcteurTravailPapier,
-                matiereService, eventPublisher
+                travailPapierRepository, exercicePapierRepository, stockageDocument, extracteurDocument,
+                correcteurTravailPapier, matiereService, eventPublisher
         );
     }
 
     @Test
-    void soumettre_sauvegarde_le_travail_et_publie_un_evenement() {
+    void soumettre_sauvegarde_le_travail_avec_les_deux_fichiers_et_publie_un_evenement() {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
-        when(stockageDocument.sauvegarder(any(), any(), any())).thenReturn("chemin/photo.jpg");
+        when(stockageDocument.sauvegarder(any(), any(), any())).thenReturn("chemin/fichier.jpg");
         when(travailPapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        TravailPapierMatiere resultat = service.soumettre(matiereId, "photo.jpg", "image/jpeg", new byte[]{1, 2, 3}, utilisateurId);
+        TravailPapierMatiere resultat = service.soumettre(
+                matiereId,
+                "enonce.jpg", "image/jpeg", new byte[]{1, 2, 3},
+                "reponse.jpg", "image/jpeg", new byte[]{4, 5, 6},
+                utilisateurId
+        );
 
         assertThat(resultat.getMatiereId()).isEqualTo(matiereId);
         assertThat(resultat.getUtilisateurId()).isEqualTo(utilisateurId);
+        assertThat(resultat.getNomFichierEnonce()).isEqualTo("enonce.jpg");
+        assertThat(resultat.getNomFichierReponse()).isEqualTo("reponse.jpg");
         assertThat(resultat.getStatut()).isEqualTo(StatutDocument.EN_ATTENTE);
         verify(eventPublisher).publishEvent(any(TravailPapierTeleverseEvent.class));
     }
@@ -68,26 +80,38 @@ class TravailPapierServiceTest {
         doThrow(new PasMembreDuCouloirException(UUID.randomUUID(), utilisateurId))
                 .when(matiereService).verifierMembreDuCouloir(matiereId, utilisateurId);
 
-        assertThatThrownBy(() -> service.soumettre(matiereId, "photo.jpg", "image/jpeg", new byte[]{1}, utilisateurId))
-                .isInstanceOf(PasMembreDuCouloirException.class);
+        assertThatThrownBy(() -> service.soumettre(
+                matiereId, "enonce.jpg", "image/jpeg", new byte[]{1}, "reponse.jpg", "image/jpeg", new byte[]{2}, utilisateurId
+        )).isInstanceOf(PasMembreDuCouloirException.class);
         verify(travailPapierRepository, never()).save(any());
     }
 
+    private TravailPapierMatiere creerTravailAvecFichiers(UUID matiereId, UUID utilisateurId, Path fichierEnonce, Path fichierReponse) {
+        return new TravailPapierMatiere(
+                matiereId, utilisateurId,
+                TypeDocument.PHOTO, "enonce.jpg", fichierEnonce.toString(),
+                TypeDocument.PHOTO, "reponse.jpg", fichierReponse.toString()
+        );
+    }
+
     @Test
-    void surTravailPapierTeleverse_marque_reussi_avec_le_texte_extrait_et_la_correction() throws Exception {
+    void surTravailPapierTeleverse_extrait_les_deux_textes_et_cree_les_exercices_corriges() throws Exception {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
-        java.nio.file.Path fichierTemp = java.nio.file.Files.createTempFile("travail-papier-test", ".jpg");
-        java.nio.file.Files.write(fichierTemp, new byte[]{1, 2, 3});
+        Path fichierEnonce = Files.createTempFile("travail-papier-enonce", ".jpg");
+        Path fichierReponse = Files.createTempFile("travail-papier-reponse", ".jpg");
+        Files.write(fichierEnonce, new byte[]{1});
+        Files.write(fichierReponse, new byte[]{2});
         try {
-            TravailPapierMatiere travail = new TravailPapierMatiere(
-                    matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "photo.jpg", fichierTemp.toString()
-            );
+            TravailPapierMatiere travail = creerTravailAvecFichiers(matiereId, utilisateurId, fichierEnonce, fichierReponse);
             when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
-            when(extracteurDocument.extraireTexte(any())).thenReturn("Exercice resolu a la main.");
-            when(correcteurTravailPapier.corriger("Exercice resolu a la main.")).thenReturn(new CorrectionTravailPapier(
-                    NiveauMaitrise.EN_COURS, "Le raisonnement est globalement correct.",
-                    List.of(new PointCorrection("Conclusion", "La conclusion est erronee.", "Reprendre le calcul final."))
+            when(extracteurDocument.extraireTexte(eq(new byte[]{1}))).thenReturn("Resoudre 2x+4=10");
+            when(extracteurDocument.extraireTexte(eq(new byte[]{2}))).thenReturn("x=3");
+            when(correcteurTravailPapier.corriger("Resoudre 2x+4=10", "x=3")).thenReturn(List.of(
+                    new ExerciceCorrige(
+                            "Resoudre 2x+4=10", "x=3", NiveauMaitrise.MAITRISEE, "Bonne reponse.",
+                            List.of(new PointCorrection("Resolution", "Correcte", "Rien a signaler"))
+                    )
             ));
 
             service.surTravailPapierTeleverse(new TravailPapierTeleverseEvent(travail.getId()));
@@ -95,74 +119,81 @@ class TravailPapierServiceTest {
             ArgumentCaptor<TravailPapierMatiere> captor = ArgumentCaptor.forClass(TravailPapierMatiere.class);
             verify(travailPapierRepository).save(captor.capture());
             assertThat(captor.getValue().getStatut()).isEqualTo(StatutDocument.REUSSI);
-            assertThat(captor.getValue().getTexteExtrait()).isEqualTo("Exercice resolu a la main.");
-            assertThat(captor.getValue().getCorrectionNiveau()).isEqualTo(NiveauMaitrise.EN_COURS);
-            assertThat(captor.getValue().getCorrectionSynthese()).isEqualTo("Le raisonnement est globalement correct.");
-            assertThat(captor.getValue().getPointsCorrection()).hasSize(1);
-            assertThat(captor.getValue().getPointsCorrection().get(0).getSujet()).isEqualTo("Conclusion");
+            assertThat(captor.getValue().getTexteExtraitEnonce()).isEqualTo("Resoudre 2x+4=10");
+            assertThat(captor.getValue().getTexteExtraitReponse()).isEqualTo("x=3");
+
+            verify(exercicePapierRepository).deleteByTravailPapierId(travail.getId());
+            ArgumentCaptor<ExercicePapier> exerciceCaptor = ArgumentCaptor.forClass(ExercicePapier.class);
+            verify(exercicePapierRepository).save(exerciceCaptor.capture());
+            assertThat(exerciceCaptor.getValue().getEnonce()).isEqualTo("Resoudre 2x+4=10");
+            assertThat(exerciceCaptor.getValue().getReponseEtudiant()).isEqualTo("x=3");
+            assertThat(exerciceCaptor.getValue().getCorrectionNiveau()).isEqualTo(NiveauMaitrise.MAITRISEE);
         } finally {
-            java.nio.file.Files.deleteIfExists(fichierTemp);
+            Files.deleteIfExists(fichierEnonce);
+            Files.deleteIfExists(fichierReponse);
         }
     }
 
     @Test
-    void surTravailPapierTeleverse_garde_le_texte_extrait_meme_si_la_correction_echoue() throws Exception {
+    void surTravailPapierTeleverse_garde_les_textes_extraits_meme_si_la_correction_echoue() throws Exception {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
-        java.nio.file.Path fichierTemp = java.nio.file.Files.createTempFile("travail-papier-test", ".jpg");
-        java.nio.file.Files.write(fichierTemp, new byte[]{1, 2, 3});
+        Path fichierEnonce = Files.createTempFile("travail-papier-enonce", ".jpg");
+        Path fichierReponse = Files.createTempFile("travail-papier-reponse", ".jpg");
+        Files.write(fichierEnonce, new byte[]{1});
+        Files.write(fichierReponse, new byte[]{2});
         try {
-            TravailPapierMatiere travail = new TravailPapierMatiere(
-                    matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "photo.jpg", fichierTemp.toString()
-            );
+            TravailPapierMatiere travail = creerTravailAvecFichiers(matiereId, utilisateurId, fichierEnonce, fichierReponse);
             when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
-            when(extracteurDocument.extraireTexte(any())).thenReturn("Exercice resolu a la main.");
-            when(correcteurTravailPapier.corriger(any())).thenThrow(new RuntimeException("Azure OpenAI indisponible"));
+            when(extracteurDocument.extraireTexte(any())).thenReturn("texte");
+            when(correcteurTravailPapier.corriger(any(), any())).thenThrow(new RuntimeException("Azure OpenAI indisponible"));
 
             service.surTravailPapierTeleverse(new TravailPapierTeleverseEvent(travail.getId()));
 
             ArgumentCaptor<TravailPapierMatiere> captor = ArgumentCaptor.forClass(TravailPapierMatiere.class);
             verify(travailPapierRepository).save(captor.capture());
             assertThat(captor.getValue().getStatut()).isEqualTo(StatutDocument.REUSSI);
-            assertThat(captor.getValue().getTexteExtrait()).isEqualTo("Exercice resolu a la main.");
-            assertThat(captor.getValue().getCorrectionNiveau()).isNull();
+            assertThat(captor.getValue().getTexteExtraitEnonce()).isEqualTo("texte");
+            verify(exercicePapierRepository, never()).save(any());
         } finally {
-            java.nio.file.Files.deleteIfExists(fichierTemp);
+            Files.deleteIfExists(fichierEnonce);
+            Files.deleteIfExists(fichierReponse);
         }
     }
 
     @Test
-    void reessayerCorrection_corrige_un_travail_deja_extrait_sans_correction() {
+    void reessayerCorrection_corrige_un_travail_deja_extrait_sans_exercices() {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         TravailPapierMatiere travail = new TravailPapierMatiere(
-                matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+                matiereId, utilisateurId, TypeDocument.PDF, "enonce.pdf", "chemin/enonce.pdf", TypeDocument.PDF, "reponse.pdf", "chemin/reponse.pdf"
         );
-        travail.marquerReussi("Contenu de la fiche.");
+        travail.marquerReussi("Enonce complet.", "Reponse complete.");
         when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
-        when(correcteurTravailPapier.corriger("Contenu de la fiche.")).thenReturn(new CorrectionTravailPapier(
-                NiveauMaitrise.MAITRISEE, "Tout est correct.", List.of()
+        when(correcteurTravailPapier.corriger("Enonce complet.", "Reponse complete.")).thenReturn(List.of(
+                new ExerciceCorrige("Enonce complet.", "Reponse complete.", NiveauMaitrise.MAITRISEE, "Tout est correct.", List.of())
         ));
         when(travailPapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         TravailPapierMatiere resultat = service.reessayerCorrection(matiereId, travail.getId(), utilisateurId);
 
-        assertThat(resultat.getCorrectionNiveau()).isEqualTo(NiveauMaitrise.MAITRISEE);
-        assertThat(resultat.getCorrectionSynthese()).isEqualTo("Tout est correct.");
+        assertThat(resultat.getStatut()).isEqualTo(StatutDocument.REUSSI);
+        verify(exercicePapierRepository).deleteByTravailPapierId(travail.getId());
+        verify(exercicePapierRepository).save(any());
     }
 
     @Test
     void reessayerCorrection_leve_une_exception_si_lutilisateur_nest_pas_le_proprietaire() {
         UUID matiereId = UUID.randomUUID();
         TravailPapierMatiere travail = new TravailPapierMatiere(
-                matiereId, UUID.randomUUID(), com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+                matiereId, UUID.randomUUID(), TypeDocument.PDF, "enonce.pdf", "chemin/enonce.pdf", TypeDocument.PDF, "reponse.pdf", "chemin/reponse.pdf"
         );
-        travail.marquerReussi("Contenu de la fiche.");
+        travail.marquerReussi("Enonce.", "Reponse.");
         when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
 
         assertThatThrownBy(() -> service.reessayerCorrection(matiereId, travail.getId(), UUID.randomUUID()))
                 .isInstanceOf(AccesTravailPapierRefuseException.class);
-        verify(correcteurTravailPapier, never()).corriger(any());
+        verify(correcteurTravailPapier, never()).corriger(any(), any());
     }
 
     @Test
@@ -170,13 +201,13 @@ class TravailPapierServiceTest {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         TravailPapierMatiere travail = new TravailPapierMatiere(
-                matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+                matiereId, utilisateurId, TypeDocument.PDF, "enonce.pdf", "chemin/enonce.pdf", TypeDocument.PDF, "reponse.pdf", "chemin/reponse.pdf"
         );
         when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
 
         assertThatThrownBy(() -> service.reessayerCorrection(matiereId, travail.getId(), utilisateurId))
                 .isInstanceOf(TexteExtraitIndisponibleException.class);
-        verify(correcteurTravailPapier, never()).corriger(any());
+        verify(correcteurTravailPapier, never()).corriger(any(), any());
     }
 
     @Test
@@ -184,7 +215,7 @@ class TravailPapierServiceTest {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         TravailPapierMatiere travail = new TravailPapierMatiere(
-                matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PHOTO, "photo.jpg", "chemin"
+                matiereId, utilisateurId, TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
         );
         when(travailPapierRepository.findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiereId, utilisateurId))
                 .thenReturn(List.of(travail));
@@ -192,5 +223,16 @@ class TravailPapierServiceTest {
         List<TravailPapierMatiere> resultat = service.listerMesTravaux(matiereId, utilisateurId);
 
         assertThat(resultat).containsExactly(travail);
+    }
+
+    @Test
+    void listerExercices_delegue_au_repository() {
+        UUID travailId = UUID.randomUUID();
+        ExercicePapier exercice = new ExercicePapier(travailId, 0, "Enonce", "Reponse", NiveauMaitrise.MAITRISEE, "Synthese", List.of());
+        when(exercicePapierRepository.findByTravailPapierIdOrderByOrdreAsc(travailId)).thenReturn(List.of(exercice));
+
+        List<ExercicePapier> resultat = service.listerExercices(travailId);
+
+        assertThat(resultat).containsExactly(exercice);
     }
 }
