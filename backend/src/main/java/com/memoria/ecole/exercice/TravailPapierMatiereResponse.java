@@ -30,7 +30,9 @@ public record TravailPapierMatiereResponse(
     public record ExercicePapierResponse(
             UUID id, int ordre, String enonce, String reponseEtudiant,
             com.memoria.ecole.notion.NiveauMaitrise correctionNiveau, String correctionSynthese,
-            List<TravailPapierMatiereResponse.PointCorrectionResponse> pointsCorrection
+            List<TravailPapierMatiereResponse.PointCorrectionResponse> pointsCorrection,
+            StatutVerification statutVerification, String questionVerificationEnonce,
+            List<ChoixVerificationResponse> choixVerification
     ) {
         public static ExercicePapierResponse depuis(ExercicePapier exercice) {
             return new ExercicePapierResponse(
@@ -40,7 +42,12 @@ public record TravailPapierMatiereResponse(
                     exercice.getReponseEtudiant(),
                     exercice.getCorrectionNiveau(),
                     exercice.getCorrectionSynthese(),
-                    exercice.getPointsCorrection().stream().map(PointCorrectionResponse::depuis).toList()
+                    exercice.getPointsCorrection().stream().map(PointCorrectionResponse::depuis).toList(),
+                    exercice.getStatutVerification(),
+                    exercice.getQuestionVerificationEnonce(),
+                    exercice.getChoixVerification() == null
+                            ? List.of()
+                            : exercice.getChoixVerification().stream().map(ChoixVerificationResponse::depuis).toList()
             );
         }
     }
@@ -48,6 +55,12 @@ public record TravailPapierMatiereResponse(
     public record PointCorrectionResponse(String sujet, String constat, String correctionAttendue) {
         public static PointCorrectionResponse depuis(PointCorrection point) {
             return new PointCorrectionResponse(point.getSujet(), point.getConstat(), point.getCorrectionAttendue());
+        }
+    }
+
+    public record ChoixVerificationResponse(String texte, boolean correct) {
+        public static ChoixVerificationResponse depuis(ChoixVerification choix) {
+            return new ChoixVerificationResponse(choix.getTexte(), choix.isCorrect());
         }
     }
 }

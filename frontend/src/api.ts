@@ -1,4 +1,4 @@
-import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, ExerciceMatiere, FilMemoire, JournalRgpdEntry, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, QcmMatiere, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeExerciceSaisieLibre, TentativeQcm, TranscriptionSegment, TravailPapierMatiere } from './types'
+import type { AuthResponse, CompteRendu, Couloir, DocumentItem, DocumentMatiere, Engagement, EmpreinteVocale, EtatTutorat, ExerciceMatiere, ExercicePapier, FilMemoire, JournalRgpdEntry, Matiere, MembreCouloir, ModeTutorat, ModuleMemoria, NiveauMaitrise, Notion, NotionCandidate, OptionInscription, Qcm, QcmMatiere, RapportImportMatieres, RechercheResultat, Resume, ResumeCours, ResultatTour, ResumeType, Seance, Session, StatutEngagement, TableauDeBordEntreprise, TentativeExerciceSaisieLibre, TentativeQcm, TranscriptionSegment, TravailPapierMatiere } from './types'
 import { deconnecter, obtenirToken } from './auth'
 
 const BASE = '/api/v1/sessions'
@@ -328,6 +328,49 @@ export async function reessayerCorrectionTravailPapier(matiereId: string, travai
     await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier/${travailId}/corriger`, { method: 'POST' }),
   )
   return reponse.json()
+}
+
+// Verification de comprehension (phase 30, brique C) : mode progressif
+// uniquement, ne bloque jamais la navigation.
+export async function genererQuestionVerification(matiereId: string, travailId: string, exerciceId: string): Promise<ExercicePapier> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier/${travailId}/exercices/${exerciceId}/verification/question`, {
+      method: 'POST',
+    }),
+  )
+  return reponse.json()
+}
+
+export async function soumettreReponseChoixVerification(
+  matiereId: string,
+  travailId: string,
+  exerciceId: string,
+  indicesCoches: number[],
+): Promise<ExercicePapier> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier/${travailId}/exercices/${exerciceId}/verification/reponse-choix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ indicesCoches }),
+    }),
+  )
+  return reponse.json()
+}
+
+export async function soumettreReponseLibreVerification(
+  matiereId: string,
+  travailId: string,
+  exerciceId: string,
+  reponse: string,
+): Promise<ExercicePapier> {
+  const resultat = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier/${travailId}/exercices/${exerciceId}/verification/reponse-libre`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reponse }),
+    }),
+  )
+  return resultat.json()
 }
 
 export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {

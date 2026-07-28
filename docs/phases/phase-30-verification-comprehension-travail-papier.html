@@ -1,0 +1,145 @@
+<title>Memoria — Dossier technique : vérification de compréhension du travail papier</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  .layout { max-width: 1040px; margin: 0 auto; padding: 40px 24px 120px; display: flex; flex-direction: column; gap: 40px; }
+  header.masthead { display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; }
+  .fact { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); }
+  section { display: flex; flex-direction: column; gap: 14px; }
+  section > h2 { font-size: 1.1rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); }
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+  .filelist { display: flex; flex-direction: column; gap: 10px; }
+  .filelist .card { padding: 12px 16px; }
+  .filelist code { display: inline-block; margin-bottom: 4px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 600; }
+  .badge.valide { background: var(--accent-wash); color: var(--accent-strong); }
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { flex: 1 1 auto; }
+  .ok-txt { color: var(--ok); font-weight: 600; }
+  footer.page-footer { border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Travail papier (phase 30 — brique C, dernière du chantier)</span>
+    <h1 class="title">Vérification de compréhension après correction</h1>
+    <p class="dek">Troisième et dernière brique du chantier de correction interactive : après avoir lu la correction en mode progressif, l'étudiant confirme qu'il a compris via une question de contrôle (cases à cocher ou texte libre) — sans jamais bloquer la navigation.</p>
+    <div class="factrow">
+      <span class="fact">2 chemins d'évaluation : déterministe (cases) / IA (texte libre)</span>
+      <span class="fact">vérifié en conditions réelles : Azure OpenAI + navigateur réel</span>
+      <span class="fact">clôt l'épopée "correction interactive du travail papier" (A → B → C)</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>§ Le besoin</h2>
+    <p style="color:var(--text-muted)">En mode progressif (brique B), après la correction d'un exercice, l'étudiant doit pouvoir vérifier sa compréhension : une question de contrôle est posée, il répond en cochant des cases ou en texte libre, et l'exercice est marqué "Validé" ou "Pas clair" — la navigation Suivant/Précédent reste toujours disponible, quel que soit le résultat.</p>
+  </section>
+
+  <section>
+    <h2>§ Les décisions</h2>
+    <div class="card">
+      <ul class="plain">
+        <li><strong>Deux chemins d'évaluation, un seul coûte un appel IA</strong> — cocher des cases est une comparaison déterministe côté serveur (zéro appel Azure OpenAI) ; le texte libre est classé qualitativement via <code>NiveauMaitrise</code>, comme le reste du projet.</li>
+        <li><strong>Statut séparé de la correction initiale</strong> — <code>StatutVerification</code> (NON_VERIFIE/VALIDE/PAS_CLAIR) est distinct de <code>NiveauMaitrise</code> : la vérification est un jugement a posteriori de l'étudiant sur sa propre compréhension, pas une nouvelle correction.</li>
+        <li><strong>Ne bloque jamais la navigation</strong> — Suivant/Précédent restent actifs quel que soit le résultat, conformément à la demande explicite de l'utilisateur.</li>
+        <li><strong>Voix différée, chemin texte prêt à l'accueillir</strong> — pas de capture audio dans cet incrément ; le futur texte transcrit passera par le même endpoint <code>reponse-libre</code> sans changement backend.</li>
+        <li><strong>Uniquement en mode progressif</strong> — la correction directe reste une lecture complète sans interaction.</li>
+      </ul>
+      <div style="margin-top:14px;">
+        <span class="badge valide">✓ Vérification de compréhension — Compris</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>§ Les fichiers</h2>
+    <div class="filelist">
+      <div class="card"><code>StatutVerification.java</code> · <code>ChoixVerification.java</code> · <code>QuestionVerificationGeneree.java</code> — nouveaux types de base.</div>
+      <div class="card"><code>VerificateurComprehensionPort.java</code> + <code>VerificateurComprehensionAzureOpenAI.java</code> — génération de question et évaluation qualitative, même patron HttpClient que les autres générateurs Azure OpenAI du projet.</div>
+      <div class="card"><code>ExercicePapier.java</code> — 3 champs ajoutés (statut, question, choix) + 2 méthodes ; collection <code>@ElementCollection</code> sans initialisateur par défaut (piège Hibernate déjà documenté en phase 28).</div>
+      <div class="card"><code>TravailPapierService.java</code> + <code>TravailPapierMatiereController.java</code> — 3 nouvelles opérations, 3 nouveaux endpoints REST sous <code>/verification/...</code>.</div>
+      <div class="card"><code>TravailPapierMatiereResponse.java</code> — expose le nouvel état de vérification par exercice.</div>
+      <div class="card"><code>types.ts</code> · <code>api.ts</code> · <code>MatiereRevisionPage.tsx</code> — nouveau composant <code>VerificationComprehension</code>, branché uniquement dans le mode progressif.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>§ Comment on a vérifié</h2>
+    <div class="card">
+      <div class="verif-line"><span class="route">mvn -B clean verify (backend)</span><span class="ok-txt">OK, propre</span></div>
+      <div class="verif-line"><span class="route">npm run build && npm run lint (frontend)</span><span class="ok-txt">OK, propres</span></div>
+      <div class="verif-line"><span class="route">Generation reelle d'une question (Azure OpenAI)</span><span class="ok-txt">OK, question + 4 choix coherents</span></div>
+      <div class="verif-line"><span class="route">Cases cochees = choix corrects exacts</span><span class="ok-txt">VALIDE</span></div>
+      <div class="verif-line"><span class="route">Un choix incorrect coche</span><span class="ok-txt">PAS_CLAIR</span></div>
+      <div class="verif-line"><span class="route">Reponse libre hors-sujet (Azure OpenAI)</span><span class="ok-txt">PAS_CLAIR</span></div>
+      <div class="verif-line"><span class="route">Reponse libre correcte (Azure OpenAI)</span><span class="ok-txt">VALIDE</span></div>
+      <div class="verif-line"><span class="route">Navigateur reel (Playwright) : bouton -> question -> cases -> validation</span><span class="ok-txt">badge "Compris" affiche, navigation jamais bloquee</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>§ Limites connues, assumées</h2>
+    <ul class="plain">
+      <li><strong>Pas de capture audio réelle</strong> — seul le texte tapé est câblé ; la dictée vocale reste à construire, réutilisera l'endpoint existant.</li>
+      <li><strong>Pas de nouvelle tentative après "Pas clair"</strong> — aucune option pour reposer une question une fois la vérification résolue.</li>
+      <li><strong>Le flag <code>correct</code> est exposé au client</strong> — cohérent avec le patron déjà en place pour le QCM de session ailleurs dans le projet.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>§ Pour reprendre seul</h2>
+    <div class="card">
+      <ul class="plain">
+        <li>Code de référence exact : <code>git checkout phase-30-verification-comprehension-travail-papier</code></li>
+        <li>Ce chantier clôt les trois briques prévues (A : décomposition énoncé/réponse, B : navigation directe/progressive, C : vérification de compréhension).</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    Memoria — dossier généré à partir de la session de travail sur la vérification de compréhension du travail papier (phase 30, brique C).
+  </footer>
+</div>

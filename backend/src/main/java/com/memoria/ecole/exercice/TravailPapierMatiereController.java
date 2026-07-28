@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -65,5 +66,53 @@ public class TravailPapierMatiereController {
     ) {
         TravailPapierMatiere travail = travailPapierService.reessayerCorrection(matiereId, travailId, utilisateurId);
         return TravailPapierMatiereResponse.depuis(travail, travailPapierService.listerExercices(travail.getId()));
+    }
+
+    // Verification de comprehension (phase 30, brique C) : mode progressif
+    // uniquement, cote frontend. Ne bloque jamais la navigation -- ces
+    // endpoints ne font qu'enregistrer un statut consultatif.
+    @PostMapping("/{travailId}/exercices/{exerciceId}/verification/question")
+    public TravailPapierMatiereResponse.ExercicePapierResponse genererQuestionVerification(
+            @PathVariable UUID matiereId,
+            @PathVariable UUID travailId,
+            @PathVariable UUID exerciceId,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        ExercicePapier exercice = travailPapierService.genererQuestionVerification(matiereId, travailId, exerciceId, utilisateurId);
+        return TravailPapierMatiereResponse.ExercicePapierResponse.depuis(exercice);
+    }
+
+    @PostMapping("/{travailId}/exercices/{exerciceId}/verification/reponse-choix")
+    public TravailPapierMatiereResponse.ExercicePapierResponse soumettreReponseChoix(
+            @PathVariable UUID matiereId,
+            @PathVariable UUID travailId,
+            @PathVariable UUID exerciceId,
+            @AuthenticationPrincipal UUID utilisateurId,
+            @RequestBody ReponseChoixRequete requete
+    ) {
+        ExercicePapier exercice = travailPapierService.soumettreReponseChoix(
+                matiereId, travailId, exerciceId, utilisateurId, requete.indicesCoches()
+        );
+        return TravailPapierMatiereResponse.ExercicePapierResponse.depuis(exercice);
+    }
+
+    @PostMapping("/{travailId}/exercices/{exerciceId}/verification/reponse-libre")
+    public TravailPapierMatiereResponse.ExercicePapierResponse soumettreReponseLibre(
+            @PathVariable UUID matiereId,
+            @PathVariable UUID travailId,
+            @PathVariable UUID exerciceId,
+            @AuthenticationPrincipal UUID utilisateurId,
+            @RequestBody ReponseLibreRequete requete
+    ) {
+        ExercicePapier exercice = travailPapierService.soumettreReponseLibre(
+                matiereId, travailId, exerciceId, utilisateurId, requete.reponse()
+        );
+        return TravailPapierMatiereResponse.ExercicePapierResponse.depuis(exercice);
+    }
+
+    public record ReponseChoixRequete(List<Integer> indicesCoches) {
+    }
+
+    public record ReponseLibreRequete(String reponse) {
     }
 }

@@ -188,6 +188,13 @@ export interface PointCorrection {
   correctionAttendue: string
 }
 
+export type StatutVerification = 'NON_VERIFIE' | 'VALIDE' | 'PAS_CLAIR'
+
+export interface ChoixVerification {
+  texte: string
+  correct: boolean
+}
+
 // Un exercice individuel decoupe a partir des deux photos soumises (enonce +
 // reponse, phase 28) -- la correction s'appuie sur l'enonce reel plutot que
 // de le deviner a partir de la seule reponse.
@@ -199,6 +206,11 @@ export interface ExercicePapier {
   correctionNiveau: NiveauMaitrise | null
   correctionSynthese: string | null
   pointsCorrection: PointCorrection[]
+  // Verification de comprehension (phase 30, brique C) -- mode progressif
+  // uniquement, ne bloque jamais la navigation.
+  statutVerification: StatutVerification
+  questionVerificationEnonce: string | null
+  choixVerification: ChoixVerification[]
 }
 
 export interface TravailPapierMatiere {

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import {
   genererExercices,
   genererQcmMatiere,
+  genererQuestionVerification,
   listerMesTravauxPapier,
   obtenirCouloir,
   obtenirExercices,
@@ -11,6 +12,8 @@ import {
   obtenirMatiere,
   obtenirQcmMatiere,
   reessayerCorrectionTravailPapier,
+  soumettreReponseChoixVerification,
+  soumettreReponseLibreVerification,
   soumettreReponsesExercices,
   soumettreTentativeQcmMatiere,
   soumettreTravailPapier,
@@ -357,10 +360,167 @@ const LIBELLE_STATUT_TRAVAIL: Record<string, string> = {
   ECHEC: "Echec de l'analyse",
 }
 
+const LIBELLE_STATUT_VERIFICATION: Record<string, string> = {
+  VALIDE: 'Compris',
+  PAS_CLAIR: 'A revoir',
+}
+
+const COULEUR_STATUT_VERIFICATION: Record<string, string> = {
+  VALIDE: '#2F7D4F',
+  PAS_CLAIR: '#B0791F',
+}
+
+// Question de controle posee apres la correction, en mode progressif
+// uniquement (brique C) -- ne bloque jamais la navigation suivant/precedent,
+// quel que soit son resultat : c'est un signal de comprehension pour
+// l'etudiant, pas une porte a franchir.
+function VerificationComprehension({
+  matiereId,
+  travailId,
+  exercice,
+  onExerciceMisAJour,
+}: {
+  matiereId: string
+  travailId: string
+  exercice: ExercicePapier
+  onExerciceMisAJour: (exercice: ExercicePapier) => void
+}) {
+  const [chargement, setChargement] = useState(false)
+  const [indicesCoches, setIndicesCoches] = useState<Set<number>>(new Set())
+  const [reponseLibre, setReponseLibre] = useState('')
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  async function poserQuestion() {
+    setErreur(null)
+    setChargement(true)
+    try {
+      onExerciceMisAJour(await genererQuestionVerification(matiereId, travailId, exercice.id))
+    } catch {
+      setErreur('Impossible de generer la question pour le moment.')
+    } finally {
+      setChargement(false)
+    }
+  }
+
+  function basculerChoix(index: number) {
+    setIndicesCoches((prev) => {
+      const suivant = new Set(prev)
+      if (suivant.has(index)) suivant.delete(index)
+      else suivant.add(index)
+      return suivant
+    })
+  }
+
+  async function validerParChoix() {
+    setErreur(null)
+    setChargement(true)
+    try {
+      onExerciceMisAJour(await soumettreReponseChoixVerification(matiereId, travailId, exercice.id, [...indicesCoches]))
+    } catch {
+      setErreur('Impossible de verifier ta reponse pour le moment.')
+    } finally {
+      setChargement(false)
+    }
+  }
+
+  async function validerParTexte() {
+    if (!reponseLibre.trim()) return
+    setErreur(null)
+    setChargement(true)
+    try {
+      onExerciceMisAJour(await soumettreReponseLibreVerification(matiereId, travailId, exercice.id, reponseLibre))
+    } catch {
+      setErreur('Impossible de verifier ta reponse pour le moment.')
+    } finally {
+      setChargement(false)
+    }
+  }
+
+  if (exercice.statutVerification !== 'NON_VERIFIE') {
+    return (
+      <p className="mt-2 text-xs font-semibold" style={{ color: COULEUR_STATUT_VERIFICATION[exercice.statutVerification] }}>
+        Verification de comprehension — {LIBELLE_STATUT_VERIFICATION[exercice.statutVerification]}
+      </p>
+    )
+  }
+
+  if (!exercice.questionVerificationEnonce) {
+    return (
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={() => void poserQuestion()}
+          disabled={chargement}
+          className="rounded-full px-2.5 py-0.5 text-xs font-semibold disabled:opacity-50"
+          style={{ background: '#F4F2EE', color: 'var(--color-brand)' }}
+        >
+          {chargement ? 'Generation...' : 'Verifier ma comprehension'}
+        </button>
+        {erreur && <p className="mt-1 text-xs" style={{ color: '#B02631' }}>{erreur}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2.5 rounded-lg border p-2.5" style={{ borderColor: 'var(--color-border-soft)' }}>
+      <p className="text-xs font-semibold">{exercice.questionVerificationEnonce}</p>
+
+      {exercice.choixVerification.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1">
+          {exercice.choixVerification.map((choix, index) => (
+            <label key={index} className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+              <input type="checkbox" checked={indicesCoches.has(index)} onChange={() => basculerChoix(index)} disabled={chargement} />
+              {choix.texte}
+            </label>
+          ))}
+          <button
+            type="button"
+            onClick={() => void validerParChoix()}
+            disabled={chargement}
+            className="mt-1 self-start rounded-full px-2.5 py-0.5 text-xs font-semibold text-white disabled:opacity-50"
+            style={{ background: 'var(--color-brand)' }}
+          >
+            Valider mes choix
+          </button>
+        </div>
+      )}
+
+      <p className="mt-2 text-[11px] italic" style={{ color: 'var(--color-ink-faint)' }}>Ou reponds avec tes propres mots :</p>
+      <div className="mt-1 flex gap-1.5">
+        <input
+          type="text"
+          value={reponseLibre}
+          onChange={(e) => setReponseLibre(e.target.value)}
+          disabled={chargement}
+          placeholder="Ta reponse..."
+          className="flex-1 rounded-lg border px-2.5 py-1.5 text-xs outline-none"
+          style={{ borderColor: 'var(--color-border-soft)' }}
+        />
+        <button
+          type="button"
+          onClick={() => void validerParTexte()}
+          disabled={chargement || !reponseLibre.trim()}
+          className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          Envoyer
+        </button>
+      </div>
+      {erreur && <p className="mt-1 text-xs" style={{ color: '#B02631' }}>{erreur}</p>}
+    </div>
+  )
+}
+
 // Affiche la correction d'un exercice decoupee en points repliables/depliables
 // plutot qu'un seul bloc de texte -- un mur de texte etait juge illisible et
 // impossible a reviser point par point (retour utilisateur direct).
-function CorrectionExerciceAffichage({ exercice }: { exercice: ExercicePapier }) {
+function CorrectionExerciceAffichage({
+  exercice,
+  verification,
+}: {
+  exercice: ExercicePapier
+  verification?: { matiereId: string; travailId: string; onExerciceMisAJour: (exercice: ExercicePapier) => void }
+}) {
   const [ouverts, setOuverts] = useState<Set<number>>(new Set())
 
   function basculer(index: number) {
@@ -430,6 +590,15 @@ function CorrectionExerciceAffichage({ exercice }: { exercice: ExercicePapier })
             )
           })}
         </ul>
+
+        {verification && exercice.correctionNiveau && (
+          <VerificationComprehension
+            matiereId={verification.matiereId}
+            travailId={verification.travailId}
+            exercice={exercice}
+            onExerciceMisAJour={verification.onExerciceMisAJour}
+          />
+        )}
       </div>
     </div>
   )
@@ -437,11 +606,22 @@ function CorrectionExerciceAffichage({ exercice }: { exercice: ExercicePapier })
 
 // Brique B (phase 28) : choix entre corriger tout d'un coup (comportement
 // historique) ou parcourir les exercices un par un avec navigation
-// suivant/precedent -- pas de logique de verification de comprehension ici
-// (brique C, a venir), uniquement la navigation.
+// suivant/precedent. La verification de comprehension (brique C) n'apparait
+// qu'en mode progressif -- le mode direct reste une correction complete sans
+// interaction, comme demande.
 type ModeParcours = 'direct' | 'progressif'
 
-function ParcoursExercicesTravailPapier({ exercices }: { exercices: ExercicePapier[] }) {
+function ParcoursExercicesTravailPapier({
+  exercices,
+  matiereId,
+  travailId,
+  onExerciceMisAJour,
+}: {
+  exercices: ExercicePapier[]
+  matiereId: string
+  travailId: string
+  onExerciceMisAJour: (exercice: ExercicePapier) => void
+}) {
   const [mode, setMode] = useState<ModeParcours>('direct')
   const [indexCourant, setIndexCourant] = useState(0)
 
@@ -503,7 +683,10 @@ function ParcoursExercicesTravailPapier({ exercices }: { exercices: ExercicePapi
               </button>
             </div>
           </div>
-          <CorrectionExerciceAffichage exercice={exerciceCourant} />
+          <CorrectionExerciceAffichage
+            exercice={exerciceCourant}
+            verification={{ matiereId, travailId, onExerciceMisAJour }}
+          />
         </div>
       )}
     </div>
@@ -544,6 +727,18 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
     }, INTERVALLE_POLLING_DOCUMENTS_MS)
     return () => window.clearInterval(intervalle)
   }, [matiereId, travaux])
+
+  // Verification de comprehension (brique C) : met a jour uniquement
+  // l'exercice concerne, sans recharger tout le travail.
+  function mettreAJourExercice(travailId: string, exerciceMisAJour: ExercicePapier) {
+    setTravaux((prev) =>
+      prev.map((travail) =>
+        travail.id === travailId
+          ? { ...travail, exercices: travail.exercices.map((ex) => (ex.id === exerciceMisAJour.id ? exerciceMisAJour : ex)) }
+          : travail,
+      ),
+    )
+  }
 
   // Deux photos separees (phase 28) : l'enonce et la reponse de l'etudiant,
   // pour que la correction s'appuie sur l'enonce reel plutot que de le
@@ -642,7 +837,12 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
               </div>
               {travail.statut === 'REUSSI' && (
                 travail.exercices.length > 0 ? (
-                  <ParcoursExercicesTravailPapier exercices={travail.exercices} />
+                  <ParcoursExercicesTravailPapier
+                    exercices={travail.exercices}
+                    matiereId={matiereId}
+                    travailId={travail.id}
+                    onExerciceMisAJour={(exercice) => mettreAJourExercice(travail.id, exercice)}
+                  />
                 ) : (
                   <div className="mt-2 flex items-center gap-2">
                     <p className="text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>

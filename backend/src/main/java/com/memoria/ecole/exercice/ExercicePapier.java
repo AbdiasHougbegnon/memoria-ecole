@@ -63,6 +63,22 @@ public class ExercicePapier {
     @OrderColumn(name = "position")
     private List<PointCorrection> pointsCorrection;
 
+    // Verification de comprehension (phase 30, brique C) : question de
+    // controle posee en mode progressif apres la correction, et son statut de
+    // resolution -- ne bloque jamais la navigation, quel que soit son etat.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut_verification")
+    private StatutVerification statutVerification;
+
+    @Column(name = "question_verification_enonce", columnDefinition = "text")
+    private String questionVerificationEnonce;
+
+    // Pas d'initialisateur par defaut, meme raison que pointsCorrection.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "exercice_papier_choix_verification", joinColumns = @JoinColumn(name = "exercice_papier_id"))
+    @OrderColumn(name = "position")
+    private List<ChoixVerification> choixVerification;
+
     protected ExercicePapier() {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
@@ -79,6 +95,7 @@ public class ExercicePapier {
         this.correctionNiveau = correctionNiveau;
         this.correctionSynthese = correctionSynthese;
         this.pointsCorrection = pointsCorrection;
+        this.statutVerification = StatutVerification.NON_VERIFIE;
     }
 
     public UUID getId() {
@@ -111,5 +128,27 @@ public class ExercicePapier {
 
     public List<PointCorrection> getPointsCorrection() {
         return pointsCorrection;
+    }
+
+    public StatutVerification getStatutVerification() {
+        return statutVerification;
+    }
+
+    public String getQuestionVerificationEnonce() {
+        return questionVerificationEnonce;
+    }
+
+    public List<ChoixVerification> getChoixVerification() {
+        return choixVerification;
+    }
+
+    public void enregistrerQuestionVerification(String enonceQuestion, List<ChoixVerification> choix) {
+        this.questionVerificationEnonce = enonceQuestion;
+        this.choixVerification = choix;
+        this.statutVerification = StatutVerification.NON_VERIFIE;
+    }
+
+    public void enregistrerResolutionVerification(boolean comprehensionValidee) {
+        this.statutVerification = comprehensionValidee ? StatutVerification.VALIDE : StatutVerification.PAS_CLAIR;
     }
 }

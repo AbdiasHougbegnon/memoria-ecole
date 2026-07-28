@@ -40,6 +40,7 @@ public class TravailPapierService {
     private final StockageDocumentPort stockageDocument;
     private final ExtracteurDocumentPort extracteurDocument;
     private final CorrecteurTravailPapierPort correcteurTravailPapier;
+    private final VerificateurComprehensionPort verificateurComprehension;
     private final MatiereService matiereService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -49,6 +50,7 @@ public class TravailPapierService {
             StockageDocumentPort stockageDocument,
             ExtracteurDocumentPort extracteurDocument,
             CorrecteurTravailPapierPort correcteurTravailPapier,
+            VerificateurComprehensionPort verificateurComprehension,
             MatiereService matiereService,
             ApplicationEventPublisher eventPublisher
     ) {
@@ -57,6 +59,7 @@ public class TravailPapierService {
         this.stockageDocument = stockageDocument;
         this.extracteurDocument = extracteurDocument;
         this.correcteurTravailPapier = correcteurTravailPapier;
+        this.verificateurComprehension = verificateurComprehension;
         this.matiereService = matiereService;
         this.eventPublisher = eventPublisher;
     }
@@ -169,5 +172,64 @@ public class TravailPapierService {
         }
         tenterCorrection(travail);
         return travailPapierRepository.save(travail);
+    }
+
+    // Verification de comprehension (phase 30, brique C) : n'a de sens qu'en
+    // mode progressif, une fois la correction disponible pour l'exercice.
+    public ExercicePapier genererQuestionVerification(UUID matiereId, UUID travailId, UUID exerciceId, UUID utilisateurId) {
+        ExercicePapier exercice = chargerExercice(matiereId, travailId, exerciceId, utilisateurId);
+        if (exercice.getCorrectionSynthese() == null || exercice.getCorrectionSynthese().isBlank()) {
+            throw new TexteExtraitIndisponibleException(travailId);
+        }
+        QuestionVerificationGeneree question = verificateurComprehension.genererQuestion(
+                exercice.getEnonce(), exercice.getCorrectionSynthese(), exercice.getPointsCorrection()
+        );
+        exercice.enregistrerQuestionVerification(question.enonce(), question.choix());
+        return exercicePapierRepository.save(exercice);
+    }
+
+    // Correction deterministe, sans appel IA : les cases cochees doivent
+    // correspondre exactement aux choix marques corrects (ni manque, ni
+    // choix incorrect coche).
+    public ExercicePapier soumettreReponseChoix(
+            UUID matiereId, UUID travailId, UUID exerciceId, UUID utilisateurId, List<Integer> indicesCoches
+    ) {
+        ExercicePapier exercice = chargerExercice(matiereId, travailId, exerciceId, utilisateurId);
+        List<ChoixVerification> choix = exercice.getChoixVerification();
+        boolean comprehensionValidee = true;
+        for (int i = 0; i < choix.size(); i++) {
+            boolean coche = indicesCoches.contains(i);
+            if (coche != choix.get(i).isCorrect()) {
+                comprehensionValidee = false;
+                break;
+            }
+        }
+        exercice.enregistrerResolutionVerification(comprehensionValidee);
+        return exercicePapierRepository.save(exercice);
+    }
+
+    // Reponse libre (tapee ou dictee puis transcrite) : evaluation qualitative
+    // par l'IA, meme classification NiveauMaitrise que le reste du projet.
+    public ExercicePapier soumettreReponseLibre(
+            UUID matiereId, UUID travailId, UUID exerciceId, UUID utilisateurId, String reponseTexte
+    ) {
+        ExercicePapier exercice = chargerExercice(matiereId, travailId, exerciceId, utilisateurId);
+        var niveau = verificateurComprehension.evaluerReponseLibre(exercice.getQuestionVerificationEnonce(), reponseTexte);
+        exercice.enregistrerResolutionVerification(niveau == com.memoria.ecole.notion.NiveauMaitrise.MAITRISEE);
+        return exercicePapierRepository.save(exercice);
+    }
+
+    private ExercicePapier chargerExercice(UUID matiereId, UUID travailId, UUID exerciceId, UUID utilisateurId) {
+        TravailPapierMatiere travail = travailPapierRepository.findById(travailId)
+                .orElseThrow(() -> new TravailPapierMatiereNotFoundException(travailId));
+        if (!travail.getMatiereId().equals(matiereId) || !travail.getUtilisateurId().equals(utilisateurId)) {
+            throw new AccesTravailPapierRefuseException(travailId, utilisateurId);
+        }
+        ExercicePapier exercice = exercicePapierRepository.findById(exerciceId)
+                .orElseThrow(() -> new ExercicePapierNotFoundException(exerciceId));
+        if (!exercice.getTravailPapierId().equals(travailId)) {
+            throw new ExercicePapierNotFoundException(exerciceId);
+        }
+        return exercice;
     }
 }

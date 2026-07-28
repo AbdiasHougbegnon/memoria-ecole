@@ -207,6 +207,11 @@ public class GestionnaireExceptionsApi {
     public void gererAccesTravailPapierRefuse() {
     }
 
+    @ExceptionHandler(com.memoria.ecole.exercice.ExercicePapierNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererExercicePapierIntrouvable() {
+    }
+
     @ExceptionHandler(com.memoria.ecole.exercice.TexteExtraitIndisponibleException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererTexteExtraitIndisponible() {

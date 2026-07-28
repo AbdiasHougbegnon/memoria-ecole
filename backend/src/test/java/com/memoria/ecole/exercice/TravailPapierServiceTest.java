@@ -38,6 +38,7 @@ class TravailPapierServiceTest {
     @Mock private StockageDocumentPort stockageDocument;
     @Mock private ExtracteurDocumentPort extracteurDocument;
     @Mock private CorrecteurTravailPapierPort correcteurTravailPapier;
+    @Mock private VerificateurComprehensionPort verificateurComprehension;
     @Mock private MatiereService matiereService;
     @Mock private ApplicationEventPublisher eventPublisher;
 
@@ -47,7 +48,7 @@ class TravailPapierServiceTest {
     void setUp() {
         service = new TravailPapierService(
                 travailPapierRepository, exercicePapierRepository, stockageDocument, extracteurDocument,
-                correcteurTravailPapier, matiereService, eventPublisher
+                correcteurTravailPapier, verificateurComprehension, matiereService, eventPublisher
         );
     }
 
@@ -234,5 +235,110 @@ class TravailPapierServiceTest {
         List<ExercicePapier> resultat = service.listerExercices(travailId);
 
         assertThat(resultat).containsExactly(exercice);
+    }
+
+    @Test
+    void genererQuestionVerification_appelle_le_port_et_enregistre_la_question() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
+        );
+        UUID exerciceId = UUID.randomUUID();
+        ExercicePapier exercice = new ExercicePapier(
+                travail.getId(), 0, "Resoudre 2x+4=10", "x=3", NiveauMaitrise.MAITRISEE, "Bonne reponse.", List.of()
+        );
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+        when(exercicePapierRepository.findById(exerciceId)).thenReturn(Optional.of(exercice));
+        when(exercicePapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        List<ChoixVerification> choix = List.of(new ChoixVerification("x=3", true), new ChoixVerification("x=5", false));
+        when(verificateurComprehension.genererQuestion(any(), any(), any()))
+                .thenReturn(new QuestionVerificationGeneree("Pourquoi x=3 ?", choix));
+
+        ExercicePapier resultat = service.genererQuestionVerification(matiereId, travail.getId(), exerciceId, utilisateurId);
+
+        assertThat(resultat.getQuestionVerificationEnonce()).isEqualTo("Pourquoi x=3 ?");
+        assertThat(resultat.getChoixVerification()).isEqualTo(choix);
+        assertThat(resultat.getStatutVerification()).isEqualTo(StatutVerification.NON_VERIFIE);
+    }
+
+    @Test
+    void soumettreReponseChoix_valide_quand_les_cases_cochees_correspondent_exactement_aux_choix_corrects() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
+        );
+        UUID exerciceId = UUID.randomUUID();
+        ExercicePapier exercice = new ExercicePapier(
+                travail.getId(), 0, "Enonce", "Reponse", NiveauMaitrise.MAITRISEE, "Synthese", List.of()
+        );
+        exercice.enregistrerQuestionVerification("Question ?", List.of(
+                new ChoixVerification("Bon choix", true), new ChoixVerification("Mauvais choix", false)
+        ));
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+        when(exercicePapierRepository.findById(exerciceId)).thenReturn(Optional.of(exercice));
+        when(exercicePapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExercicePapier resultat = service.soumettreReponseChoix(matiereId, travail.getId(), exerciceId, utilisateurId, List.of(0));
+
+        assertThat(resultat.getStatutVerification()).isEqualTo(StatutVerification.VALIDE);
+    }
+
+    @Test
+    void soumettreReponseChoix_marque_pas_clair_si_un_choix_incorrect_est_coche() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
+        );
+        UUID exerciceId = UUID.randomUUID();
+        ExercicePapier exercice = new ExercicePapier(
+                travail.getId(), 0, "Enonce", "Reponse", NiveauMaitrise.MAITRISEE, "Synthese", List.of()
+        );
+        exercice.enregistrerQuestionVerification("Question ?", List.of(
+                new ChoixVerification("Bon choix", true), new ChoixVerification("Mauvais choix", false)
+        ));
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+        when(exercicePapierRepository.findById(exerciceId)).thenReturn(Optional.of(exercice));
+        when(exercicePapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExercicePapier resultat = service.soumettreReponseChoix(matiereId, travail.getId(), exerciceId, utilisateurId, List.of(0, 1));
+
+        assertThat(resultat.getStatutVerification()).isEqualTo(StatutVerification.PAS_CLAIR);
+    }
+
+    @Test
+    void soumettreReponseLibre_valide_si_le_niveau_evalue_est_maitrise() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
+        );
+        UUID exerciceId = UUID.randomUUID();
+        ExercicePapier exercice = new ExercicePapier(
+                travail.getId(), 0, "Enonce", "Reponse", NiveauMaitrise.MAITRISEE, "Synthese", List.of()
+        );
+        exercice.enregistrerQuestionVerification("Question ?", List.of());
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+        when(exercicePapierRepository.findById(exerciceId)).thenReturn(Optional.of(exercice));
+        when(exercicePapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(verificateurComprehension.evaluerReponseLibre(any(), any())).thenReturn(NiveauMaitrise.MAITRISEE);
+
+        ExercicePapier resultat = service.soumettreReponseLibre(matiereId, travail.getId(), exerciceId, utilisateurId, "Ma reponse");
+
+        assertThat(resultat.getStatutVerification()).isEqualTo(StatutVerification.VALIDE);
+    }
+
+    @Test
+    void genererQuestionVerification_leve_une_exception_si_lutilisateur_nest_pas_le_proprietaire() {
+        UUID matiereId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, UUID.randomUUID(), TypeDocument.PHOTO, "enonce.jpg", "chemin1", TypeDocument.PHOTO, "reponse.jpg", "chemin2"
+        );
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+
+        assertThatThrownBy(() -> service.genererQuestionVerification(matiereId, travail.getId(), UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(AccesTravailPapierRefuseException.class);
     }
 }
