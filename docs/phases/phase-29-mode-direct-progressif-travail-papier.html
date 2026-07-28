@@ -1,0 +1,127 @@
+<title>Memoria — Dossier technique : mode direct / progressif pour le travail papier</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+  .layout { max-width: 1040px; margin: 0 auto; padding: 40px 24px 120px; display: flex; flex-direction: column; gap: 40px; }
+  header.masthead { display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; }
+  .fact { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); }
+  section { display: flex; flex-direction: column; gap: 14px; }
+  section > h2 { font-size: 1.1rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); }
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+  .mock { display: flex; gap: 8px; align-items: center; font-size: 0.82rem; }
+  .pill-btn { border-radius: 999px; padding: 4px 12px; background: var(--surface-2); color: var(--text-muted); }
+  .pill-btn.on { background: var(--accent-strong); color: white; }
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { flex: 1 1 auto; }
+  .ok-txt { color: var(--ok); font-weight: 600; }
+  footer.page-footer { border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Travail papier (phase 29 — brique B)</span>
+    <h1 class="title">Mode direct / progressif pour parcourir les exercices</h1>
+    <p class="dek">Deuxième brique du chantier de correction interactive : choisir entre voir toute la correction d'un coup ou parcourir les exercices un par un.</p>
+    <div class="factrow">
+      <span class="fact">purement frontend, zero appel reseau nouveau</span>
+      <span class="fact">verifie en conditions reelles (Playwright, 2 exercices)</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>§ Le besoin</h2>
+    <p style="color:var(--text-muted)">Après la décomposition en exercices (brique A, phase 28), l'étudiant doit pouvoir choisir entre "correction directe" (tout d'un coup, comportement historique) et "mode progressif" (un exercice à la fois, avec navigation) — portée définie avec l'utilisateur.</p>
+  </section>
+
+  <section>
+    <h2>§ Les décisions</h2>
+    <div class="card">
+      <ul class="plain">
+        <li><strong>Purement frontend</strong> — aucune donnée nouvelle à persister, la brique A fournit déjà toute la correction ; <code>ParcoursExercicesTravailPapier</code> gère le mode et l'index en état local.</li>
+        <li><strong>Le toggle n'apparaît que s'il y a plus d'un exercice</strong> — un seul exercice n'a rien à "parcourir progressivement".</li>
+        <li><strong>Navigation bornée, pas de boucle</strong> — "Précédent"/"Suivant" désactivés aux extrémités.</li>
+      </ul>
+      <div class="mock" style="margin-top:14px;">
+        <span class="pill-btn on">Correction directe</span>
+        <span class="pill-btn">Mode progressif</span>
+        <span style="margin-left:16px;color:var(--text-faint)">Exercice 1 / 2</span>
+        <span class="pill-btn" style="margin-left:auto">← Précédent</span>
+        <span class="pill-btn on">Suivant →</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>§ Comment on a vérifié</h2>
+    <div class="card">
+      <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+      <div class="verif-line"><span class="route">Toggle direct/progressif sur travail a 2 exercices</span><span class="ok-txt">bascule correctement</span></div>
+      <div class="verif-line"><span class="route">Navigation Suivant : Exercice 1/2 -> 2/2</span><span class="ok-txt">OK, Suivant desactive au dernier</span></div>
+      <div class="verif-line"><span class="route">Navigation Precedent : retour a 1/2</span><span class="ok-txt">OK</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>§ Limites connues, assumées</h2>
+    <ul class="plain">
+      <li><strong>Pas de progression persistante</strong> — revenir sur la page réinitialise toujours au mode direct, index 0.</li>
+      <li><strong>Brique C reste à construire</strong> — pas encore de question de vérification de compréhension ni de statut Validé/Pas clair.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>§ Pour reprendre seul</h2>
+    <div class="card">
+      <ul class="plain">
+        <li>Code de référence exact : <code>git checkout phase-29-mode-direct-progressif-travail-papier</code></li>
+        <li>Prochaine étape : brique C (vérification de compréhension après une réponse fausse, statut Validé/Pas clair, sans jamais bloquer la navigation).</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    Memoria — dossier généré à partir de la session de travail sur le mode direct/progressif du travail papier (phase 29, brique B).
+  </footer>
+</div>

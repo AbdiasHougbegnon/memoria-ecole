@@ -435,6 +435,81 @@ function CorrectionExerciceAffichage({ exercice }: { exercice: ExercicePapier })
   )
 }
 
+// Brique B (phase 28) : choix entre corriger tout d'un coup (comportement
+// historique) ou parcourir les exercices un par un avec navigation
+// suivant/precedent -- pas de logique de verification de comprehension ici
+// (brique C, a venir), uniquement la navigation.
+type ModeParcours = 'direct' | 'progressif'
+
+function ParcoursExercicesTravailPapier({ exercices }: { exercices: ExercicePapier[] }) {
+  const [mode, setMode] = useState<ModeParcours>('direct')
+  const [indexCourant, setIndexCourant] = useState(0)
+
+  const exerciceCourant = exercices[Math.min(indexCourant, exercices.length - 1)]
+
+  return (
+    <div className="mt-2.5">
+      {exercices.length > 1 && (
+        <div className="mb-2.5 flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => setMode('direct')}
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            style={mode === 'direct' ? { background: 'var(--color-brand)', color: 'white' } : { background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+          >
+            Correction directe
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('progressif'); setIndexCourant(0) }}
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            style={mode === 'progressif' ? { background: 'var(--color-brand)', color: 'white' } : { background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+          >
+            Mode progressif
+          </button>
+        </div>
+      )}
+
+      {mode === 'direct' && (
+        <div className="flex flex-col gap-2.5">
+          {exercices.map((exercice) => <CorrectionExerciceAffichage key={exercice.id} exercice={exercice} />)}
+        </div>
+      )}
+
+      {mode === 'progressif' && exerciceCourant && (
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-ink-muted)' }}>
+              Exercice {indexCourant + 1} / {exercices.length}
+            </span>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIndexCourant((i) => Math.max(0, i - 1))}
+                disabled={indexCourant === 0}
+                className="rounded-full border px-3 py-1 text-xs font-semibold disabled:opacity-40"
+                style={{ borderColor: 'var(--color-border-soft)' }}
+              >
+                &larr; Precedent
+              </button>
+              <button
+                type="button"
+                onClick={() => setIndexCourant((i) => Math.min(exercices.length - 1, i + 1))}
+                disabled={indexCourant === exercices.length - 1}
+                className="rounded-lg px-3 py-1 text-xs font-semibold text-white disabled:opacity-40"
+                style={{ background: 'var(--color-brand)' }}
+              >
+                Suivant &rarr;
+              </button>
+            </div>
+          </div>
+          <CorrectionExerciceAffichage exercice={exerciceCourant} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Travail papier photographie (phase 22e) : personnel a l'etudiant qui le
 // soumet (pas partage avec le reste de la classe, contrairement au contenu
 // documentaire de l'enseignant) -- alimente ses propres conversations avec le
@@ -567,11 +642,7 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
               </div>
               {travail.statut === 'REUSSI' && (
                 travail.exercices.length > 0 ? (
-                  <div className="mt-2.5 flex flex-col gap-2.5">
-                    {travail.exercices.map((exercice) => (
-                      <CorrectionExerciceAffichage key={exercice.id} exercice={exercice} />
-                    ))}
-                  </div>
+                  <ParcoursExercicesTravailPapier exercices={travail.exercices} />
                 ) : (
                   <div className="mt-2 flex items-center gap-2">
                     <p className="text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>
