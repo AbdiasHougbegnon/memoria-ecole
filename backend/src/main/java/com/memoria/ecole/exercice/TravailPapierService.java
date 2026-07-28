@@ -1,6 +1,7 @@
 package com.memoria.ecole.exercice;
 
 import com.memoria.core.document.ExtracteurDocumentPort;
+import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.StockageDocumentPort;
 import com.memoria.core.document.TypeDocument;
 import com.memoria.ecole.matiere.MatiereService;
@@ -95,20 +96,43 @@ public class TravailPapierService {
         }
 
         travail.marquerReussi(texte);
-        // L'extraction a reussi : le texte reste consultable et discutable avec
-        // le tuteur meme si la correction automatique echoue -- meme doctrine
-        // degradee que ExerciceSaisieLibreService.soumettreReponses (une panne
-        // Azure OpenAI ne doit pas faire perdre le travail deja extrait).
+        tenterCorrection(travail);
+        travailPapierRepository.save(travail);
+    }
+
+    // L'extraction a reussi : le texte reste consultable et discutable avec
+    // le tuteur meme si la correction automatique echoue -- meme doctrine
+    // degradee que ExerciceSaisieLibreService.soumettreReponses (une panne
+    // Azure OpenAI ne doit pas faire perdre le travail deja extrait).
+    private void tenterCorrection(TravailPapierMatiere travail) {
         try {
-            CorrectionTravailPapier correction = correcteurTravailPapier.corriger(texte);
+            CorrectionTravailPapier correction = correcteurTravailPapier.corriger(travail.getTexteExtrait());
             travail.enregistrerCorrection(correction.niveau(), correction.correction());
         } catch (RuntimeException e) {
             LOG.warn("Echec de la correction du travail papier {}", travail.getId(), e);
         }
-        travailPapierRepository.save(travail);
     }
 
     public List<TravailPapierMatiere> listerMesTravaux(UUID matiereId, UUID utilisateurId) {
         return travailPapierRepository.findByMatiereIdAndUtilisateurIdOrderByDateCreationDesc(matiereId, utilisateurId);
+    }
+
+    // Reessai manuel pour les travaux soumis avant l'ajout de la correction
+    // automatique (phase 24), qui restent sans correction pour toujours sinon
+    // -- voir docs/phases/phase-26-reessai-correction-travail-papier.md.
+    // Si la premiere tentative avait deja echoue (Azure indisponible), ce
+    // reessai relance simplement tenterCorrection sur le texte deja extrait,
+    // sans re-televerser ni re-extraire.
+    public TravailPapierMatiere reessayerCorrection(UUID matiereId, UUID travailId, UUID utilisateurId) {
+        TravailPapierMatiere travail = travailPapierRepository.findById(travailId)
+                .orElseThrow(() -> new TravailPapierMatiereNotFoundException(travailId));
+        if (!travail.getMatiereId().equals(matiereId) || !travail.getUtilisateurId().equals(utilisateurId)) {
+            throw new AccesTravailPapierRefuseException(travailId, utilisateurId);
+        }
+        if (travail.getStatut() != StatutDocument.REUSSI || travail.getTexteExtrait() == null || travail.getTexteExtrait().isBlank()) {
+            throw new TexteExtraitIndisponibleException(travailId);
+        }
+        tenterCorrection(travail);
+        return travailPapierRepository.save(travail);
     }
 }

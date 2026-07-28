@@ -10,6 +10,7 @@ import {
   obtenirMaTentativeQcmMatiere,
   obtenirMatiere,
   obtenirQcmMatiere,
+  reessayerCorrectionTravailPapier,
   soumettreReponsesExercices,
   soumettreTentativeQcmMatiere,
   soumettreTravailPapier,
@@ -364,6 +365,7 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
   const [travaux, setTravaux] = useState<TravailPapierMatiere[]>([])
   const [chargement, setChargement] = useState(true)
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
+  const [correctionEnCoursId, setCorrectionEnCoursId] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
 
   async function rafraichir() {
@@ -401,6 +403,23 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
       setErreur("Impossible d'envoyer ce travail.")
     } finally {
       setEnvoiEnCours(false)
+    }
+  }
+
+  // Reessai manuel pour les travaux soumis avant l'ajout de la correction
+  // automatique (ou dont la premiere tentative avait echoue) -- sans ce
+  // bouton, ces travaux restaient marques "Correction indisponible" pour
+  // toujours.
+  async function reessayerCorrection(travailId: string) {
+    setErreur(null)
+    setCorrectionEnCoursId(travailId)
+    try {
+      await reessayerCorrectionTravailPapier(matiereId, travailId)
+      await rafraichir()
+    } catch {
+      setErreur("Impossible de corriger ce travail pour le moment.")
+    } finally {
+      setCorrectionEnCoursId(null)
     }
   }
 
@@ -447,7 +466,18 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
                     <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{travail.correctionTexte}</p>
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <p className="text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>
+                    <button
+                      type="button"
+                      onClick={() => void reessayerCorrection(travail.id)}
+                      disabled={correctionEnCoursId === travail.id}
+                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold disabled:opacity-50"
+                      style={{ background: '#F4F2EE', color: 'var(--color-brand)' }}
+                    >
+                      {correctionEnCoursId === travail.id ? 'Correction en cours...' : 'Corriger maintenant'}
+                    </button>
+                  </div>
                 )
               )}
             </li>

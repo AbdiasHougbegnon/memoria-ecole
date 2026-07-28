@@ -48,4 +48,17 @@ public class TravailPapierMatiereController {
                 .map(TravailPapierMatiereResponse::depuis)
                 .toList();
     }
+
+    // Reessai manuel pour les travaux soumis avant l'ajout de la correction
+    // automatique (phase 24).
+    @PostMapping("/{travailId}/corriger")
+    public TravailPapierMatiereResponse reessayerCorrection(
+            @PathVariable UUID matiereId,
+            @PathVariable UUID travailId,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        return TravailPapierMatiereResponse.depuis(
+                travailPapierService.reessayerCorrection(matiereId, travailId, utilisateurId)
+        );
+    }
 }

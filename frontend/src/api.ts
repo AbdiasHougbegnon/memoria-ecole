@@ -318,6 +318,15 @@ export async function listerMesTravauxPapier(matiereId: string): Promise<Travail
   return reponse.json()
 }
 
+// Reessai manuel pour un travail soumis avant l'ajout de la correction
+// automatique (ou dont la premiere tentative avait echoue).
+export async function reessayerCorrectionTravailPapier(matiereId: string, travailId: string): Promise<TravailPapierMatiere> {
+  const reponse = await verifierReponse(
+    await appelApi(`${BASE_MATIERES}/${matiereId}/travaux-papier/${travailId}/corriger`, { method: 'POST' }),
+  )
+  return reponse.json()
+}
+
 export async function rechercher(requete: string, limite = 10): Promise<RechercheResultat[]> {
   const parametres = new URLSearchParams({ q: requete, limite: String(limite) })
   const reponse = await verifierReponse(await appelApi(`/api/v1/recherche?${parametres}`))

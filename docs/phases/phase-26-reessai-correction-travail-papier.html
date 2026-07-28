@@ -1,0 +1,155 @@
+<title>Memoria — Dossier technique : réessai manuel de la correction du travail papier</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .card.correctif { border-color: var(--accent); background: var(--accent-wash); }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Travail papier (phase 26)</span>
+    <h1 class="title">Réessai manuel de la correction du travail papier</h1>
+    <p class="dek">Répond à "pourquoi ce fichier n'a pas de correction ?" avec un bouton "Corriger maintenant" — et corrige au passage un diagnostic précédent trop optimiste sur l'incident du tuteur (phase 25).</p>
+    <div class="factrow">
+      <span class="fact"><strong>360</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">verifie sur le fichier exact cite par l'utilisateur</span>
+      <span class="fact">precision apportee au diagnostic phase 25</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Deux causes distinctes</a>
+    <span class="toc-label">Précision</span>
+    <a href="#precision">Retour sur le diagnostic phase 25</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead"><code>fiche_revision_risque_episens.pdf</code> affichait "Correction indisponible pour le moment". Deux causes : soumis avant le déploiement de la correction automatique (phase 24, pas de correction rétroactive par design), et une deuxième tentative a révélé un échec de parsing JSON sur la sortie du modèle — dégradation déjà absorbée proprement, mais sans recours pour l'utilisateur.</p>
+    </section>
+
+    <section id="precision">
+      <h2><span class="num">§</span> Précision apportée au diagnostic de l'incident phase 25</h2>
+      <div class="card correctif">
+        <p style="margin:0; color:var(--text); font-size:0.92rem;">En creusant ce cas, un troisième travail papier de test contenait réellement le texte "Reunion Memoria / Budget 15000 euros / Responsable Marie Dupont" — exactement ce que le tuteur avait présenté comme "une session enregistrée" dans l'incident. <strong>Ce n'était donc pas une invention pure de zéro</strong> : le modèle a mal étiqueté une source réelle (un travail papier, pas une session), en plus d'avoir inventé les actions (email, archive). Le correctif de la phase 25 reste valable pour les deux problèmes ; seule la communication initiale ("pure invention, pas de fuite") était incomplète.</p>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Réessai manuel, pas de retraitement automatique en masse</strong> — évite un coût Azure OpenAI non maîtrisé ; un bouton "Corriger maintenant" apparaît uniquement là où la correction manque.</li>
+          <li><strong>Réutilise <code>tenterCorrection</code></strong> telle quelle (extraite en méthode privée partagée) — aucune duplication de la logique de dégradation.</li>
+          <li><strong>Contrôle d'accès identique</strong> aux autres endpoints personnels — propriétaire uniquement, texte déjà extrait requis.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 360 tests (+3), 0 finding SpotBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Reessai reel sur fiche_revision_risque_episens.pdf (1re tentative)</span><span class="ok-txt">echec JSON, degradation propre observee dans les logs</span></div>
+        <div class="verif-line"><span class="route">Reessai reel (2e tentative)</span><span class="ok-txt">correction detaillee et pertinente generee</span></div>
+        <div class="verif-line"><span class="route">Verification a l'ecran (capture)</span><span class="ok-txt">correction affichee pour les deux occurrences du fichier</span></div>
+      </div>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-26-reessai-correction-travail-papier</code></li>
+          <li>Le parsing JSON fragile de la sortie du modèle est un problème latent partagé par tous les adaptateurs Azure OpenAI du projet — pas traité ici, hors périmètre de ce réessai.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur le réessai de correction du travail papier (phase 26).
+    </footer>
+  </main>
+</div>

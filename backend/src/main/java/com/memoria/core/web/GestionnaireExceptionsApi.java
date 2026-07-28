@@ -197,6 +197,21 @@ public class GestionnaireExceptionsApi {
     public void gererAucunContenuDisponiblePourExercice() {
     }
 
+    @ExceptionHandler(com.memoria.ecole.exercice.TravailPapierMatiereNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void gererTravailPapierMatiereIntrouvable() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.exercice.AccesTravailPapierRefuseException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void gererAccesTravailPapierRefuse() {
+    }
+
+    @ExceptionHandler(com.memoria.ecole.exercice.TexteExtraitIndisponibleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public void gererTexteExtraitIndisponible() {
+    }
+
     @ExceptionHandler(com.memoria.ecole.session.MatiereIncompatibleAvecSessionException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererMatiereIncompatibleAvecSession() {

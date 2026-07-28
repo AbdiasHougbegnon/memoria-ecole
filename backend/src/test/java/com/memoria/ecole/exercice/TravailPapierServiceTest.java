@@ -128,6 +128,53 @@ class TravailPapierServiceTest {
     }
 
     @Test
+    void reessayerCorrection_corrige_un_travail_deja_extrait_sans_correction() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+        );
+        travail.marquerReussi("Contenu de la fiche.");
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+        when(correcteurTravailPapier.corriger("Contenu de la fiche."))
+                .thenReturn(new CorrectionTravailPapier(NiveauMaitrise.MAITRISEE, "Tout est correct."));
+        when(travailPapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TravailPapierMatiere resultat = service.reessayerCorrection(matiereId, travail.getId(), utilisateurId);
+
+        assertThat(resultat.getCorrectionNiveau()).isEqualTo(NiveauMaitrise.MAITRISEE);
+        assertThat(resultat.getCorrectionTexte()).isEqualTo("Tout est correct.");
+    }
+
+    @Test
+    void reessayerCorrection_leve_une_exception_si_lutilisateur_nest_pas_le_proprietaire() {
+        UUID matiereId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, UUID.randomUUID(), com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+        );
+        travail.marquerReussi("Contenu de la fiche.");
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+
+        assertThatThrownBy(() -> service.reessayerCorrection(matiereId, travail.getId(), UUID.randomUUID()))
+                .isInstanceOf(AccesTravailPapierRefuseException.class);
+        verify(correcteurTravailPapier, never()).corriger(any());
+    }
+
+    @Test
+    void reessayerCorrection_leve_une_exception_si_aucun_texte_extrait() {
+        UUID matiereId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        TravailPapierMatiere travail = new TravailPapierMatiere(
+                matiereId, utilisateurId, com.memoria.core.document.TypeDocument.PDF, "fiche.pdf", "chemin/fiche.pdf"
+        );
+        when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
+
+        assertThatThrownBy(() -> service.reessayerCorrection(matiereId, travail.getId(), utilisateurId))
+                .isInstanceOf(TexteExtraitIndisponibleException.class);
+        verify(correcteurTravailPapier, never()).corriger(any());
+    }
+
+    @Test
     void listerMesTravaux_delegue_au_repository() {
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
