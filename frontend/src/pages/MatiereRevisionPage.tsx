@@ -357,6 +357,79 @@ const LIBELLE_STATUT_TRAVAIL: Record<string, string> = {
   ECHEC: "Echec de l'analyse",
 }
 
+// Affiche la correction decoupee en points repliables/depliables plutot
+// qu'un seul bloc de texte -- un mur de texte etait juge illisible et
+// impossible a reviser point par point (retour utilisateur direct).
+function CorrectionTravailPapierAffichage({ travail }: { travail: TravailPapierMatiere }) {
+  const [ouverts, setOuverts] = useState<Set<number>>(new Set())
+
+  function basculer(index: number) {
+    setOuverts((prev) => {
+      const suivant = new Set(prev)
+      if (suivant.has(index)) suivant.delete(index)
+      else suivant.add(index)
+      return suivant
+    })
+  }
+
+  function toutBasculer() {
+    setOuverts((prev) =>
+      prev.size === travail.pointsCorrection.length
+        ? new Set()
+        : new Set(travail.pointsCorrection.map((_, i) => i)),
+    )
+  }
+
+  const toutDeplie = ouverts.size === travail.pointsCorrection.length && travail.pointsCorrection.length > 0
+
+  return (
+    <div className="mt-2 rounded-lg p-2.5" style={{ background: '#F4F2EE' }}>
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="text-xs font-semibold"
+          style={{ color: travail.correctionNiveau ? COULEUR_NIVEAU[travail.correctionNiveau] : 'var(--color-ink-muted)' }}
+        >
+          {travail.correctionNiveau ? LIBELLE_NIVEAU[travail.correctionNiveau] : 'Correction indisponible'}
+        </span>
+        {travail.pointsCorrection.length > 1 && (
+          <button type="button" onClick={toutBasculer} className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>
+            {toutDeplie ? 'Tout replier' : 'Tout deplier'}
+          </button>
+        )}
+      </div>
+
+      {travail.correctionSynthese && (
+        <p className="mt-1.5 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{travail.correctionSynthese}</p>
+      )}
+
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {travail.pointsCorrection.map((point, index) => {
+          const ouvert = ouverts.has(index)
+          return (
+            <li key={index} className="overflow-hidden rounded-lg border bg-white" style={{ borderColor: 'var(--color-border-soft)' }}>
+              <button
+                type="button"
+                onClick={() => basculer(index)}
+                aria-expanded={ouvert}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold"
+              >
+                <span>{point.sujet}</span>
+                <span style={{ color: 'var(--color-ink-faint)' }}>{ouvert ? '−' : '+'}</span>
+              </button>
+              {ouvert && (
+                <div className="border-t px-3 py-2.5 text-xs leading-relaxed" style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}>
+                  <p><strong style={{ color: 'var(--color-ink)' }}>Constat — </strong>{point.constat}</p>
+                  <p className="mt-1.5"><strong style={{ color: 'var(--color-ink)' }}>Correction attendue — </strong>{point.correctionAttendue}</p>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 // Travail papier photographie (phase 22e) : personnel a l'etudiant qui le
 // soumet (pas partage avec le reste de la classe, contrairement au contenu
 // documentaire de l'enseignant) -- alimente ses propres conversations avec le
@@ -455,16 +528,8 @@ function SectionTravailPapier({ matiereId }: { matiereId: string }) {
                 <span className="text-xs" style={{ color: 'var(--color-ink-muted)' }}>{LIBELLE_STATUT_TRAVAIL[travail.statut]}</span>
               </div>
               {travail.statut === 'REUSSI' && (
-                travail.correctionTexte ? (
-                  <div className="mt-2 rounded-lg p-2.5" style={{ background: '#F4F2EE' }}>
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: travail.correctionNiveau ? COULEUR_NIVEAU[travail.correctionNiveau] : 'var(--color-ink-muted)' }}
-                    >
-                      {travail.correctionNiveau ? LIBELLE_NIVEAU[travail.correctionNiveau] : 'Correction indisponible'}
-                    </span>
-                    <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{travail.correctionTexte}</p>
-                  </div>
+                travail.correctionSynthese || travail.pointsCorrection.length > 0 ? (
+                  <CorrectionTravailPapierAffichage travail={travail} />
                 ) : (
                   <div className="mt-2 flex items-center gap-2">
                     <p className="text-xs italic" style={{ color: 'var(--color-ink-faint)' }}>Correction indisponible pour le moment.</p>

@@ -313,9 +313,12 @@ public class TuteurVocalService {
                 .filter(travail -> travail.getTexteExtrait() != null && !travail.getTexteExtrait().isBlank())
                 .map(travail -> {
                     String bloc = "Travail soumis :\n" + travail.getTexteExtrait();
-                    if (travail.getCorrectionTexte() != null && !travail.getCorrectionTexte().isBlank()) {
-                        bloc += "\nCorrection deja donnee a l'etudiant (niveau " + travail.getCorrectionNiveau() + ") :\n"
-                                + travail.getCorrectionTexte();
+                    if (travail.getCorrectionSynthese() != null && !travail.getCorrectionSynthese().isBlank()) {
+                        String pointsTexte = travail.getPointsCorrection().stream()
+                                .map(point -> "- " + point.getSujet() + " : " + point.getConstat() + " " + point.getCorrectionAttendue())
+                                .collect(Collectors.joining("\n"));
+                        bloc += "\nCorrection deja donnee a l'etudiant (niveau " + travail.getCorrectionNiveau() + ") : "
+                                + travail.getCorrectionSynthese() + "\n" + pointsTexte;
                     }
                     return bloc;
                 })

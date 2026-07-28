@@ -4,14 +4,20 @@ import com.memoria.core.document.StatutDocument;
 import com.memoria.core.document.TypeDocument;
 import com.memoria.ecole.notion.NiveauMaitrise;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 // Photo d'un travail fait sur papier par un etudiant (phase 22e) -- miroir de
@@ -58,8 +64,16 @@ public class TravailPapierMatiere {
     @Column(name = "correction_niveau")
     private NiveauMaitrise correctionNiveau;
 
-    @Column(name = "correction_texte", columnDefinition = "text")
-    private String correctionTexte;
+    @Column(name = "correction_synthese", columnDefinition = "text")
+    private String correctionSynthese;
+
+    // Decoupee en points identifiables (phase 27) plutot qu'un seul bloc de
+    // texte -- un mur de texte etait juge illisible et impossible a reviser
+    // point par point cote frontend.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "travail_papier_points_correction", joinColumns = @JoinColumn(name = "travail_papier_id"))
+    @OrderColumn(name = "position")
+    private List<PointCorrection> pointsCorrection = List.of();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -88,9 +102,10 @@ public class TravailPapierMatiere {
         this.statut = StatutDocument.REUSSI;
     }
 
-    public void enregistrerCorrection(NiveauMaitrise correctionNiveau, String correctionTexte) {
+    public void enregistrerCorrection(NiveauMaitrise correctionNiveau, String correctionSynthese, List<PointCorrection> pointsCorrection) {
         this.correctionNiveau = correctionNiveau;
-        this.correctionTexte = correctionTexte;
+        this.correctionSynthese = correctionSynthese;
+        this.pointsCorrection = pointsCorrection;
     }
 
     public void marquerEchec() {
@@ -129,8 +144,12 @@ public class TravailPapierMatiere {
         return correctionNiveau;
     }
 
-    public String getCorrectionTexte() {
-        return correctionTexte;
+    public String getCorrectionSynthese() {
+        return correctionSynthese;
+    }
+
+    public List<PointCorrection> getPointsCorrection() {
+        return pointsCorrection;
     }
 
     public StatutDocument getStatut() {

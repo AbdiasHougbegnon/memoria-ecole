@@ -1,0 +1,182 @@
+<title>Memoria — Dossier technique : correction du travail papier en points repliables</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+      --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+      --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+      --ok: #5fb98a; --warn: #e08a63;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --surface: #1b1f26; --surface-2: #20242c; --border: #2b303a;
+    --text: #e6e8ec; --text-muted: #9aa3b2; --text-faint: #6b7380;
+    --accent: #5fb98a; --accent-strong: #7fd1a5; --accent-wash: #17301f; --code-bg: #101317;
+    --ok: #5fb98a; --warn: #e08a63;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --border: #dde1e7;
+    --text: #1b1f27; --text-muted: #5b6472; --text-faint: #8791a1;
+    --accent: #2f7a52; --accent-strong: #235f40; --accent-wash: #dcefe4; --code-bg: #eef0f3;
+    --ok: #3a7d5c; --warn: #b1481f;
+    --shadow: 0 1px 2px rgba(20, 24, 32, 0.06), 0 8px 24px rgba(20, 24, 32, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.6; }
+  code { font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-size: 0.85em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; color: var(--text); }
+  h1, h2, h3, h4 { text-wrap: balance; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace; font-weight: 600; color: var(--text); margin: 0; }
+  a { color: var(--accent-strong); }
+
+  .layout { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; padding: 40px 24px 120px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static !important; } }
+
+  header.masthead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.72rem; color: var(--accent-strong); font-family: ui-monospace, monospace; }
+  h1.title { font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -0.01em; }
+  .dek { color: var(--text-muted); max-width: 72ch; font-size: 1rem; }
+  .factrow { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .fact { display: flex; align-items: baseline; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 11px; font-size: 0.82rem; color: var(--text-muted); }
+
+  nav.toc { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+  nav.toc a:hover { color: var(--text); background: var(--surface-2); }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; color: var(--text-faint); padding: 0 10px; margin-top: 14px; font-family: ui-monospace, monospace; }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 24px; }
+  section > h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+  section > h2 .num { color: var(--accent); }
+  section > p.lead { color: var(--text-muted); max-width: 74ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; box-shadow: var(--shadow); }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  ul.plain li { padding-left: 18px; position: relative; color: var(--text-muted); font-size: 0.92rem; }
+  ul.plain li::before { content: "—"; position: absolute; left: 0; color: var(--text-faint); }
+  ul.plain li strong { color: var(--text); }
+
+  .mock-accordion { display: flex; flex-direction: column; gap: 6px; }
+  .mock-item { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .mock-item .head { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; }
+  .mock-item .body { border-top: 1px solid var(--border); padding: 8px 12px; font-size: 0.8rem; color: var(--text-muted); }
+
+  .verif-line { font-family: ui-monospace, monospace; font-size: 0.82rem; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .verif-line:last-child { border-bottom: none; }
+  .verif-line .route { color: var(--text); flex: 1 1 auto; min-width: 220px; }
+  .verif-line .ok-txt { color: var(--ok); font-weight: 600; }
+
+  footer.page-footer { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 20px; color: var(--text-faint); font-size: 0.8rem; }
+</style>
+
+<div class="layout">
+  <header class="masthead">
+    <span class="eyebrow">Memoria — École / Travail papier (phase 27)</span>
+    <h1 class="title">Correction en points repliables, pas un bloc de texte</h1>
+    <p class="dek">Répond à "un bloc de texte, ce n'est pas joli, on ne peut pas réviser facilement" — la sortie de l'IA elle-même est restructurée en une synthèse + des points individuels, chacun repliable/dépliable.</p>
+    <div class="factrow">
+      <span class="fact"><strong>360</strong>&nbsp;tests backend, tous verts</span>
+      <span class="fact">verifie avec un vrai appel Azure OpenAI (8 points reels generes)</span>
+      <span class="fact">meme patron @ElementCollection que QcmMatiere.questions</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sommaire">
+    <span class="toc-label">Le besoin</span>
+    <a href="#besoin">Un mur de texte illisible</a>
+    <span class="toc-label">Conception</span>
+    <a href="#decisions">Les décisions</a>
+    <span class="toc-label">Implémentation</span>
+    <a href="#fichiers">Les fichiers</a>
+    <span class="toc-label">Qualité</span>
+    <a href="#verification">Comment on a vérifié</a>
+    <span class="toc-label">Référence</span>
+    <a href="#limites">Limites connues</a>
+    <a href="#git">Pour reprendre seul</a>
+  </nav>
+
+  <main>
+
+    <section id="besoin">
+      <h2><span class="num">§</span> Le besoin</h2>
+      <p class="lead">La correction du travail papier (phase 24/26) était un unique long paragraphe généré par l'IA, sans structure exploitable côté frontend — "pas du tout joli", "on ne peut pas réviser facilement".</p>
+    </section>
+
+    <section id="decisions">
+      <h2><span class="num">§</span> Les décisions de conception</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>Restructurer la sortie de l'IA</strong>, pas juste la mise en forme — le schéma JSON demandé à Azure OpenAI change : une <code>synthese_globale</code> courte + une liste <code>points</code> (1 à 8 selon la richesse réelle), chacun avec <code>sujet</code>/<code>constat</code>/<code>correction_attendue</code>.</li>
+          <li><strong>Même patron <code>@ElementCollection</code>/<code>@Embeddable</code></strong> que <code>QcmMatiere.questions</code> — nouvelle table <code>travail_papier_points_correction</code>, aucune migration risquée.</li>
+          <li><strong>Accordéon replié par défaut</strong>, dépliable point par point, avec un bouton "Tout déplier/replier" — répond explicitement à "on peut étirer ou fermer quand on clique".</li>
+        </ul>
+      </div>
+      <div class="mock-accordion">
+        <div class="mock-item"><div class="head"><span>Origine des probabilités</span><span>+</span></div></div>
+        <div class="mock-item">
+          <div class="head"><span>Exemple inoculation</span><span>−</span></div>
+          <div class="body"><strong>Constat —</strong> ... <br><strong>Correction attendue —</strong> ...</div>
+        </div>
+        <div class="mock-item"><div class="head"><span>Théorie de Douglas</span><span>+</span></div></div>
+      </div>
+    </section>
+
+    <section id="fichiers">
+      <h2><span class="num">§</span> Les fichiers, un par un</h2>
+      <div class="card">
+        <ul class="plain">
+          <li><strong>PointCorrection.java</strong> (nouveau, <code>@Embeddable</code>) — sujet, constat, correction attendue.</li>
+          <li><strong>CorrectionTravailPapier.java, CorrecteurTravailPapierAzureOpenAI.java</strong> (édités) — nouveau schéma JSON.</li>
+          <li><strong>TravailPapierMatiere.java</strong> (édité) — <code>correctionSynthese</code> + <code>pointsCorrection</code>, remplace <code>correctionTexte</code>.</li>
+          <li><strong>TravailPapierMatiereResponse.java</strong> (édité) — expose la liste structurée.</li>
+          <li><strong>TuteurVocalService.java</strong> (édité) — reconstruit un texte pour le tuteur à partir de la synthèse + des points.</li>
+          <li><strong>Frontend types.ts, MatiereRevisionPage.tsx</strong> (édités) — nouveau composant <code>CorrectionTravailPapierAffichage</code> (accordéon).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="verification">
+      <h2><span class="num">§</span> Comment on a vérifié</h2>
+      <div class="card">
+        <div class="verif-line"><span class="route">mvn -B clean verify -- 360 tests, 0 finding SpotBugs</span><span class="ok-txt">OK</span></div>
+        <div class="verif-line"><span class="route">npm run build && npm run lint</span><span class="ok-txt">OK, propres</span></div>
+        <div class="verif-line"><span class="route">Reessai reel sur fiche_revision_risque_episens.pdf</span><span class="ok-txt">8 points generes, titres courts et pertinents</span></div>
+        <div class="verif-line"><span class="route">Accordeon : replie / un point ouvert / tout deplie</span><span class="ok-txt">verifie a l'ecran, 3 captures</span></div>
+      </div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="num">§</span> Limites connues, assumées</h2>
+      <ul class="plain">
+        <li><strong>Pas de capture séparée de l'énoncé</strong> — la correction reste basée uniquement sur le texte extrait de la photo du travail, sans énoncé de référence fourni séparément.</li>
+        <li><strong>Pas de mode interactif question par question</strong> ("apprentissage progressif avec simulation de partenaire de travail") — chantier séparé, proche du tuteur vocal mais ancré sur le travail de l'étudiant.</li>
+      </ul>
+    </section>
+
+    <section id="git">
+      <h2><span class="num">§</span> Pour reprendre seul</h2>
+      <div class="card">
+        <ul class="plain">
+          <li>Code de référence exact : <code>git checkout phase-27-correction-travail-papier-structuree</code></li>
+          <li>Prochaine étape naturelle : décider du mécanisme de capture de l'énoncé avant de construire le mode interactif question par question.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      Memoria — dossier généré à partir de la session de travail sur la correction structurée du travail papier (phase 27).
+    </footer>
+  </main>
+</div>

@@ -182,6 +182,12 @@ export interface TentativeExerciceSaisieLibre {
 // Photo d'un travail fait sur papier, soumise par l'etudiant (phase 22e) --
 // personnel, contrairement a DocumentMatiere qui est du contenu de cours
 // televerse par l'enseignant.
+export interface PointCorrection {
+  sujet: string
+  constat: string
+  correctionAttendue: string
+}
+
 export interface TravailPapierMatiere {
   id: string
   matiereId: string
@@ -189,7 +195,8 @@ export interface TravailPapierMatiere {
   nomFichier: string
   texteExtrait: string | null
   correctionNiveau: NiveauMaitrise | null
-  correctionTexte: string | null
+  correctionSynthese: string | null
+  pointsCorrection: PointCorrection[]
   statut: StatutDocument
   dateCreation: string
 }

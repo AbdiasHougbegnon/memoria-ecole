@@ -17,6 +17,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 // Meme ressource Azure OpenAI ("Responses API") que
 // GenerateurExerciceSaisieLibreAzureOpenAI/GenerateurQcmAzureOpenAI, avec son
@@ -30,17 +32,31 @@ public class CorrecteurTravailPapierAzureOpenAI implements CorrecteurTravailPapi
     private static final Logger LOG = LoggerFactory.getLogger(CorrecteurTravailPapierAzureOpenAI.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    // Sortie decoupee en points (phase 27) plutot qu'un seul bloc de texte --
+    // un mur de texte etait juge illisible et impossible a reviser point par
+    // point cote frontend (retour utilisateur direct).
     private static final String CONSIGNE = """
             Tu es un assistant pedagogique qui corrige le travail qu'un etudiant a fait sur
             papier, a partir du texte extrait d'une photo de sa copie (peut contenir des
             imperfections d'OCR mineures a ignorer), en francais. Identifie ce que l'etudiant a
-            essaye de faire, signale precisement les erreurs, explique la correction attendue
-            point par point, et evalue son niveau de maitrise global.
+            essaye de faire, decoupe ta correction en points distincts et courts (un point par
+            erreur ou par element a ameliorer, jamais un seul paragraphe qui melange tout), et
+            evalue son niveau de maitrise global.
             Reponds UNIQUEMENT avec un objet JSON valide de la forme exacte :
             {
               "niveau": "NON_ABORDEE" | "EN_COURS" | "MAITRISEE",
-              "correction": "la correction detaillee, claire et constructive pour l'etudiant"
+              "synthese_globale": "1 a 2 phrases resumant l'evaluation d'ensemble",
+              "points": [
+                {
+                  "sujet": "titre court du point (3-6 mots, ex. 'Date du calcul des probabilites')",
+                  "constat": "ce que l'etudiant a ecrit et pourquoi c'est incomplet ou incorrect (2-3 phrases)",
+                  "correction_attendue": "la reponse ou methode correcte attendue, explicite et concrete (2-4 phrases)"
+                }
+              ]
             }
+            Si le travail est deja correct sur un point, tu peux quand meme creer un point qui le
+            confirme brievement plutot que de l'omettre. Genere entre 1 et 8 points selon la
+            richesse reelle du travail -- jamais un nombre fixe.
             "NON_ABORDEE" si le travail est vide, illisible ou ne montre aucune tentative
             pertinente. "EN_COURS" si le travail est partiellement correct ou incomplet.
             "MAITRISEE" si le travail est correct dans son ensemble.
@@ -148,7 +164,14 @@ public class CorrecteurTravailPapierAzureOpenAI implements CorrecteurTravailPapi
         try {
             JsonNode noeud = JSON.readTree(nettoyer(contenu));
             NiveauMaitrise niveau = NiveauMaitrise.valueOf(noeud.path("niveau").asText());
-            return new CorrectionTravailPapier(niveau, noeud.path("correction").asText());
+            String syntheseGlobale = noeud.path("synthese_globale").asText();
+            List<PointCorrection> points = new ArrayList<>();
+            noeud.path("points").forEach(point -> points.add(new PointCorrection(
+                    point.path("sujet").asText(),
+                    point.path("constat").asText(),
+                    point.path("correction_attendue").asText()
+            )));
+            return new CorrectionTravailPapier(niveau, syntheseGlobale, points);
         } catch (IOException | IllegalArgumentException e) {
             throw new GenerationExerciceException("Reponse d'Azure OpenAI non exploitable : " + contenu, e);
         }

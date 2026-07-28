@@ -85,8 +85,10 @@ class TravailPapierServiceTest {
             );
             when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
             when(extracteurDocument.extraireTexte(any())).thenReturn("Exercice resolu a la main.");
-            when(correcteurTravailPapier.corriger("Exercice resolu a la main."))
-                    .thenReturn(new CorrectionTravailPapier(NiveauMaitrise.EN_COURS, "Le raisonnement est correct mais la conclusion est erronee."));
+            when(correcteurTravailPapier.corriger("Exercice resolu a la main.")).thenReturn(new CorrectionTravailPapier(
+                    NiveauMaitrise.EN_COURS, "Le raisonnement est globalement correct.",
+                    List.of(new PointCorrection("Conclusion", "La conclusion est erronee.", "Reprendre le calcul final."))
+            ));
 
             service.surTravailPapierTeleverse(new TravailPapierTeleverseEvent(travail.getId()));
 
@@ -95,7 +97,9 @@ class TravailPapierServiceTest {
             assertThat(captor.getValue().getStatut()).isEqualTo(StatutDocument.REUSSI);
             assertThat(captor.getValue().getTexteExtrait()).isEqualTo("Exercice resolu a la main.");
             assertThat(captor.getValue().getCorrectionNiveau()).isEqualTo(NiveauMaitrise.EN_COURS);
-            assertThat(captor.getValue().getCorrectionTexte()).isEqualTo("Le raisonnement est correct mais la conclusion est erronee.");
+            assertThat(captor.getValue().getCorrectionSynthese()).isEqualTo("Le raisonnement est globalement correct.");
+            assertThat(captor.getValue().getPointsCorrection()).hasSize(1);
+            assertThat(captor.getValue().getPointsCorrection().get(0).getSujet()).isEqualTo("Conclusion");
         } finally {
             java.nio.file.Files.deleteIfExists(fichierTemp);
         }
@@ -136,14 +140,15 @@ class TravailPapierServiceTest {
         );
         travail.marquerReussi("Contenu de la fiche.");
         when(travailPapierRepository.findById(travail.getId())).thenReturn(Optional.of(travail));
-        when(correcteurTravailPapier.corriger("Contenu de la fiche."))
-                .thenReturn(new CorrectionTravailPapier(NiveauMaitrise.MAITRISEE, "Tout est correct."));
+        when(correcteurTravailPapier.corriger("Contenu de la fiche.")).thenReturn(new CorrectionTravailPapier(
+                NiveauMaitrise.MAITRISEE, "Tout est correct.", List.of()
+        ));
         when(travailPapierRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         TravailPapierMatiere resultat = service.reessayerCorrection(matiereId, travail.getId(), utilisateurId);
 
         assertThat(resultat.getCorrectionNiveau()).isEqualTo(NiveauMaitrise.MAITRISEE);
-        assertThat(resultat.getCorrectionTexte()).isEqualTo("Tout est correct.");
+        assertThat(resultat.getCorrectionSynthese()).isEqualTo("Tout est correct.");
     }
 
     @Test

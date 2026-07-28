@@ -107,7 +107,7 @@ public class TravailPapierService {
     private void tenterCorrection(TravailPapierMatiere travail) {
         try {
             CorrectionTravailPapier correction = correcteurTravailPapier.corriger(travail.getTexteExtrait());
-            travail.enregistrerCorrection(correction.niveau(), correction.correction());
+            travail.enregistrerCorrection(correction.niveau(), correction.syntheseGlobale(), correction.points());
         } catch (RuntimeException e) {
             LOG.warn("Echec de la correction du travail papier {}", travail.getId(), e);
         }
