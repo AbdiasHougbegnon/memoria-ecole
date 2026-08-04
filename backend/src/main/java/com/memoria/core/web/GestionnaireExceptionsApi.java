@@ -37,26 +37,6 @@ public class GestionnaireExceptionsApi {
     public void gererAucuneTranscriptionDisponibleResume() {
     }
 
-    @ExceptionHandler(com.memoria.entreprise.compterendu.CompteRenduNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public void gererCompteRenduIntrouvable() {
-    }
-
-    @ExceptionHandler(com.memoria.entreprise.compterendu.AucuneTranscriptionDisponibleException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public void gererAucuneTranscriptionDisponibleCompteRendu() {
-    }
-
-    @ExceptionHandler(com.memoria.entreprise.engagement.EngagementNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public void gererEngagementIntrouvable() {
-    }
-
-    @ExceptionHandler(com.memoria.entreprise.engagement.TransitionEngagementInvalideException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public void gererTransitionEngagementInvalide() {
-    }
-
     @ExceptionHandler(com.memoria.core.auth.EmailDejaUtiliseException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public void gererEmailDejaUtilise() {
