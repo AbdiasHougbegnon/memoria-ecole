@@ -8,7 +8,6 @@ import {
   renommerCouloir,
   retirerMembreCouloir,
   supprimerCouloir,
-  transfererProprieteCouloir,
 } from '../api'
 import { obtenirModuleConnecte, obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, MembreCouloir, Session } from '../types'
@@ -40,9 +39,9 @@ export function CouloirDetailPage() {
   const [erreur, setErreur] = useState<string | null>(null)
 
   const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
-  const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
-  const estMembreNonProprietaire =
-    !estProprietaire && membres.some((m) => m.utilisateurId === utilisateurIdConnecte)
+  // Tous les membres d'un couloir ont les memes droits (pas de proprietaire) :
+  // seule la question qui compte est "cet utilisateur fait-il partie du couloir".
+  const estMembre = membres.some((m) => m.utilisateurId === utilisateurIdConnecte)
 
   useEffect(() => {
     if (!id) return
@@ -103,18 +102,6 @@ export function CouloirDetailPage() {
       navigate('/couloirs')
     } catch {
       setErreur('Impossible de quitter le couloir.')
-    }
-  }
-
-  async function gererTransfert(membreId: string, membreEmail: string) {
-    if (!id) return
-    if (!window.confirm(`Rendre ${membreEmail} proprietaire de ce couloir ? Tu perdras les droits de gestion.`)) return
-    setErreur(null)
-    try {
-      const c = await transfererProprieteCouloir(id, membreId)
-      setCouloir(c)
-    } catch {
-      setErreur('Impossible de transferer la propriete.')
     }
   }
 
@@ -209,7 +196,7 @@ export function CouloirDetailPage() {
                 <span className="ml-3 text-xs" style={{ color: 'var(--color-ink-faint)', fontFamily: 'var(--font-mono)' }}>+{membres.length - 6}</span>
               )}
             </div>
-            {(estProprietaire || estMembreNonProprietaire) && (
+            {estMembre && (
               <button
                 onClick={() => setGestionOuverte((v) => !v)}
                 className="w-full rounded-lg border border-dashed py-2.5 text-xs font-semibold"
@@ -220,7 +207,7 @@ export function CouloirDetailPage() {
             )}
           </div>
 
-          {gestionOuverte && estProprietaire && (
+          {gestionOuverte && estMembre && (
             <div className="flex flex-col gap-5 rounded-2xl border p-4.5" style={{ borderColor: 'var(--color-border-soft)', background: 'var(--color-sidebar)' }}>
               <div>
                 <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
@@ -255,15 +242,10 @@ export function CouloirDetailPage() {
                       style={{ borderColor: 'var(--color-border-soft)' }}
                     >
                       <span className="truncate">{membre.email}</span>
-                      {membre.utilisateurId !== couloir.proprietaireId && (
-                        <span className="flex flex-none gap-2.5">
-                          <button onClick={() => gererTransfert(membre.utilisateurId, membre.email)} style={{ color: 'var(--color-ink-muted)' }}>
-                            Proprietaire
-                          </button>
-                          <button onClick={() => gererRetraitMembre(membre.utilisateurId)} style={{ color: '#D33A40' }}>
-                            Retirer
-                          </button>
-                        </span>
+                      {membre.utilisateurId !== utilisateurIdConnecte && (
+                        <button onClick={() => gererRetraitMembre(membre.utilisateurId)} style={{ color: '#D33A40' }}>
+                          Retirer
+                        </button>
                       )}
                     </li>
                   ))}
@@ -277,17 +259,15 @@ export function CouloirDetailPage() {
               >
                 Supprimer le couloir
               </button>
-            </div>
-          )}
 
-          {gestionOuverte && estMembreNonProprietaire && (
-            <button
-              onClick={gererQuitter}
-              className="rounded-md border py-2 text-xs font-semibold"
-              style={{ borderColor: '#F1C7C9', color: '#D33A40' }}
-            >
-              Quitter le couloir
-            </button>
+              <button
+                onClick={gererQuitter}
+                className="rounded-md border py-2 text-xs font-semibold"
+                style={{ borderColor: '#F1C7C9', color: '#D33A40' }}
+              >
+                Quitter le couloir
+              </button>
+            </div>
           )}
         </div>
       </div>

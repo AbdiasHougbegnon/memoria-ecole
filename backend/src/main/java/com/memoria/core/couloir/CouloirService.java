@@ -56,7 +56,7 @@ public class CouloirService {
 
     public Couloir renommerCouloir(UUID couloirId, String nouveauNom, UUID utilisateurId) {
         Couloir couloir = obtenirCouloir(couloirId);
-        verifierProprietaire(couloir, utilisateurId);
+        verifierMembre(couloir, utilisateurId);
         couloir.renommer(nouveauNom);
         return couloirRepository.save(couloir);
     }
@@ -67,7 +67,7 @@ public class CouloirService {
     @Transactional
     public void supprimerCouloir(UUID couloirId, UUID utilisateurId) {
         Couloir couloir = obtenirCouloir(couloirId);
-        verifierProprietaire(couloir, utilisateurId);
+        verifierMembre(couloir, utilisateurId);
         membreCouloirRepository.deleteByCouloirId(couloirId);
         couloirRepository.deleteById(couloirId);
         // Les sessions deja rattachees (session.couloirId) ne sont pas modifiees :
@@ -76,13 +76,13 @@ public class CouloirService {
         // (plus personne n'est membre du couloir supprime).
     }
 
+    // Aucun membre n'a de statut protege (pas de "proprietaire") : n'importe
+    // quel membre peut retirer n'importe quel autre membre, y compris celui
+    // qui a cree le couloir -- egalite totale entre membres.
     @Transactional
     public void retirerMembre(UUID couloirId, UUID membreARetirerId, UUID utilisateurId) {
         Couloir couloir = obtenirCouloir(couloirId);
-        verifierProprietaire(couloir, utilisateurId);
-        if (membreARetirerId.equals(couloir.getProprietaireId())) {
-            throw new ProprietaireNePeutPasSeRetirerException(couloirId);
-        }
+        verifierMembre(couloir, utilisateurId);
         membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, membreARetirerId);
     }
 
@@ -95,34 +95,22 @@ public class CouloirService {
     // ne supprime alors simplement aucune ligne.
     @Transactional
     public void quitterCouloir(UUID couloirId, UUID utilisateurId) {
-        Couloir couloir = obtenirCouloir(couloirId);
-        if (utilisateurId.equals(couloir.getProprietaireId())) {
-            throw new ProprietaireNePeutPasSeRetirerException(couloirId);
-        }
         membreCouloirRepository.deleteByCouloirIdAndUtilisateurId(couloirId, utilisateurId);
     }
 
-    public Couloir transfererPropriete(UUID couloirId, UUID nouveauProprietaireId, UUID utilisateurId) {
-        Couloir couloir = obtenirCouloir(couloirId);
-        verifierProprietaire(couloir, utilisateurId);
-        if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloirId, nouveauProprietaireId)) {
-            throw new NouveauProprietaireDoitEtreMembreException(couloirId, nouveauProprietaireId);
-        }
-        couloir.transfererPropriete(nouveauProprietaireId);
-        return couloirRepository.save(couloir);
-    }
-
-    // Point unique de verification "proprietaire du couloir" -- reutilise par
+    // Point unique de verification "membre du couloir" -- reutilise par
     // MatiereService/NotionService/SeanceService/NotionCandidateService/
     // DocumentMatiereService, qui dupliquaient chacun la meme logique avant
-    // (voir audit du 2026-07-27, risque de divergence future).
-    public void verifierProprietaireDuCouloir(UUID couloirId, UUID utilisateurId) {
-        verifierProprietaire(obtenirCouloir(couloirId), utilisateurId);
+    // (voir audit du 2026-07-27, risque de divergence future). Aucune notion
+    // de proprietaire/enseignant : tous les membres d'un couloir ont les
+    // memes droits (voir docs/phases -- suppression du role proprietaire).
+    public void verifierMembre(UUID couloirId, UUID utilisateurId) {
+        verifierMembre(obtenirCouloir(couloirId), utilisateurId);
     }
 
-    private void verifierProprietaire(Couloir couloir, UUID utilisateurId) {
-        if (!couloir.getProprietaireId().equals(utilisateurId)) {
-            throw new PasProprietaireDuCouloirException(couloir.getId(), utilisateurId);
+    private void verifierMembre(Couloir couloir, UUID utilisateurId) {
+        if (!membreCouloirRepository.existsByCouloirIdAndUtilisateurId(couloir.getId(), utilisateurId)) {
+            throw new PasMembreDuCouloirException(couloir.getId(), utilisateurId);
         }
     }
 }

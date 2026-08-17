@@ -38,6 +38,13 @@ public class DocumentMatiere {
     @Column(name = "chemin_stockage", nullable = false)
     private String cheminStockage;
 
+    // Octets, capturee a l'upload (MultipartFile.getSize()) -- sert a la
+    // detection cote frontend d'un doublon potentiel par nom de fichier (voir
+    // MatiereDocumentsPage.televerserFiche), affichee a titre de comparaison,
+    // jamais utilisee seule comme critere de blocage.
+    @Column(nullable = false)
+    private long taille;
+
     @Column(name = "texte_extrait", columnDefinition = "text")
     private String texteExtrait;
 
@@ -52,12 +59,13 @@ public class DocumentMatiere {
         // constructeur requis par Hibernate, ne pas utiliser directement
     }
 
-    public DocumentMatiere(UUID matiereId, TypeDocument type, String nomFichier, String cheminStockage) {
+    public DocumentMatiere(UUID matiereId, TypeDocument type, String nomFichier, String cheminStockage, long taille) {
         this.id = UUID.randomUUID();
         this.matiereId = matiereId;
         this.type = type;
         this.nomFichier = nomFichier;
         this.cheminStockage = cheminStockage;
+        this.taille = taille;
         this.statut = StatutDocument.EN_ATTENTE;
         this.dateCreation = Instant.now();
     }
@@ -89,6 +97,10 @@ public class DocumentMatiere {
 
     public String getCheminStockage() {
         return cheminStockage;
+    }
+
+    public long getTaille() {
+        return taille;
     }
 
     public String getTexteExtrait() {

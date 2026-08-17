@@ -25,9 +25,9 @@ import java.util.UUID;
 
 // Miroir de com.memoria.core.document.DocumentService (upload synchrone +
 // event + listener @Async qui relit le fichier et extrait le texte), avec en
-// plus la generation de notions candidates -- brique de la phase 18. Seul le
-// proprietaire du couloir (l'enseignant) peut televerser une fiche, comme
-// pour MatiereService/NotionService.
+// plus la generation de notions candidates -- brique de la phase 18. Tout
+// membre du couloir peut televerser une fiche, comme pour
+// MatiereService/NotionService.
 @Service
 public class DocumentMatiereService {
 
@@ -66,7 +66,7 @@ public class DocumentMatiereService {
             UUID matiereId, String nomFichierOriginal, String typeContenu, byte[] contenu, UUID utilisateurId
     ) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
 
         String nomFichier = (nomFichierOriginal == null || nomFichierOriginal.isBlank())
                 ? "document"
@@ -74,7 +74,7 @@ public class DocumentMatiereService {
         TypeDocument type = determinerType(nomFichier, typeContenu);
 
         String chemin = stockageDocument.sauvegarder(matiereId, nomFichier, contenu);
-        DocumentMatiere document = new DocumentMatiere(matiereId, type, nomFichier, chemin);
+        DocumentMatiere document = new DocumentMatiere(matiereId, type, nomFichier, chemin, contenu.length);
         DocumentMatiere sauvegarde = documentMatiereRepository.save(document);
 
         eventPublisher.publishEvent(new DocumentMatiereTeleverseEvent(sauvegarde.getId()));

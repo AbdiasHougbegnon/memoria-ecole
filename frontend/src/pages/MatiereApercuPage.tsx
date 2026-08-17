@@ -10,7 +10,6 @@ import {
   supprimerNotion,
   supprimerSeance,
 } from '../api'
-import { obtenirUtilisateurIdConnecte } from '../auth'
 import { MatiereSousNav } from '../components/MatiereSousNav'
 import type { Couloir, Matiere, Notion, Seance } from '../types'
 
@@ -27,9 +26,6 @@ export function MatiereApercuPage() {
   const [definition, setDefinition] = useState('')
   const [titreSeance, setTitreSeance] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
-
-  const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
-  const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
 
   async function rafraichir() {
     if (!matiereId) return
@@ -118,43 +114,41 @@ export function MatiereApercuPage() {
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div>
           <h2 className="text-sm font-bold">Notions</h2>
-          {estProprietaire && (
-            <form
-              onSubmit={ajouterNotion}
-              className="mt-3 flex flex-col gap-2.5 rounded-xl border p-3.5"
-              style={{ borderColor: 'var(--color-border-soft)', background: '#FBFAF7' }}
+          <form
+            onSubmit={ajouterNotion}
+            className="mt-3 flex flex-col gap-2.5 rounded-xl border p-3.5"
+            style={{ borderColor: 'var(--color-border-soft)', background: '#FBFAF7' }}
+          >
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Terme</label>
+              <input
+                type="text"
+                placeholder="ex. Derivees"
+                value={terme}
+                onChange={(e) => setTerme(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Definition</label>
+              <textarea
+                placeholder="Definition de la notion"
+                value={definition}
+                onChange={(e) => setDefinition(e.target.value)}
+                rows={2}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
+              />
+            </div>
+            <button
+              type="submit"
+              className="self-start rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+              style={{ background: 'var(--color-brand)' }}
             >
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Terme</label>
-                <input
-                  type="text"
-                  placeholder="ex. Derivees"
-                  value={terme}
-                  onChange={(e) => setTerme(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-                  style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold" style={{ color: 'var(--color-ink-muted)' }}>Definition</label>
-                <textarea
-                  placeholder="Definition de la notion"
-                  value={definition}
-                  onChange={(e) => setDefinition(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-                  style={{ borderColor: 'var(--color-border-soft)', background: '#fff' }}
-                />
-              </div>
-              <button
-                type="submit"
-                className="self-start rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
-                style={{ background: 'var(--color-brand)' }}
-              >
-                Ajouter la notion
-              </button>
-            </form>
-          )}
+              Ajouter la notion
+            </button>
+          </form>
           <ul className="mt-4 flex flex-col gap-2">
             {notions.map((notion) => (
               <li
@@ -166,17 +160,15 @@ export function MatiereApercuPage() {
                   <p className="font-semibold">{notion.terme}</p>
                   <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'var(--color-ink-muted)' }}>{notion.definition}</p>
                 </div>
-                {estProprietaire && (
-                  <button
-                    type="button"
-                    onClick={() => void retirerNotion(notion)}
-                    title="Supprimer cette notion"
-                    className="flex-none rounded-full px-2 py-0.5 text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ color: '#B02631' }}
-                  >
-                    &times;
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void retirerNotion(notion)}
+                  title="Supprimer cette notion"
+                  className="flex-none rounded-full px-2 py-0.5 text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100"
+                  style={{ color: '#B02631' }}
+                >
+                  &times;
+                </button>
               </li>
             ))}
             {notions.length === 0 && (
@@ -187,25 +179,23 @@ export function MatiereApercuPage() {
 
         <div>
           <h2 className="text-sm font-bold">Seances</h2>
-          {estProprietaire && (
-            <form onSubmit={ajouterSeance} className="mt-3 flex gap-2">
-              <input
-                type="text"
-                placeholder="Titre de la seance"
-                value={titreSeance}
-                onChange={(e) => setTitreSeance(e.target.value)}
-                className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
-              />
-              <button
-                type="submit"
-                className="rounded-lg px-3.5 py-2 text-xs font-semibold text-white"
-                style={{ background: 'var(--color-brand)' }}
-              >
-                Creer
-              </button>
-            </form>
-          )}
+          <form onSubmit={ajouterSeance} className="mt-3 flex gap-2">
+            <input
+              type="text"
+              placeholder="Titre de la seance"
+              value={titreSeance}
+              onChange={(e) => setTitreSeance(e.target.value)}
+              className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
+              style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+            />
+            <button
+              type="submit"
+              className="rounded-lg px-3.5 py-2 text-xs font-semibold text-white"
+              style={{ background: 'var(--color-brand)' }}
+            >
+              Creer
+            </button>
+          </form>
           <ul className="mt-4 flex flex-col gap-2">
             {seances.map((seance) => (
               <li
@@ -216,17 +206,15 @@ export function MatiereApercuPage() {
                 <Link to={`/seances/${seance.id}`} className="flex-1 font-semibold">
                   {seance.titre}
                 </Link>
-                {estProprietaire && (
-                  <button
-                    type="button"
-                    onClick={() => void retirerSeance(seance)}
-                    title="Supprimer cette seance"
-                    className="flex-none rounded-full px-2 py-0.5 text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ color: '#B02631' }}
-                  >
-                    &times;
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void retirerSeance(seance)}
+                  title="Supprimer cette seance"
+                  className="flex-none rounded-full px-2 py-0.5 text-xs font-semibold opacity-0 transition-opacity group-hover:opacity-100"
+                  style={{ color: '#B02631' }}
+                >
+                  &times;
+                </button>
               </li>
             ))}
             {seances.length === 0 && (

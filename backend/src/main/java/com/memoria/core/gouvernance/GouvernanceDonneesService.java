@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,15 +102,19 @@ public class GouvernanceDonneesService {
         empreinteVocaleService.revoquer(utilisateurId);
         effaceursProduits.forEach(effaceur -> effaceur.effacerDonneesUtilisateur(utilisateurId));
 
+        // proprietaireId n'est plus qu'une metadonnee "cree par" (aucun droit
+        // n'en depend, voir CouloirService.verifierMembre) : plus besoin de la
+        // transferer a un autre membre pour que le couloir reste utilisable,
+        // il suffit de l'anonymiser. Un couloir devenu vide (aucun autre
+        // membre) est en revanche supprime, comme avant.
         for (Couloir couloir : couloirRepository.findByProprietaireId(utilisateurId)) {
-            List<MembreCouloir> autresMembres = membreCouloirRepository.findByCouloirId(couloir.getId()).stream()
-                    .filter(membre -> !membre.getUtilisateurId().equals(utilisateurId))
-                    .sorted(Comparator.comparing(MembreCouloir::getDateAdhesion))
-                    .toList();
-            if (autresMembres.isEmpty()) {
-                couloirService.supprimerCouloir(couloir.getId(), utilisateurId);
+            boolean autresMembres = membreCouloirRepository.findByCouloirId(couloir.getId()).stream()
+                    .anyMatch(membre -> !membre.getUtilisateurId().equals(utilisateurId));
+            if (autresMembres) {
+                couloir.anonymiserProprietaire();
+                couloirRepository.save(couloir);
             } else {
-                couloirService.transfererPropriete(couloir.getId(), autresMembres.get(0).getUtilisateurId(), utilisateurId);
+                couloirService.supprimerCouloir(couloir.getId(), utilisateurId);
             }
         }
         membreCouloirRepository.deleteByUtilisateurId(utilisateurId);
@@ -203,7 +206,7 @@ public class GouvernanceDonneesService {
                         return null;
                     }
                     return new ExportDonneesUtilisateur.CouloirExporte(
-                            couloir.getId(), couloir.getNom(), couloir.getProprietaireId().equals(utilisateurId));
+                            couloir.getId(), couloir.getNom(), utilisateurId.equals(couloir.getProprietaireId()));
                 })
                 .filter(java.util.Objects::nonNull)
                 .toList();

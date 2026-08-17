@@ -7,7 +7,6 @@ import com.memoria.core.session.SessionResponse;
 import com.memoria.core.session.SessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -67,14 +66,6 @@ public class CouloirController {
         couloirService.quitterCouloir(id, utilisateurId);
     }
 
-    @PostMapping("/{id}/transferer-propriete")
-    public CouloirResponse transfererPropriete(
-            @PathVariable UUID id,
-            @Valid @RequestBody TransfererProprieteRequest requete,
-            @AuthenticationPrincipal UUID utilisateurId) {
-        return versReponse(couloirService.transfererPropriete(id, requete.nouveauProprietaireId(), utilisateurId));
-    }
-
     @GetMapping("/{id}/sessions")
     public List<SessionResponse> listerSessionsDuCouloir(@PathVariable UUID id) {
         List<Session> sessions = sessionService.listerSessionsParCouloir(id);
@@ -122,8 +113,5 @@ public class CouloirController {
     }
 
     public record RenommerCouloirRequest(@NotBlank(message = "le nom est obligatoire") String nom) {
-    }
-
-    public record TransfererProprieteRequest(@NotNull(message = "le nouveau proprietaire est obligatoire") UUID nouveauProprietaireId) {
     }
 }

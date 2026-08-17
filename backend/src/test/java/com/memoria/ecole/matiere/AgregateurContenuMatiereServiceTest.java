@@ -77,7 +77,7 @@ class AgregateurContenuMatiereServiceTest {
     @Test
     void agregerContenu_inclut_le_texte_extrait_des_documents_reussis() {
         UUID matiereId = UUID.randomUUID();
-        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "cours.pdf", "chemin/cours.pdf");
+        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "cours.pdf", "chemin/cours.pdf", 4096);
         document.marquerReussi("Contenu extrait du PDF sur les piles.");
         when(contexteScolaireSessionRepository.findByMatiereId(matiereId)).thenReturn(List.of());
         when(documentMatiereRepository.findByMatiereIdOrderByDateCreationAsc(matiereId)).thenReturn(List.of(document));
@@ -90,7 +90,7 @@ class AgregateurContenuMatiereServiceTest {
     @Test
     void agregerContenu_ignore_les_documents_en_echec() {
         UUID matiereId = UUID.randomUUID();
-        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "cours.pdf", "chemin/cours.pdf");
+        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "cours.pdf", "chemin/cours.pdf", 4096);
         document.marquerEchec();
         when(contexteScolaireSessionRepository.findByMatiereId(matiereId)).thenReturn(List.of());
         when(documentMatiereRepository.findByMatiereIdOrderByDateCreationAsc(matiereId)).thenReturn(List.of(document));

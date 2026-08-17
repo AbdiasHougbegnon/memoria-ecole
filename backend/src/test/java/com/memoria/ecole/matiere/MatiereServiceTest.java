@@ -3,7 +3,6 @@ package com.memoria.ecole.matiere;
 import com.memoria.core.couloir.Couloir;
 import com.memoria.core.couloir.CouloirService;
 import com.memoria.core.couloir.PasMembreDuCouloirException;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,28 +39,28 @@ class MatiereServiceTest {
     }
 
     @Test
-    void creerMatiere_sauvegarde_la_matiere_si_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
+    void creerMatiere_sauvegarde_la_matiere_si_membre_du_couloir() {
+        UUID membreId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         when(matiereRepository.save(any(Matiere.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Matiere matiere = matiereService.creerMatiere("Mathematiques", couloirId, proprietaireId);
+        Matiere matiere = matiereService.creerMatiere("Mathematiques", couloirId, membreId);
 
         assertThat(matiere.getNom()).isEqualTo("Mathematiques");
         assertThat(matiere.getCouloirId()).isEqualTo(couloirId);
-        assertThat(matiere.getCreateurId()).isEqualTo(proprietaireId);
-        verify(couloirService).verifierProprietaireDuCouloir(couloirId, proprietaireId);
+        assertThat(matiere.getCreateurId()).isEqualTo(membreId);
+        verify(couloirService).verifierMembre(couloirId, membreId);
     }
 
     @Test
-    void creerMatiere_leve_une_exception_si_pas_proprietaire_du_couloir() {
+    void creerMatiere_leve_une_exception_si_pas_membre_du_couloir() {
         UUID couloirId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
-        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
-                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
+        doThrow(new PasMembreDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierMembre(couloirId, utilisateurId);
 
         assertThatThrownBy(() -> matiereService.creerMatiere("Mathematiques", couloirId, utilisateurId))
-                .isInstanceOf(PasProprietaireDuCouloirException.class);
+                .isInstanceOf(PasMembreDuCouloirException.class);
         verify(matiereRepository, never()).save(any());
     }
 

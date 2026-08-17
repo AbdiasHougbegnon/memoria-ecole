@@ -11,6 +11,7 @@ public record DocumentMatiereResponse(
         UUID matiereId,
         TypeDocument type,
         String nomFichier,
+        long taille,
         String texteExtrait,
         StatutDocument statut,
         Instant dateCreation
@@ -21,6 +22,7 @@ public record DocumentMatiereResponse(
                 document.getMatiereId(),
                 document.getType(),
                 document.getNomFichier(),
+                document.getTaille(),
                 document.getTexteExtrait(),
                 document.getStatut(),
                 document.getDateCreation()

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { creerMatiere, listerMatieresParCouloir, obtenirCouloir } from '../api'
-import { obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, Matiere } from '../types'
 
 export function MatieresPage() {
@@ -13,9 +12,6 @@ export function MatieresPage() {
   const [nom, setNom] = useState('')
   const [creationEnCours, setCreationEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
-
-  const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
-  const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
 
   async function rafraichir() {
     if (!couloirId) return
@@ -62,26 +58,24 @@ export function MatieresPage() {
       </Link>
       <h1 className="text-[26px] font-bold tracking-tight">Matieres &middot; {couloir.nom}</h1>
 
-      {estProprietaire && (
-        <form onSubmit={creer} className="mt-6 flex gap-2">
-          <input
-            type="text"
-            placeholder="Nom de la matiere (ex. Mathematiques)"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            className="flex-1 rounded-lg border px-3.5 py-2.5 text-sm outline-none"
-            style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
-          />
-          <button
-            type="submit"
-            disabled={creationEnCours}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: 'var(--color-brand)' }}
-          >
-            {creationEnCours ? 'Creation...' : 'Creer'}
-          </button>
-        </form>
-      )}
+      <form onSubmit={creer} className="mt-6 flex gap-2">
+        <input
+          type="text"
+          placeholder="Nom de la matiere (ex. Mathematiques)"
+          value={nom}
+          onChange={(e) => setNom(e.target.value)}
+          className="flex-1 rounded-lg border px-3.5 py-2.5 text-sm outline-none"
+          style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+        />
+        <button
+          type="submit"
+          disabled={creationEnCours}
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          {creationEnCours ? 'Creation...' : 'Creer'}
+        </button>
+      </form>
       {erreur && <p className="mt-3 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
       {matieres.length === 0 && (

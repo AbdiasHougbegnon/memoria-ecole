@@ -41,10 +41,10 @@ public class NotionCandidateService {
         return notionCandidateRepository.findByMatiereIdOrderByDateCreationAsc(matiereId);
     }
 
-    // La verification de propriete est deleguee entierement a
+    // La verification de membership est deleguee entierement a
     // NotionService.creerNotionValidee (pas de duplication ici) : si
-    // l'utilisateur n'est pas proprietaire, la creation de la Notion echoue
-    // avant toute mutation de la candidate.
+    // l'utilisateur n'est pas membre du couloir, la creation de la Notion
+    // echoue avant toute mutation de la candidate.
     public Notion validerCandidate(UUID candidateId, String termeEdite, String definitionEditee, UUID utilisateurId) {
         NotionCandidate candidate = obtenirCandidate(candidateId);
         int ordre = notionRepository.findByMatiereIdOrderByOrdreAsc(candidate.getMatiereId()).size();
@@ -61,7 +61,7 @@ public class NotionCandidateService {
     public NotionCandidate rejeterCandidate(UUID candidateId, UUID utilisateurId) {
         NotionCandidate candidate = obtenirCandidate(candidateId);
         Matiere matiere = matiereService.obtenirMatiere(candidate.getMatiereId());
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
 
         candidate.marquerRejetee();
         return notionCandidateRepository.save(candidate);

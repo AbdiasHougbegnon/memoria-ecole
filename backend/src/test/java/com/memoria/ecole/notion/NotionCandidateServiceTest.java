@@ -1,7 +1,7 @@
 package com.memoria.ecole.notion;
 
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
+import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.ecole.matiere.Matiere;
 import com.memoria.ecole.matiere.MatiereNotFoundException;
 import com.memoria.ecole.matiere.MatiereService;
@@ -94,7 +94,7 @@ class NotionCandidateServiceTest {
     }
 
     @Test
-    void validerCandidate_ne_modifie_pas_la_candidate_si_pas_proprietaire_du_couloir() {
+    void validerCandidate_ne_modifie_pas_la_candidate_si_pas_membre_du_couloir() {
         UUID matiereId = UUID.randomUUID();
         UUID documentMatiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
@@ -102,10 +102,10 @@ class NotionCandidateServiceTest {
         when(notionCandidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(notionRepository.findByMatiereIdOrderByOrdreAsc(matiereId)).thenReturn(List.of());
         when(notionService.creerNotionValidee(any(), any(), any(), anyInt(), any(), any()))
-                .thenThrow(new PasProprietaireDuCouloirException(matiereId, utilisateurId));
+                .thenThrow(new PasMembreDuCouloirException(matiereId, utilisateurId));
 
         assertThatThrownBy(() -> notionCandidateService.validerCandidate(candidate.getId(), "Derivee", "def", utilisateurId))
-                .isInstanceOf(PasProprietaireDuCouloirException.class);
+                .isInstanceOf(PasMembreDuCouloirException.class);
         assertThat(candidate.getStatut()).isEqualTo(StatutNotionCandidate.EN_ATTENTE);
         verify(notionCandidateRepository, never()).save(any());
     }
@@ -120,33 +120,33 @@ class NotionCandidateServiceTest {
     }
 
     @Test
-    void rejeterCandidate_marque_la_candidate_rejetee_si_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
+    void rejeterCandidate_marque_la_candidate_rejetee_si_membre_du_couloir() {
+        UUID membreId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
         NotionCandidate candidate = new NotionCandidate(UUID.randomUUID(), matiereId, "Derivee", "brouillon IA");
         when(notionCandidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
-        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
         when(notionCandidateRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        NotionCandidate resultat = notionCandidateService.rejeterCandidate(candidate.getId(), proprietaireId);
+        NotionCandidate resultat = notionCandidateService.rejeterCandidate(candidate.getId(), membreId);
 
         assertThat(resultat.getStatut()).isEqualTo(StatutNotionCandidate.REJETEE);
     }
 
     @Test
-    void rejeterCandidate_leve_une_exception_si_pas_proprietaire_du_couloir() {
+    void rejeterCandidate_leve_une_exception_si_pas_membre_du_couloir() {
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         NotionCandidate candidate = new NotionCandidate(UUID.randomUUID(), matiereId, "Derivee", "brouillon IA");
         when(notionCandidateRepository.findById(candidate.getId())).thenReturn(Optional.of(candidate));
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
-        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
-                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
+        doThrow(new PasMembreDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierMembre(couloirId, utilisateurId);
 
         assertThatThrownBy(() -> notionCandidateService.rejeterCandidate(candidate.getId(), utilisateurId))
-                .isInstanceOf(PasProprietaireDuCouloirException.class);
+                .isInstanceOf(PasMembreDuCouloirException.class);
         assertThat(candidate.getStatut()).isEqualTo(StatutNotionCandidate.EN_ATTENTE);
         verify(notionCandidateRepository, never()).save(any());
     }

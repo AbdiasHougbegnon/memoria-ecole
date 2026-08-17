@@ -9,7 +9,6 @@ import {
   obtenirSeance,
   rattacherNotions,
 } from '../api'
-import { obtenirUtilisateurIdConnecte } from '../auth'
 import type { Couloir, NiveauMaitrise, Notion, Seance } from '../types'
 
 const LIBELLE_MAITRISE: Record<NiveauMaitrise, string> = {
@@ -37,9 +36,6 @@ export function SeanceDetailPage() {
   const [demarrageEnCours, setDemarrageEnCours] = useState(false)
   const [demarrageLibreEnCours, setDemarrageLibreEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
-
-  const utilisateurIdConnecte = obtenirUtilisateurIdConnecte()
-  const estProprietaire = couloir !== null && couloir.proprietaireId === utilisateurIdConnecte
 
   async function rafraichir() {
     if (!seanceId) return
@@ -133,33 +129,31 @@ export function SeanceDetailPage() {
       <h1 className="text-[26px] font-bold tracking-tight">{seance.titre}</h1>
       {erreur && <p className="mt-3 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
-      {estProprietaire && (
-        <div className="mt-6">
-          <h2 className="text-sm font-bold">Notions de cette seance</h2>
-          <p className="mt-1 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
-            Coche les notions de la matiere que le tuteur doit couvrir pour cette seance.
-          </p>
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {toutesLesNotions.map((notion) => (
-              <li key={notion.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={notionsRattachees.includes(notion.id)}
-                  onChange={() => basculerNotion(notion.id)}
-                />
-                <span>{notion.terme}</span>
-              </li>
-            ))}
-          </ul>
-          <button
-            onClick={enregistrerNotionsRattachees}
-            className="mt-3 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
-            style={{ background: 'var(--color-brand)' }}
-          >
-            Enregistrer
-          </button>
-        </div>
-      )}
+      <div className="mt-6">
+        <h2 className="text-sm font-bold">Notions de cette seance</h2>
+        <p className="mt-1 text-xs" style={{ color: 'var(--color-ink-muted)' }}>
+          Coche les notions de la matiere que le tuteur doit couvrir pour cette seance.
+        </p>
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {toutesLesNotions.map((notion) => (
+            <li key={notion.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notionsRattachees.includes(notion.id)}
+                onChange={() => basculerNotion(notion.id)}
+              />
+              <span>{notion.terme}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          onClick={enregistrerNotionsRattachees}
+          className="mt-3 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          Enregistrer
+        </button>
+      </div>
 
       <div className="mt-7">
         <h2 className="text-sm font-bold">Progression</h2>

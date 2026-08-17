@@ -72,21 +72,6 @@ public class GestionnaireExceptionsApi {
     public void gererPasMembreDuCouloir() {
     }
 
-    @ExceptionHandler(com.memoria.core.couloir.PasProprietaireDuCouloirException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public void gererPasProprietaireDuCouloir() {
-    }
-
-    @ExceptionHandler(com.memoria.core.couloir.ProprietaireNePeutPasSeRetirerException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public void gererProprietaireNePeutPasSeRetirer() {
-    }
-
-    @ExceptionHandler(com.memoria.core.couloir.NouveauProprietaireDoitEtreMembreException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public void gererNouveauProprietaireDoitEtreMembre() {
-    }
-
     @ExceptionHandler(com.memoria.core.auth.UtilisateurNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public void gererUtilisateurIntrouvable() {

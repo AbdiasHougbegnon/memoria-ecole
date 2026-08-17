@@ -8,9 +8,11 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-// Concept de moteur generique (pas Ecole ni Entreprise) : le master prompt
-// decrit le "proprietaire de couloir" comme un role applicable a "un espace
-// de classe ou d'equipe" -- reutilisable par les deux produits.
+// proprietaireId n'est plus un role : tous les membres d'un couloir ont les
+// memes droits (voir CouloirService.verifierMembre). Le champ est conserve
+// uniquement comme metadonnee "cree par", nullable pour pouvoir etre
+// anonymise a la suppression du compte createur (meme pattern que
+// Session.createurId, voir anonymiserProprietaire).
 @Entity
 @Table(name = "couloirs")
 public class Couloir {
@@ -21,7 +23,7 @@ public class Couloir {
     @Column(nullable = false)
     private String nom;
 
-    @Column(name = "proprietaire_id", nullable = false)
+    @Column(name = "proprietaire_id")
     private UUID proprietaireId;
 
     @Column(name = "date_creation", nullable = false)
@@ -58,7 +60,7 @@ public class Couloir {
         this.nom = nouveauNom;
     }
 
-    public void transfererPropriete(UUID nouveauProprietaireId) {
-        this.proprietaireId = nouveauProprietaireId;
+    public void anonymiserProprietaire() {
+        this.proprietaireId = null;
     }
 }

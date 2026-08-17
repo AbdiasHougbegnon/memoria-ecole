@@ -22,7 +22,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -94,25 +93,24 @@ class GouvernanceDonneesServiceTest {
     }
 
     @Test
-    void effacerCompte_transfere_la_propriete_dun_couloir_au_membre_le_plus_ancien() {
+    void effacerCompte_anonymise_le_createur_dun_couloir_si_dautres_membres_restent() {
         UUID utilisateurId = UUID.randomUUID();
-        UUID membreRecentId = UUID.randomUUID();
-        UUID membreAncienId = UUID.randomUUID();
+        UUID autreMembreId = UUID.randomUUID();
         Couloir couloir = new Couloir("Ing1-SI", utilisateurId);
         UUID couloirId = couloir.getId();
 
-        MembreCouloir membreRecent = membreAvecDate(membreRecentId, Instant.now());
-        MembreCouloir membreAncien = membreAvecDate(membreAncienId, Instant.now().minusSeconds(3600));
-        MembreCouloir proprietaire = membreProprietaire(utilisateurId);
+        MembreCouloir autreMembre = membre(autreMembreId);
+        MembreCouloir createur = membre(utilisateurId);
 
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of(couloir));
-        when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(membreRecent, membreAncien, proprietaire));
+        when(membreCouloirRepository.findByCouloirId(couloirId)).thenReturn(List.of(createur, autreMembre));
         when(sessionRepository.findByCreateurId(utilisateurId)).thenReturn(List.of());
 
         gouvernanceDonneesService.effacerCompte(utilisateurId);
 
-        verify(couloirService).transfererPropriete(couloirId, membreAncienId, utilisateurId);
+        verify(couloirRepository).save(couloir);
+        assertThat(couloir.getProprietaireId()).isNull();
         verify(couloirService, never()).supprimerCouloir(any(), any());
     }
 
@@ -121,7 +119,7 @@ class GouvernanceDonneesServiceTest {
         UUID utilisateurId = UUID.randomUUID();
         Couloir couloir = new Couloir("Solo", utilisateurId);
         UUID couloirId = couloir.getId();
-        MembreCouloir proprietaire = membreProprietaire(utilisateurId);
+        MembreCouloir proprietaire = membre(utilisateurId);
 
         when(utilisateurRepository.existsById(utilisateurId)).thenReturn(true);
         when(couloirRepository.findByProprietaireId(utilisateurId)).thenReturn(List.of(couloir));
@@ -131,7 +129,7 @@ class GouvernanceDonneesServiceTest {
         gouvernanceDonneesService.effacerCompte(utilisateurId);
 
         verify(couloirService).supprimerCouloir(couloirId, utilisateurId);
-        verify(couloirService, never()).transfererPropriete(any(), any(), any());
+        verify(couloirRepository, never()).save(any());
     }
 
     @Test
@@ -269,21 +267,11 @@ class GouvernanceDonneesServiceTest {
         assertThat(export.engagementsResponsable()).containsExactly(engagement);
     }
 
-    // MembreCouloir n'a aucun point d'injection de date (constructeur =
-    // Instant.now()) : un mock Mockito de la classe concrete permet de
-    // controler precisement dateAdhesion, meme pattern que pour Engagement
-    // dans TableauDeBordEntrepriseServiceTest.
-    private static MembreCouloir membreAvecDate(UUID utilisateurId, Instant dateAdhesion) {
-        MembreCouloir membre = mock(MembreCouloir.class);
-        when(membre.getUtilisateurId()).thenReturn(utilisateurId);
-        when(membre.getDateAdhesion()).thenReturn(dateAdhesion);
-        return membre;
-    }
-
-    // Le proprietaire est toujours filtre avant le tri par date (voir
-    // GouvernanceDonneesService.effacerCompte) : getDateAdhesion() n'est
-    // jamais appele sur lui, pas la peine de le stubber.
-    private static MembreCouloir membreProprietaire(UUID utilisateurId) {
+    // MembreCouloir n'a aucun point d'injection utile ici (seul
+    // getUtilisateurId() est lu par GouvernanceDonneesService.effacerCompte) :
+    // un mock Mockito de la classe concrete suffit, meme pattern que pour
+    // Engagement dans TableauDeBordEntrepriseServiceTest.
+    private static MembreCouloir membre(UUID utilisateurId) {
         MembreCouloir membre = mock(MembreCouloir.class);
         when(membre.getUtilisateurId()).thenReturn(utilisateurId);
         return membre;

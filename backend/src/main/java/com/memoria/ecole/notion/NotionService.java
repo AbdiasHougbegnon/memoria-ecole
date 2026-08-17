@@ -38,18 +38,18 @@ public class NotionService {
 
     public Notion creerNotion(UUID matiereId, String terme, String definition, int ordre, UUID utilisateurId) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
         return notionRepository.save(new Notion(matiereId, terme, definition, ordre));
     }
 
     // Chemin de creation issu de la validation d'une NotionCandidate (phase
-    // 18) : meme verification de propriete que creerNotion, avec en plus la
+    // 18) : meme verification de membership que creerNotion, avec en plus la
     // tracabilite vers le DocumentMatiere source.
     public Notion creerNotionValidee(
             UUID matiereId, String terme, String definition, int ordre, UUID documentSourceId, UUID utilisateurId
     ) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
         return notionRepository.save(new Notion(matiereId, terme, definition, ordre, documentSourceId));
     }
 
@@ -71,7 +71,7 @@ public class NotionService {
     public void supprimerNotion(UUID notionId, UUID utilisateurId) {
         Notion notion = obtenirNotion(notionId);
         Matiere matiere = matiereService.obtenirMatiere(notion.getMatiereId());
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
         maitriseNotionRepository.deleteByNotionId(notionId);
         seanceNotionRepository.deleteByNotionId(notionId);
         notionRepository.deleteById(notionId);

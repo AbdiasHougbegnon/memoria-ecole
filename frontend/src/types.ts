@@ -181,7 +181,7 @@ export interface TentativeExerciceSaisieLibre {
 
 // Photo d'un travail fait sur papier, soumise par l'etudiant (phase 22e) --
 // personnel, contrairement a DocumentMatiere qui est du contenu de cours
-// televerse par l'enseignant.
+// partage a tout le couloir.
 export interface PointCorrection {
   sujet: string
   constat: string
@@ -255,7 +255,9 @@ export interface JournalRgpdEntry {
 export interface Couloir {
   id: string
   nom: string
-  proprietaireId: string
+  // Pure metadonnee "cree par" (aucun droit associe, voir CouloirService.verifierMembre
+  // cote backend) -- nullable car anonymisee si le createur supprime son compte.
+  proprietaireId: string | null
   dateCreation: string
   nombreMembres: number
 }
@@ -332,6 +334,7 @@ export interface DocumentMatiere {
   matiereId: string
   type: TypeDocument
   nomFichier: string
+  taille: number
   texteExtrait: string | null
   statut: StatutDocument
   dateCreation: string

@@ -1,7 +1,7 @@
 package com.memoria.ecole.document;
 
 import com.memoria.core.couloir.CouloirService;
-import com.memoria.core.couloir.PasProprietaireDuCouloirException;
+import com.memoria.core.couloir.PasMembreDuCouloirException;
 import com.memoria.core.document.ExtracteurDocumentPort;
 import com.memoria.core.document.ExtractionDocumentException;
 import com.memoria.core.document.StatutDocument;
@@ -75,16 +75,16 @@ class DocumentMatiereServiceTest {
     }
 
     @Test
-    void televerser_sauvegarde_le_document_si_proprietaire_du_couloir() {
-        UUID proprietaireId = UUID.randomUUID();
+    void televerser_sauvegarde_le_document_si_membre_du_couloir() {
+        UUID membreId = UUID.randomUUID();
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
-        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, proprietaireId));
+        when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
         when(stockageDocument.sauvegarder(eq(matiereId), anyString(), any())).thenReturn("/data/documents-matiere/x");
         when(documentMatiereRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         DocumentMatiere document = documentMatiereService.televerser(
-                matiereId, "fiche.pdf", "application/pdf", new byte[]{1}, proprietaireId
+                matiereId, "fiche.pdf", "application/pdf", new byte[]{1}, membreId
         );
 
         assertThat(document.getMatiereId()).isEqualTo(matiereId);
@@ -93,17 +93,17 @@ class DocumentMatiereServiceTest {
     }
 
     @Test
-    void televerser_leve_une_exception_si_pas_proprietaire_du_couloir() {
+    void televerser_leve_une_exception_si_pas_membre_du_couloir() {
         UUID couloirId = UUID.randomUUID();
         UUID matiereId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", couloirId, UUID.randomUUID()));
-        doThrow(new PasProprietaireDuCouloirException(couloirId, utilisateurId))
-                .when(couloirService).verifierProprietaireDuCouloir(couloirId, utilisateurId);
+        doThrow(new PasMembreDuCouloirException(couloirId, utilisateurId))
+                .when(couloirService).verifierMembre(couloirId, utilisateurId);
 
         assertThatThrownBy(() -> documentMatiereService.televerser(
                 matiereId, "fiche.pdf", "application/pdf", new byte[]{1}, utilisateurId
-        )).isInstanceOf(PasProprietaireDuCouloirException.class);
+        )).isInstanceOf(PasMembreDuCouloirException.class);
         verify(stockageDocument, never()).sauvegarder(any(), any(), any());
     }
 
@@ -139,7 +139,7 @@ class DocumentMatiereServiceTest {
         UUID matiereId = UUID.randomUUID();
         Path fichier = Files.createTempFile("document-matiere-test", ".bin");
         Files.write(fichier, new byte[]{1, 2, 3});
-        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "fiche.pdf", fichier.toString());
+        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "fiche.pdf", fichier.toString(), 1024);
         when(documentMatiereRepository.findById(document.getId())).thenReturn(Optional.of(document));
         when(extracteurDocument.extraireTexte(any())).thenReturn("Les derivees mesurent un taux de variation.");
         when(generateurNotions.genererNotionsCandidates("Les derivees mesurent un taux de variation."))
@@ -167,7 +167,7 @@ class DocumentMatiereServiceTest {
         UUID matiereId = UUID.randomUUID();
         Path fichier = Files.createTempFile("document-matiere-test", ".bin");
         Files.write(fichier, new byte[]{1});
-        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PHOTO, "fiche.jpg", fichier.toString());
+        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PHOTO, "fiche.jpg", fichier.toString(), 2048);
         when(documentMatiereRepository.findById(document.getId())).thenReturn(Optional.of(document));
         when(extracteurDocument.extraireTexte(any())).thenThrow(new ExtractionDocumentException("Azure indisponible"));
 
@@ -185,7 +185,7 @@ class DocumentMatiereServiceTest {
         UUID matiereId = UUID.randomUUID();
         Path fichier = Files.createTempFile("document-matiere-test", ".bin");
         Files.write(fichier, new byte[]{1});
-        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "fiche.pdf", fichier.toString());
+        DocumentMatiere document = new DocumentMatiere(matiereId, TypeDocument.PDF, "fiche.pdf", fichier.toString(), 1024);
         when(documentMatiereRepository.findById(document.getId())).thenReturn(Optional.of(document));
         when(extracteurDocument.extraireTexte(any())).thenReturn("Texte extrait");
         when(generateurNotions.genererNotionsCandidates(any()))
@@ -213,7 +213,7 @@ class DocumentMatiereServiceTest {
     void listerDocuments_retourne_les_documents_de_la_matiere() {
         UUID matiereId = UUID.randomUUID();
         when(matiereService.obtenirMatiere(matiereId)).thenReturn(new Matiere("Maths", UUID.randomUUID(), UUID.randomUUID()));
-        List<DocumentMatiere> documents = List.of(new DocumentMatiere(matiereId, TypeDocument.PHOTO, "a.jpg", "/x"));
+        List<DocumentMatiere> documents = List.of(new DocumentMatiere(matiereId, TypeDocument.PHOTO, "a.jpg", "/x", 512));
         when(documentMatiereRepository.findByMatiereIdOrderByDateCreationAsc(matiereId)).thenReturn(documents);
 
         List<DocumentMatiere> resultat = documentMatiereService.listerDocuments(matiereId);

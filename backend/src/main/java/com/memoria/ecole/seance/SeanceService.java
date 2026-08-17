@@ -42,7 +42,7 @@ public class SeanceService {
 
     public Seance creerSeance(String titre, UUID matiereId, UUID utilisateurId) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
-        couloirService.verifierProprietaireDuCouloir(matiere.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(matiere.getCouloirId(), utilisateurId);
         return seanceRepository.save(new Seance(titre, matiereId, matiere.getCouloirId()));
     }
 
@@ -65,19 +65,16 @@ public class SeanceService {
     @Transactional
     public void supprimerSeance(UUID seanceId, UUID utilisateurId) {
         Seance seance = obtenirSeance(seanceId);
-        couloirService.verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(seance.getCouloirId(), utilisateurId);
         seanceNotionRepository.deleteBySeanceId(seanceId);
         seanceRepository.deleteById(seanceId);
     }
 
     // Point d'entree "Tutorat" direct depuis le menu (pas besoin de creer/choisir
     // une seance au prealable) : reutilise une seance partagee "Discussion libre"
-    // par matiere plutot que d'ajouter un nouveau concept d'ancrage. Ouvert a
-    // tout membre du couloir (verifierMembreDuCouloir, pas proprietaire) --
-    // contrairement a creerSeance, ceci ne cree pas de contenu pedagogique,
-    // juste le point d'entree partage d'une discussion libre deja prevue par
-    // le modele existant (SeanceDetailPage permet deja "Discussion libre" sans
-    // aucune notion rattachee).
+    // par matiere plutot que d'ajouter un nouveau concept d'ancrage
+    // (SeanceDetailPage permet deja "Discussion libre" sans aucune notion
+    // rattachee).
     public Seance obtenirOuCreerSeanceDiscussionLibre(UUID matiereId, UUID utilisateurId) {
         Matiere matiere = matiereService.obtenirMatiere(matiereId);
         matiereService.verifierMembreDuCouloir(matiereId, utilisateurId);
@@ -104,7 +101,7 @@ public class SeanceService {
     @Transactional
     public void rattacherNotions(UUID seanceId, List<UUID> notionIds, UUID utilisateurId) {
         Seance seance = obtenirSeance(seanceId);
-        couloirService.verifierProprietaireDuCouloir(seance.getCouloirId(), utilisateurId);
+        couloirService.verifierMembre(seance.getCouloirId(), utilisateurId);
         seanceNotionRepository.deleteBySeanceId(seanceId);
         seanceNotionRepository.flush();
         for (int i = 0; i < notionIds.size(); i++) {
