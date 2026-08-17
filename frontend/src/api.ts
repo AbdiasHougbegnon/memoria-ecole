@@ -244,9 +244,13 @@ export async function obtenirQcmMatiere(matiereId: string): Promise<QcmMatiere |
   return (await verifierReponse(reponse)).json()
 }
 
-export async function genererQcmMatiere(matiereId: string): Promise<QcmMatiere> {
+export async function genererQcmMatiere(matiereId: string, notionIds: string[]): Promise<QcmMatiere> {
   const reponse = await verifierReponse(
-    await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere`, { method: 'POST' }),
+    await appelApi(`${BASE_MATIERES}/${matiereId}/qcm-matiere`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notionIds }),
+    }),
   )
   return reponse.json()
 }
@@ -278,9 +282,13 @@ export async function obtenirExercices(matiereId: string): Promise<ExerciceMatie
   return (await verifierReponse(reponse)).json()
 }
 
-export async function genererExercices(matiereId: string): Promise<ExerciceMatiere> {
+export async function genererExercices(matiereId: string, notionIds: string[]): Promise<ExerciceMatiere> {
   const reponse = await verifierReponse(
-    await appelApi(`${BASE_MATIERES}/${matiereId}/exercices`, { method: 'POST' }),
+    await appelApi(`${BASE_MATIERES}/${matiereId}/exercices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notionIds }),
+    }),
   )
   return reponse.json()
 }

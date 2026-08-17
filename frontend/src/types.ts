@@ -153,6 +153,7 @@ export interface QcmMatiere {
   questions: QuestionQcm[]
   statut: StatutQcm
   dateCreation: string
+  notionIds: string[]
 }
 
 // Exercices a reponse libre sur toute la matiere (phase 22d) -- questions
@@ -165,6 +166,7 @@ export interface ExerciceMatiere {
   questions: QuestionSaisieLibre[]
   statut: StatutQcm
   dateCreation: string
+  notionIds: string[]
 }
 
 export interface ReponseEvaluee {

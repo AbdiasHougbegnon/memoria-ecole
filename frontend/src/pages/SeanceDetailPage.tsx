@@ -34,7 +34,6 @@ export function SeanceDetailPage() {
   const [chargement, setChargement] = useState(true)
   const [modeExercice, setModeExercice] = useState(false)
   const [demarrageEnCours, setDemarrageEnCours] = useState(false)
-  const [demarrageLibreEnCours, setDemarrageLibreEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
 
   async function rafraichir() {
@@ -97,23 +96,6 @@ export function SeanceDetailPage() {
       setErreur('Impossible de demarrer le tutorat.')
     } finally {
       setDemarrageEnCours(false)
-    }
-  }
-
-  // Mode conversation libre : aucune notion a rattacher au prealable, le
-  // bouton reste actif meme sans aucune notion cochee (voir
-  // docs/phases/phase-19-mode-conversation-libre.md).
-  async function gererDemarrageLibre() {
-    if (!seanceId) return
-    setErreur(null)
-    setDemarrageLibreEnCours(true)
-    try {
-      const resultat = await demarrerTutorat(seanceId, 'LIBRE')
-      navigate(`/tutorat/${resultat.seanceTutoratId}`)
-    } catch {
-      setErreur('Impossible de demarrer la discussion libre.')
-    } finally {
-      setDemarrageLibreEnCours(false)
     }
   }
 
@@ -186,18 +168,11 @@ export function SeanceDetailPage() {
           >
             {demarrageEnCours ? 'Demarrage...' : 'Demarrer le tutorat'}
           </button>
-          <button
-            onClick={gererDemarrageLibre}
-            disabled={demarrageLibreEnCours}
-            className="rounded-lg border px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
-            style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink)' }}
-          >
-            {demarrageLibreEnCours ? 'Demarrage...' : 'Discussion libre'}
-          </button>
         </div>
         {notionsRattachees.length === 0 && (
           <p className="mt-2 text-xs" style={{ color: 'var(--color-ink-faint)' }}>
-            Aucune notion rattachee a cette seance pour le moment. La discussion libre reste disponible.
+            Coche au moins une notion ci-dessus pour demarrer le tutorat. Pour une question rapide sans
+            notion, utilise "Tuteur de cours" dans le menu.
           </p>
         )}
       </div>

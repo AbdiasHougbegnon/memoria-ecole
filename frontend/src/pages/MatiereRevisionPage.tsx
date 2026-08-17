@@ -5,6 +5,7 @@ import {
   genererQcmMatiere,
   genererQuestionVerification,
   listerMesTravauxPapier,
+  listerNotionsParMatiere,
   obtenirCouloir,
   obtenirExercices,
   obtenirMaTentativeExercices,
@@ -19,7 +20,7 @@ import {
   soumettreTravailPapier,
 } from '../api'
 import { MatiereSousNav } from '../components/MatiereSousNav'
-import type { Couloir, ExerciceMatiere, ExercicePapier, Matiere, QcmMatiere, TentativeExerciceSaisieLibre, TentativeQcm, TravailPapierMatiere } from '../types'
+import type { Couloir, ExerciceMatiere, ExercicePapier, Matiere, Notion, QcmMatiere, TentativeExerciceSaisieLibre, TentativeQcm, TravailPapierMatiere } from '../types'
 
 const INTERVALLE_POLLING_DOCUMENTS_MS = 4000
 
@@ -28,7 +29,15 @@ const INTERVALLE_POLLING_DOCUMENTS_MS = 4000
 // resumes de cours et documents deja disponibles pour la matiere -- ouvert a
 // tout membre du couloir, pas seulement au proprietaire (reviser n'est pas
 // modifier le contenu pedagogique).
-function SectionQcmMatiere({ matiereId }: { matiereId: string }) {
+function SectionQcmMatiere({
+  matiereId,
+  notionIds,
+  onChargerSelectionInitiale,
+}: {
+  matiereId: string
+  notionIds: string[]
+  onChargerSelectionInitiale: (ids: string[]) => void
+}) {
   const [qcm, setQcm] = useState<QcmMatiere | null>(null)
   const [qcmEnCours, setQcmEnCours] = useState(false)
   const [erreurQcm, setErreurQcm] = useState<string | null>(null)
@@ -43,6 +52,7 @@ function SectionQcmMatiere({ matiereId }: { matiereId: string }) {
       if (annule) return
       setQcm(q)
       setTentative(t)
+      if (q) onChargerSelectionInitiale(q.notionIds)
       if (q && t) {
         setReponses(t.reponsesChoisies)
         setModeCorrige(true)
@@ -53,17 +63,25 @@ function SectionQcmMatiere({ matiereId }: { matiereId: string }) {
     return () => {
       annule = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matiereId])
 
   async function genererLeQcm() {
-    if (qcmEnCours) return
+    if (qcmEnCours || notionIds.length === 0) return
     setErreurQcm(null)
     setQcmEnCours(true)
     try {
-      const genere = await genererQcmMatiere(matiereId)
+      const genere = await genererQcmMatiere(matiereId, notionIds)
+      const t = await obtenirMaTentativeQcmMatiere(matiereId)
       setQcm(genere)
-      setReponses(new Array(genere.questions.length).fill(null))
-      setModeCorrige(false)
+      setTentative(t)
+      if (t) {
+        setReponses(t.reponsesChoisies)
+        setModeCorrige(true)
+      } else {
+        setReponses(new Array(genere.questions.length).fill(null))
+        setModeCorrige(false)
+      }
     } catch {
       setErreurQcm('Impossible de generer le QCM (au moins un resume de cours ou un document doit etre disponible).')
     } finally {
@@ -101,19 +119,20 @@ function SectionQcmMatiere({ matiereId }: { matiereId: string }) {
         chaque notion au programme -- pour reviser progressivement, pas juste le dernier cours.
       </p>
 
-      {!qcm && (
-        <div className="mt-3">
-          <button
-            onClick={() => void genererLeQcm()}
-            disabled={qcmEnCours}
-            className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            style={{ background: 'var(--color-brand)' }}
-          >
-            {qcmEnCours ? 'Generation en cours...' : 'Generer le QCM de matiere'}
-          </button>
-          {erreurQcm && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurQcm}</p>}
-        </div>
-      )}
+      <div className="mt-3">
+        <button
+          onClick={() => void genererLeQcm()}
+          disabled={qcmEnCours || notionIds.length === 0}
+          className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          {qcmEnCours ? 'Generation en cours...' : qcm ? 'Regenerer le QCM sur la selection' : 'Generer le QCM de matiere'}
+        </button>
+        {notionIds.length === 0 && (
+          <p className="mt-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>Coche au moins une notion ci-dessus.</p>
+        )}
+        {erreurQcm && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreurQcm}</p>}
+      </div>
 
       {qcm && qcm.statut === 'ECHEC' && (
         <p className="mt-3 text-sm" style={{ color: '#B02631' }}>La generation du QCM a echoue.</p>
@@ -206,7 +225,15 @@ const COULEUR_NIVEAU: Record<string, string> = {
 // ouvertes, chaque reponse est notee qualitativement par l'IA (comme
 // NiveauMaitrise) plutot que par un score -- pas de "bonne/mauvaise reponse"
 // binaire comme pour le QCM.
-function SectionExerciceSaisieLibre({ matiereId }: { matiereId: string }) {
+function SectionExerciceSaisieLibre({
+  matiereId,
+  notionIds,
+  onChargerSelectionInitiale,
+}: {
+  matiereId: string
+  notionIds: string[]
+  onChargerSelectionInitiale: (ids: string[]) => void
+}) {
   const [exercice, setExercice] = useState<ExerciceMatiere | null>(null)
   const [exerciceEnCours, setExerciceEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -221,6 +248,7 @@ function SectionExerciceSaisieLibre({ matiereId }: { matiereId: string }) {
       if (annule) return
       setExercice(ex)
       setTentative(t)
+      if (ex) onChargerSelectionInitiale(ex.notionIds)
       if (ex && t) {
         setReponses(t.reponses.map((r) => r.reponse))
         setModeCorrige(true)
@@ -231,17 +259,25 @@ function SectionExerciceSaisieLibre({ matiereId }: { matiereId: string }) {
     return () => {
       annule = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matiereId])
 
   async function genererLExercice() {
-    if (exerciceEnCours) return
+    if (exerciceEnCours || notionIds.length === 0) return
     setErreur(null)
     setExerciceEnCours(true)
     try {
-      const genere = await genererExercices(matiereId)
+      const genere = await genererExercices(matiereId, notionIds)
+      const t = await obtenirMaTentativeExercices(matiereId)
       setExercice(genere)
-      setReponses(new Array(genere.questions.length).fill(''))
-      setModeCorrige(false)
+      setTentative(t)
+      if (t) {
+        setReponses(t.reponses.map((r) => r.reponse))
+        setModeCorrige(true)
+      } else {
+        setReponses(new Array(genere.questions.length).fill(''))
+        setModeCorrige(false)
+      }
     } catch {
       setErreur('Impossible de generer les exercices (au moins un resume de cours ou un document doit etre disponible).')
     } finally {
@@ -277,19 +313,20 @@ function SectionExerciceSaisieLibre({ matiereId }: { matiereId: string }) {
         librement et evaluees par l'IA -- pas de choix multiple.
       </p>
 
-      {!exercice && (
-        <div className="mt-3">
-          <button
-            onClick={() => void genererLExercice()}
-            disabled={exerciceEnCours}
-            className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            style={{ background: 'var(--color-brand)' }}
-          >
-            {exerciceEnCours ? 'Generation en cours...' : 'Generer des exercices'}
-          </button>
-          {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
-        </div>
-      )}
+      <div className="mt-3">
+        <button
+          onClick={() => void genererLExercice()}
+          disabled={exerciceEnCours || notionIds.length === 0}
+          className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          style={{ background: 'var(--color-brand)' }}
+        >
+          {exerciceEnCours ? 'Generation en cours...' : exercice ? 'Regenerer les exercices sur la selection' : 'Generer des exercices'}
+        </button>
+        {notionIds.length === 0 && (
+          <p className="mt-2 text-xs" style={{ color: 'var(--color-ink-muted)' }}>Coche au moins une notion ci-dessus.</p>
+        )}
+        {erreur && <p className="mt-2 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
+      </div>
 
       {exercice && exercice.statut === 'ECHEC' && (
         <p className="mt-3 text-sm" style={{ color: '#B02631' }}>La generation des exercices a echoue.</p>
@@ -883,6 +920,8 @@ export function MatiereRevisionPage() {
   const [couloir, setCouloir] = useState<Couloir | null>(null)
   const [chargement, setChargement] = useState(true)
   const [onglet, setOnglet] = useState<OngletRevision>('qcm')
+  const [notionsMatiere, setNotionsMatiere] = useState<Notion[]>([])
+  const [notionsSelectionnees, setNotionsSelectionnees] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!matiereId) return
@@ -902,6 +941,26 @@ export function MatiereRevisionPage() {
       annule = true
     }
   }, [matiereId])
+
+  useEffect(() => {
+    if (!matiereId) return
+    let annule = false
+    void listerNotionsParMatiere(matiereId).then((notions) => {
+      if (!annule) setNotionsMatiere(notions)
+    })
+    return () => {
+      annule = true
+    }
+  }, [matiereId])
+
+  function basculerNotionSelectionnee(notionId: string) {
+    setNotionsSelectionnees((precedent) => {
+      const suivant = new Set(precedent)
+      if (suivant.has(notionId)) suivant.delete(notionId)
+      else suivant.add(notionId)
+      return suivant
+    })
+  }
 
   if (chargement || !matiere || !couloir || !matiereId) {
     return <p className="p-6 text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
@@ -928,9 +987,47 @@ export function MatiereRevisionPage() {
         ))}
       </div>
 
+      {onglet !== 'travail-papier' && notionsMatiere.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-bold" style={{ color: 'var(--color-ink-muted)' }}>Notions a reviser</h3>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {notionsMatiere.map((notion) => {
+              const selectionnee = notionsSelectionnees.has(notion.id)
+              return (
+                <button
+                  key={notion.id}
+                  type="button"
+                  onClick={() => basculerNotionSelectionnee(notion.id)}
+                  className="rounded-full px-3 py-1 text-xs font-semibold"
+                  style={
+                    selectionnee
+                      ? { background: 'var(--color-brand)', color: 'white' }
+                      : { background: '#F4F2EE', color: 'var(--color-ink-muted)' }
+                  }
+                >
+                  {notion.terme}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-6">
-        {onglet === 'qcm' && <SectionQcmMatiere matiereId={matiereId} />}
-        {onglet === 'exercices' && <SectionExerciceSaisieLibre matiereId={matiereId} />}
+        {onglet === 'qcm' && (
+          <SectionQcmMatiere
+            matiereId={matiereId}
+            notionIds={[...notionsSelectionnees]}
+            onChargerSelectionInitiale={(ids) => setNotionsSelectionnees(new Set(ids))}
+          />
+        )}
+        {onglet === 'exercices' && (
+          <SectionExerciceSaisieLibre
+            matiereId={matiereId}
+            notionIds={[...notionsSelectionnees]}
+            onChargerSelectionInitiale={(ids) => setNotionsSelectionnees(new Set(ids))}
+          />
+        )}
         {onglet === 'travail-papier' && <SectionTravailPapier matiereId={matiereId} />}
       </div>
     </div>

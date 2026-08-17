@@ -1,5 +1,8 @@
 package com.memoria.ecole.exercice;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -25,15 +29,27 @@ public class ExerciceMatiereController {
     @GetMapping
     public ResponseEntity<ExerciceMatiereResponse> obtenirExercices(@PathVariable UUID matiereId) {
         try {
-            return ResponseEntity.ok(ExerciceMatiereResponse.depuis(exerciceSaisieLibreService.obtenirExercices(matiereId)));
+            ExerciceMatiere exercice = exerciceSaisieLibreService.obtenirExercices(matiereId);
+            return ResponseEntity.ok(ExerciceMatiereResponse.depuis(
+                    exercice, exerciceSaisieLibreService.listerNotionIdsCouvertes(exercice.getId())
+            ));
         } catch (ExerciceMatiereNotFoundException ignored) {
             return ResponseEntity.noContent().build();
         }
     }
 
     @PostMapping
-    public ExerciceMatiereResponse genererExercices(@PathVariable UUID matiereId, @AuthenticationPrincipal UUID utilisateurId) {
-        return ExerciceMatiereResponse.depuis(exerciceSaisieLibreService.obtenirOuGenererExercices(matiereId, utilisateurId));
+    public ExerciceMatiereResponse genererExercices(
+            @PathVariable UUID matiereId,
+            @Valid @RequestBody GenererExercicesRequest requete,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        ExerciceMatiere exercice = exerciceSaisieLibreService.obtenirOuGenererExercices(
+                matiereId, Set.copyOf(requete.notionIds()), utilisateurId
+        );
+        return ExerciceMatiereResponse.depuis(
+                exercice, exerciceSaisieLibreService.listerNotionIdsCouvertes(exercice.getId())
+        );
     }
 
     @PostMapping("/tentatives")
@@ -58,5 +74,10 @@ public class ExerciceMatiereController {
     }
 
     public record SoumettreReponsesRequest(List<String> reponses) {
+    }
+
+    public record GenererExercicesRequest(
+            @NotEmpty(message = "au moins une notion doit etre selectionnee") List<UUID> notionIds
+    ) {
     }
 }

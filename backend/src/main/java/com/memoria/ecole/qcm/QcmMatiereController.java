@@ -1,5 +1,8 @@
 package com.memoria.ecole.qcm;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -25,15 +29,21 @@ public class QcmMatiereController {
     @GetMapping
     public ResponseEntity<QcmMatiereResponse> obtenirQcmMatiere(@PathVariable UUID matiereId) {
         try {
-            return ResponseEntity.ok(QcmMatiereResponse.depuis(qcmMatiereService.obtenirQcmMatiere(matiereId)));
+            QcmMatiere qcm = qcmMatiereService.obtenirQcmMatiere(matiereId);
+            return ResponseEntity.ok(QcmMatiereResponse.depuis(qcm, qcmMatiereService.listerNotionIdsCouvertes(qcm.getId())));
         } catch (QcmMatiereNotFoundException ignored) {
             return ResponseEntity.noContent().build();
         }
     }
 
     @PostMapping
-    public QcmMatiereResponse genererQcmMatiere(@PathVariable UUID matiereId, @AuthenticationPrincipal UUID utilisateurId) {
-        return QcmMatiereResponse.depuis(qcmMatiereService.obtenirOuGenererQcmMatiere(matiereId, utilisateurId));
+    public QcmMatiereResponse genererQcmMatiere(
+            @PathVariable UUID matiereId,
+            @Valid @RequestBody GenererQcmMatiereRequest requete,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        QcmMatiere qcm = qcmMatiereService.obtenirOuGenererQcmMatiere(matiereId, Set.copyOf(requete.notionIds()), utilisateurId);
+        return QcmMatiereResponse.depuis(qcm, qcmMatiereService.listerNotionIdsCouvertes(qcm.getId()));
     }
 
     @PostMapping("/tentatives")
@@ -58,5 +68,10 @@ public class QcmMatiereController {
     }
 
     public record SoumettreTentativeRequest(List<Integer> reponses) {
+    }
+
+    public record GenererQcmMatiereRequest(
+            @NotEmpty(message = "au moins une notion doit etre selectionnee") List<UUID> notionIds
+    ) {
     }
 }

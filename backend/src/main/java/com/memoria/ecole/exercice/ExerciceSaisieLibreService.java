@@ -9,10 +9,12 @@ import com.memoria.ecole.qcm.StatutQcm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,6 +29,7 @@ public class ExerciceSaisieLibreService {
     private static final Logger LOG = LoggerFactory.getLogger(ExerciceSaisieLibreService.class);
 
     private final ExerciceMatiereRepository exerciceMatiereRepository;
+    private final ExerciceMatiereNotionRepository exerciceMatiereNotionRepository;
     private final MatiereService matiereService;
     private final NotionService notionService;
     private final AgregateurContenuMatiereService agregateurContenuMatiereService;
@@ -35,6 +38,7 @@ public class ExerciceSaisieLibreService {
 
     public ExerciceSaisieLibreService(
             ExerciceMatiereRepository exerciceMatiereRepository,
+            ExerciceMatiereNotionRepository exerciceMatiereNotionRepository,
             MatiereService matiereService,
             NotionService notionService,
             AgregateurContenuMatiereService agregateurContenuMatiereService,
@@ -42,6 +46,7 @@ public class ExerciceSaisieLibreService {
             TentativeExerciceSaisieLibreRepository tentativeRepository
     ) {
         this.exerciceMatiereRepository = exerciceMatiereRepository;
+        this.exerciceMatiereNotionRepository = exerciceMatiereNotionRepository;
         this.matiereService = matiereService;
         this.notionService = notionService;
         this.agregateurContenuMatiereService = agregateurContenuMatiereService;
@@ -49,21 +54,36 @@ public class ExerciceSaisieLibreService {
         this.tentativeRepository = tentativeRepository;
     }
 
-    // Genere a la demande, mis en cache des la premiere generation -- meme
-    // doctrine que le QCM de matiere.
-    public ExerciceMatiere obtenirOuGenererExercices(UUID matiereId, UUID utilisateurId) {
+    // Genere a la demande, mis en cache tant que la selection de notions ne
+    // change pas -- meme doctrine que QcmMatiereService.obtenirOuGenererQcmMatiere
+    // (un seul ExerciceMatiere persiste par matiere, remplace si la selection
+    // demandee differe de celle deja en base).
+    @Transactional
+    public ExerciceMatiere obtenirOuGenererExercices(UUID matiereId, Set<UUID> notionIds, UUID utilisateurId) {
         matiereService.verifierMembreDuCouloir(matiereId, utilisateurId);
 
         Optional<ExerciceMatiere> existant = exerciceMatiereRepository.findByMatiereId(matiereId);
-        if (existant.isPresent()) {
+        // Un ECHEC precedent n'est jamais reutilise comme cache : sinon un
+        // essai transitoirement rate (Azure OpenAI indisponible) bloquerait
+        // definitivement toute nouvelle tentative sur la meme selection.
+        if (existant.isPresent() && existant.get().getStatut() == StatutQcm.REUSSI && memeSelection(existant.get().getId(), notionIds)) {
             return existant.get();
         }
+        existant.ifPresent(exercice -> {
+            exerciceMatiereNotionRepository.deleteByExerciceMatiereId(exercice.getId());
+            exerciceMatiereRepository.deleteById(exercice.getId());
+            // Sans flush explicite, Hibernate execute les insertions avant les
+            // suppressions (ordre de flush standard JPA) : la nouvelle ligne
+            // violerait la contrainte unique sur matiereId tant que l'ancienne
+            // n'a pas ete physiquement supprimee.
+            exerciceMatiereRepository.flush();
+        });
 
-        // Notions listees explicitement pour que le nombre de questions
-        // suive la richesse reelle du programme -- voir
-        // GenerateurExerciceSaisieLibreAzureOpenAI.CONSIGNE_GENERATION, plus
-        // de nombre fixe de questions.
-        String contenu = construireContenuAvecNotions(matiereId);
+        // Notions selectionnees listees explicitement pour que chacune soit
+        // couverte par au moins une question -- voir
+        // GenerateurExerciceSaisieLibreAzureOpenAI.CONSIGNE_GENERATION, nombre
+        // de questions jamais fixe.
+        String contenu = construireContenuAvecNotions(matiereId, notionIds);
         if (contenu.isBlank()) {
             throw new AucunContenuDisponiblePourExerciceException(matiereId);
         }
@@ -73,15 +93,24 @@ public class ExerciceSaisieLibreService {
             List<QuestionSaisieLibre> questions = genere.questions().stream()
                     .map(question -> new QuestionSaisieLibre(question.enonce(), question.elementsAttendus()))
                     .toList();
-            return enregistrerSiAbsent(matiereId, questions, StatutQcm.REUSSI);
+            return enregistrer(matiereId, questions, StatutQcm.REUSSI, notionIds);
         } catch (Exception e) {
             LOG.warn("Echec de la generation des exercices pour la matiere {}", matiereId, e);
-            return enregistrerSiAbsent(matiereId, List.of(), StatutQcm.ECHEC);
+            return enregistrer(matiereId, List.of(), StatutQcm.ECHEC, notionIds);
         }
     }
 
-    private String construireContenuAvecNotions(UUID matiereId) {
-        List<Notion> notions = notionService.listerNotionsParMatiere(matiereId);
+    private boolean memeSelection(UUID exerciceMatiereId, Set<UUID> notionIds) {
+        Set<UUID> selectionExistante = exerciceMatiereNotionRepository.findByExerciceMatiereId(exerciceMatiereId).stream()
+                .map(ExerciceMatiereNotion::getNotionId)
+                .collect(Collectors.toSet());
+        return selectionExistante.equals(notionIds);
+    }
+
+    private String construireContenuAvecNotions(UUID matiereId, Set<UUID> notionIds) {
+        List<Notion> notions = notionService.listerNotionsParMatiere(matiereId).stream()
+                .filter(notion -> notionIds.contains(notion.getId()))
+                .toList();
         String contenuAgrege = agregateurContenuMatiereService.agregerContenu(matiereId);
 
         StringBuilder contenu = new StringBuilder();
@@ -98,18 +127,24 @@ public class ExerciceSaisieLibreService {
         return contenu.toString();
     }
 
-    private ExerciceMatiere enregistrerSiAbsent(UUID matiereId, List<QuestionSaisieLibre> questions, StatutQcm statut) {
-        Optional<ExerciceMatiere> existant = exerciceMatiereRepository.findByMatiereId(matiereId);
-        if (existant.isPresent()) {
-            // Une execution concurrente a deja cree cet exercice.
-            return existant.get();
-        }
-        return exerciceMatiereRepository.save(new ExerciceMatiere(matiereId, questions, statut));
+    private ExerciceMatiere enregistrer(UUID matiereId, List<QuestionSaisieLibre> questions, StatutQcm statut, Set<UUID> notionIds) {
+        ExerciceMatiere exercice = exerciceMatiereRepository.save(new ExerciceMatiere(matiereId, questions, statut));
+        notionIds.forEach(notionId -> exerciceMatiereNotionRepository.save(new ExerciceMatiereNotion(exercice.getId(), notionId)));
+        return exercice;
     }
 
     public ExerciceMatiere obtenirExercices(UUID matiereId) {
         return exerciceMatiereRepository.findByMatiereId(matiereId)
                 .orElseThrow(() -> new ExerciceMatiereNotFoundException(matiereId));
+    }
+
+    // Notions couvertes par l'exercice actuellement persiste -- sert au
+    // frontend a precocher la selection correspondant au contenu deja
+    // affiche.
+    public List<UUID> listerNotionIdsCouvertes(UUID exerciceMatiereId) {
+        return exerciceMatiereNotionRepository.findByExerciceMatiereId(exerciceMatiereId).stream()
+                .map(ExerciceMatiereNotion::getNotionId)
+                .toList();
     }
 
     // Chaque reponse declenche un appel IA de correction independant : un

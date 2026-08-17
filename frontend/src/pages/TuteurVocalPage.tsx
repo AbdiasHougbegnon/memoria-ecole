@@ -86,6 +86,20 @@ export function TuteurVocalPage() {
       .catch(() => {})
   }, [etat, hautParleurActif])
 
+  // Coupe immediatement toute lecture en cours -- desactiver le haut-parleur
+  // ou se mettre a parler doit taire l'assistant sur-le-champ, pas seulement
+  // empecher la prochaine lecture automatique.
+  function couperAudioEnCours() {
+    lecteurAudioRef.current?.pause()
+  }
+
+  function basculerHautParleur() {
+    setHautParleurActif((actif) => {
+      if (actif) couperAudioEnCours()
+      return !actif
+    })
+  }
+
   async function gererRelachement() {
     if (!id) return
     const blob = await arreter()
@@ -147,7 +161,7 @@ export function TuteurVocalPage() {
           </div>
           <button
             type="button"
-            onClick={() => setHautParleurActif((v) => !v)}
+            onClick={basculerHautParleur}
             title={hautParleurActif ? 'Desactiver la lecture audio automatique' : 'Activer la lecture audio automatique'}
             className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
             style={{
@@ -221,7 +235,10 @@ export function TuteurVocalPage() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
             <button
-              onClick={() => void (enregistrement ? gererRelachement() : demarrer())}
+              onClick={() => {
+                if (!enregistrement) couperAudioEnCours()
+                void (enregistrement ? gererRelachement() : demarrer())
+              }}
               disabled={envoiEnCours}
               className="flex-1 rounded-2xl py-5 text-sm font-semibold text-white disabled:opacity-50"
               style={{ background: enregistrement ? 'var(--color-live)' : 'var(--color-brand)' }}

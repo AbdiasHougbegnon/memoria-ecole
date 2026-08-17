@@ -62,7 +62,18 @@ function IconeRevision() {
   )
 }
 
-function IconeTutorat() {
+// Etudier (tutorat structure : notions cochees, explication -> exercices).
+function IconeEtudier() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
+      <path d="M2.5 4 C2.5 3.2 3.2 2.5 4 2.5 H8.5 V14 H4 C3.2 14 2.5 13.3 2.5 12.5 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M15.5 4 C15.5 3.2 14.8 2.5 14 2.5 H9.5 V14 H14 C14.8 14 15.5 13.3 15.5 12.5 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// Tuteur de cours (discussion libre, sans notion cochee).
+function IconeTuteurDeCours() {
   return (
     <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
       <path d="M3 4.5 H15 V11.5 H8 L5 14 V11.5 H3 Z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
@@ -221,13 +232,17 @@ export function Layout({ children }: { children: ReactNode }) {
               <div className="px-2.5 pt-3.5 pb-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-ink-faint-2)' }}>
                 Ecole
               </div>
+              <LienNav to="/tutorat" actif={location.pathname === '/tutorat'}>
+                <IconeEtudier />
+                Etudier
+              </LienNav>
               <LienNav to="/revision" actif={location.pathname === '/revision'}>
                 <IconeRevision />
-                Revision
+                S'entrainer
               </LienNav>
-              <LienNav to="/tutorat" actif={location.pathname === '/tutorat'}>
-                <IconeTutorat />
-                Tutorat
+              <LienNav to="/tuteur-de-cours" actif={location.pathname === '/tuteur-de-cours'}>
+                <IconeTuteurDeCours />
+                Tuteur de cours
               </LienNav>
             </>
           )}
