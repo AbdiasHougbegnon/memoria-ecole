@@ -97,6 +97,13 @@ public class SeanceTutorat {
         this.notionCouranteId = nouvelleNotionId;
     }
 
+    // Transition automatique une fois toutes les notions maitrisees en mode
+    // EXPLICATION -- voir TuteurVocalService.soumettreReponse. Jamais dans
+    // l'autre sens (pas de retour EXERCICE -> EXPLICATION).
+    public void passerEnModeExercice() {
+        this.mode = ModeTutorat.EXERCICE;
+    }
+
     public void terminer() {
         this.statut = StatutSeanceTutorat.TERMINEE;
         this.dateFin = Instant.now();

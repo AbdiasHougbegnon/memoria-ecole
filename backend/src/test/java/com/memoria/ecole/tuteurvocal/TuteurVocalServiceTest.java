@@ -127,7 +127,7 @@ class TuteurVocalServiceTest {
         Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
         UUID notionId = UUID.randomUUID();
         SeanceTutorat existante = new SeanceTutorat(seance.getId(), utilisateurId, notionId, ModeTutorat.EXPLICATION);
-        TourDialogueTutorat dernierTour = new TourDialogueTutorat(existante.getId(), notionId, Locuteur.TUTEUR, "Reprise");
+        TourDialogueTutorat dernierTour = new TourDialogueTutorat(existante.getId(), notionId, Locuteur.TUTEUR, "Reprise", ModeTutorat.EXPLICATION);
 
         when(seanceService.obtenirSeance(seance.getId())).thenReturn(seance);
         when(couloirService.estMembre(couloirId, utilisateurId)).thenReturn(true);
@@ -144,8 +144,11 @@ class TuteurVocalServiceTest {
         org.mockito.Mockito.verify(seanceTutoratRepository, org.mockito.Mockito.never()).save(any());
     }
 
+    // Sans notion a expliquer des le depart, la session enchaine directement
+    // sur le mode exercices plutot que de terminer -- voir
+    // TuteurVocalService.demarrerTutorat.
     @Test
-    void demarrerTutorat_termine_immediatement_si_toutes_les_notions_deja_maitrisees() {
+    void demarrerTutorat_bascule_en_mode_exercice_si_toutes_les_notions_deja_maitrisees() {
         UUID couloirId = UUID.randomUUID();
         UUID utilisateurId = UUID.randomUUID();
         Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
@@ -158,11 +161,49 @@ class TuteurVocalServiceTest {
         when(seanceService.listerNotionsDeSeance(seance.getId())).thenReturn(List.of(notion1));
         when(notionService.obtenirNiveauMaitrise(notion1.getId(), utilisateurId)).thenReturn(NiveauMaitrise.MAITRISEE);
         when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Premier exercice sur les derivees.", NiveauMaitrise.NON_ABORDEE, false)
+        );
 
         ResultatTour resultat = tuteurVocalService.demarrerTutorat(seance.getId(), utilisateurId, ModeTutorat.EXPLICATION);
 
-        assertThat(resultat.seanceTerminee()).isTrue();
-        assertThat(resultat.notionCouranteId()).isNull();
+        assertThat(resultat.seanceTerminee()).isFalse();
+        assertThat(resultat.notionCouranteId()).isEqualTo(notion1.getId());
+        assertThat(resultat.texteTuteur()).contains("deja toutes les notions").contains("Premier exercice sur les derivees.");
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().mode()).isEqualTo(ModeTutorat.EXERCICE);
+    }
+
+    // Mode EXERCICE choisi directement au demarrage (case a cocher) : aucun
+    // filtre de maitrise, meme une notion deja MAITRISEE doit etre exercee.
+    @Test
+    void demarrerTutorat_en_mode_exercice_demarre_sur_la_premiere_notion_sans_filtre_de_maitrise() {
+        UUID couloirId = UUID.randomUUID();
+        UUID utilisateurId = UUID.randomUUID();
+        Seance seance = new Seance("Cours 1", UUID.randomUUID(), couloirId);
+        Notion notion1 = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
+        Notion notion2 = new Notion(UUID.randomUUID(), "Integrales", "def2", 1);
+
+        when(seanceService.obtenirSeance(seance.getId())).thenReturn(seance);
+        when(couloirService.estMembre(couloirId, utilisateurId)).thenReturn(true);
+        when(seanceTutoratRepository.findBySeanceIdAndUtilisateurIdAndStatut(seance.getId(), utilisateurId, StatutSeanceTutorat.EN_COURS))
+                .thenReturn(Optional.empty());
+        when(seanceService.listerNotionsDeSeance(seance.getId())).thenReturn(List.of(notion1, notion2));
+        when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Premier exercice sur les derivees.", NiveauMaitrise.NON_ABORDEE, false)
+        );
+
+        ResultatTour resultat = tuteurVocalService.demarrerTutorat(seance.getId(), utilisateurId, ModeTutorat.EXERCICE);
+
+        assertThat(resultat.notionCouranteId()).isEqualTo(notion1.getId());
+        assertThat(resultat.texteTuteur()).isEqualTo("Premier exercice sur les derivees.");
+        assertThat(resultat.seanceTerminee()).isFalse();
+        org.mockito.Mockito.verify(notionService, org.mockito.Mockito.never()).obtenirNiveauMaitrise(any(), any());
     }
 
     @Test
@@ -187,6 +228,31 @@ class TuteurVocalServiceTest {
         assertThat(resultat.notionCouranteId()).isEqualTo(notionId);
         assertThat(resultat.seanceTerminee()).isFalse();
         org.mockito.Mockito.verify(notionService).mettreAJourMaitrise(notionId, utilisateurId, NiveauMaitrise.EN_COURS);
+    }
+
+    // Alternative texte a la reponse vocale : meme traitement, sans passer
+    // par la transcription.
+    @Test
+    void soumettreReponseTexte_traite_la_reponse_sans_transcription() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID notionId = UUID.randomUUID();
+        SeanceTutorat seanceTutorat = new SeanceTutorat(UUID.randomUUID(), utilisateurId, notionId, ModeTutorat.EXPLICATION);
+        Notion notion = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(notionService.obtenirNotion(notionId)).thenReturn(notion);
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutorat.getId(), notionId))
+                .thenReturn(List.of());
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Pas tout a fait, essaie encore.", NiveauMaitrise.EN_COURS, false)
+        );
+
+        ResultatTour resultat = tuteurVocalService.soumettreReponseTexte(seanceTutorat.getId(), "une reponse ecrite", utilisateurId);
+
+        assertThat(resultat.notionCouranteId()).isEqualTo(notionId);
+        assertThat(resultat.seanceTerminee()).isFalse();
+        org.mockito.Mockito.verifyNoInteractions(transcripteur);
     }
 
     @Test
@@ -219,8 +285,11 @@ class TuteurVocalServiceTest {
         assertThat(resultat.texteTuteur()).contains("Bravo, c'est maitrise.").contains("Passons aux integrales.");
     }
 
+    // Toutes les notions maitrisees en EXPLICATION : bascule automatique en
+    // EXERCICE sur la meme SeanceTutorat plutot que de terminer -- voir
+    // TuteurVocalService.traiterReponseStructuree.
     @Test
-    void soumettreReponse_termine_la_seance_si_derniere_notion_maitrisee() {
+    void soumettreReponse_bascule_en_mode_exercice_si_derniere_notion_maitrisee_en_explication() {
         UUID utilisateurId = UUID.randomUUID();
         UUID seanceId = UUID.randomUUID();
         Notion notion1 = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
@@ -233,15 +302,124 @@ class TuteurVocalServiceTest {
                 .thenReturn(List.of());
         when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(generateurTourTuteur.genererTour(any()))
-                .thenReturn(new GenerateurTourTuteurPort.TourTuteurGenere("Bravo, c'est maitrise.", NiveauMaitrise.MAITRISEE, true));
+                .thenReturn(new GenerateurTourTuteurPort.TourTuteurGenere("Bravo, c'est maitrise.", NiveauMaitrise.MAITRISEE, true))
+                .thenReturn(new GenerateurTourTuteurPort.TourTuteurGenere("Premier exercice.", NiveauMaitrise.NON_ABORDEE, false));
         when(seanceService.listerNotionsDeSeance(seanceId)).thenReturn(List.of(notion1));
         when(notionService.obtenirNiveauMaitrise(notion1.getId(), utilisateurId)).thenReturn(NiveauMaitrise.MAITRISEE);
         when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ResultatTour resultat = tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
 
+        assertThat(resultat.seanceTerminee()).isFalse();
+        assertThat(seanceTutorat.getStatut()).isEqualTo(StatutSeanceTutorat.EN_COURS);
+        assertThat(seanceTutorat.getMode()).isEqualTo(ModeTutorat.EXERCICE);
+        assertThat(resultat.notionCouranteId()).isEqualTo(notion1.getId());
+        assertThat(resultat.texteTuteur())
+                .contains("Bravo, c'est maitrise.")
+                .contains("maitrises toutes les notions")
+                .contains("Premier exercice.");
+    }
+
+    @Test
+    void soumettreReponse_en_mode_exercice_reste_sur_la_meme_notion_avant_le_3e_exercice() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        Notion notion = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, notion.getId(), ModeTutorat.EXERCICE);
+        TourDialogueTutorat tourExistant = new TourDialogueTutorat(seanceTutorat.getId(), notion.getId(), Locuteur.TUTEUR, "Exercice 1", ModeTutorat.EXERCICE);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(notionService.obtenirNotion(notion.getId())).thenReturn(notion);
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("ma reponse a l'exercice 1", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutorat.getId(), notion.getId()))
+                .thenReturn(List.of(tourExistant));
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Bien, voici un autre exercice.", NiveauMaitrise.EN_COURS, false)
+        );
+
+        ResultatTour resultat = tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
+        assertThat(resultat.notionCouranteId()).isEqualTo(notion.getId());
+        assertThat(resultat.seanceTerminee()).isFalse();
+        assertThat(resultat.texteTuteur()).isEqualTo("Bien, voici un autre exercice.");
+        org.mockito.Mockito.verify(generateurTourTuteur, org.mockito.Mockito.times(1)).genererTour(any());
+        org.mockito.Mockito.verify(seanceService, org.mockito.Mockito.never()).listerNotionsDeSeance(any());
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().dernierExercice()).isFalse();
+    }
+
+    @Test
+    void soumettreReponse_en_mode_exercice_avance_a_la_notion_suivante_apres_le_3e_exercice() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        Notion notion1 = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
+        Notion notion2 = new Notion(UUID.randomUUID(), "Integrales", "def2", 1);
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, notion1.getId(), ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour1 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 1", ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour2 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 2", ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour3 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 3", ModeTutorat.EXERCICE);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(notionService.obtenirNotion(notion1.getId())).thenReturn(notion1);
+        when(notionService.obtenirNotion(notion2.getId())).thenReturn(notion2);
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("ma reponse a l'exercice 3", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutorat.getId(), notion1.getId()))
+                .thenReturn(List.of(tour1, tour2, tour3));
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any()))
+                .thenReturn(new GenerateurTourTuteurPort.TourTuteurGenere("Correction du 3e exercice.", NiveauMaitrise.EN_COURS, false))
+                .thenReturn(new GenerateurTourTuteurPort.TourTuteurGenere("Premier exercice sur les integrales.", NiveauMaitrise.NON_ABORDEE, false));
+        when(seanceService.listerNotionsDeSeance(seanceId)).thenReturn(List.of(notion1, notion2));
+        when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ResultatTour resultat = tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
+        assertThat(resultat.notionCouranteId()).isEqualTo(notion2.getId());
+        assertThat(resultat.seanceTerminee()).isFalse();
+        assertThat(resultat.texteTuteur()).contains("Correction du 3e exercice.").contains("Premier exercice sur les integrales.");
+
+        // Le premier appel evalue la reponse au 3e exercice (dernierExercice
+        // doit prevenir le modele de ne pas en reposer un), le second ouvre
+        // la notion suivante (jamais "dernier exercice" pour une ouverture).
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur, org.mockito.Mockito.times(2)).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getAllValues().get(0).dernierExercice()).isTrue();
+        assertThat(contexteCapture.getAllValues().get(1).dernierExercice()).isFalse();
+    }
+
+    @Test
+    void soumettreReponse_en_mode_exercice_termine_apres_le_3e_exercice_de_la_derniere_notion() {
+        UUID utilisateurId = UUID.randomUUID();
+        UUID seanceId = UUID.randomUUID();
+        Notion notion1 = new Notion(UUID.randomUUID(), "Derivees", "def1", 0);
+        SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, notion1.getId(), ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour1 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 1", ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour2 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 2", ModeTutorat.EXERCICE);
+        TourDialogueTutorat tour3 = new TourDialogueTutorat(seanceTutorat.getId(), notion1.getId(), Locuteur.TUTEUR, "Exercice 3", ModeTutorat.EXERCICE);
+
+        when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
+        when(notionService.obtenirNotion(notion1.getId())).thenReturn(notion1);
+        when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("ma reponse a l'exercice 3", List.of()));
+        when(tourDialogueTutoratRepository.findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutorat.getId(), notion1.getId()))
+                .thenReturn(List.of(tour1, tour2, tour3));
+        when(tourDialogueTutoratRepository.save(any(TourDialogueTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generateurTourTuteur.genererTour(any())).thenReturn(
+                new GenerateurTourTuteurPort.TourTuteurGenere("Correction du dernier exercice.", NiveauMaitrise.MAITRISEE, false)
+        );
+        when(seanceService.listerNotionsDeSeance(seanceId)).thenReturn(List.of(notion1));
+        when(seanceTutoratRepository.save(any(SeanceTutorat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ResultatTour resultat = tuteurVocalService.soumettreReponse(seanceTutorat.getId(), new byte[]{1, 2, 3}, utilisateurId);
+
         assertThat(resultat.seanceTerminee()).isTrue();
         assertThat(seanceTutorat.getStatut()).isEqualTo(StatutSeanceTutorat.TERMINEE);
+
+        var contexteCapture = org.mockito.ArgumentCaptor.forClass(GenerateurTourTuteurPort.ContexteTour.class);
+        org.mockito.Mockito.verify(generateurTourTuteur).genererTour(contexteCapture.capture());
+        assertThat(contexteCapture.getValue().dernierExercice()).isTrue();
     }
 
     @Test
@@ -330,7 +508,7 @@ class TuteurVocalServiceTest {
         Seance seance = new Seance("Cours 1", matiereId, UUID.randomUUID());
         Matiere matiere = new Matiere("Mathematiques", UUID.randomUUID(), UUID.randomUUID());
         SeanceTutorat seanceTutorat = new SeanceTutorat(seanceId, utilisateurId, null, ModeTutorat.LIBRE);
-        TourDialogueTutorat tourPrecedent = new TourDialogueTutorat(seanceTutorat.getId(), null, Locuteur.ETUDIANT, "C'est quoi une derivee ?");
+        TourDialogueTutorat tourPrecedent = new TourDialogueTutorat(seanceTutorat.getId(), null, Locuteur.ETUDIANT, "C'est quoi une derivee ?", ModeTutorat.LIBRE);
 
         when(seanceTutoratRepository.findById(seanceTutorat.getId())).thenReturn(Optional.of(seanceTutorat));
         when(transcripteur.transcrire(any())).thenReturn(new ResultatTranscription("et une integrale ?", List.of()));
@@ -476,7 +654,7 @@ class TuteurVocalServiceTest {
 
     @Test
     void obtenirAudioDuTour_resynthetise_le_texte_du_tour() {
-        TourDialogueTutorat tour = new TourDialogueTutorat(UUID.randomUUID(), UUID.randomUUID(), Locuteur.TUTEUR, "Bonjour");
+        TourDialogueTutorat tour = new TourDialogueTutorat(UUID.randomUUID(), UUID.randomUUID(), Locuteur.TUTEUR, "Bonjour", ModeTutorat.EXPLICATION);
         byte[] audioAttendu = new byte[]{1, 2, 3};
         when(tourDialogueTutoratRepository.findById(tour.getId())).thenReturn(Optional.of(tour));
         when(synthetiseurVocal.synthetiser(anyString())).thenReturn(audioAttendu);

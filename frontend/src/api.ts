@@ -728,6 +728,19 @@ export async function soumettreReponseTutorat(id: string, audio: Blob): Promise<
   return reponse.json()
 }
 
+// Alternative a la reponse vocale : meme traitement cote serveur, sans passer
+// par le micro.
+export async function soumettreReponseTexteTutorat(id: string, texte: string): Promise<ResultatTour> {
+  const reponse = await verifierReponse(
+    await appelApi(`/api/v1/tutorat/${id}/reponse-texte`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte }),
+    }),
+  )
+  return reponse.json()
+}
+
 export async function arreterTutorat(id: string): Promise<EtatTutorat> {
   const reponse = await verifierReponse(await appelApi(`/api/v1/tutorat/${id}/arreter`, { method: 'POST' }))
   return reponse.json()

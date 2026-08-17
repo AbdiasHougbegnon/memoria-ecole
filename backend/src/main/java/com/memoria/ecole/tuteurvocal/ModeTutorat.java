@@ -6,8 +6,10 @@ package com.memoria.ecole.tuteurvocal;
 // LIBRE : conversation libre sur la matiere, sans notion ni evaluation de
 // maitrise -- l'etudiant parle en premier, le tuteur ne fait que repondre
 // (voir docs/phases/phase-19-mode-conversation-libre.md).
-// Fixe au demarrage d'une SeanceTutorat, pas modifiable en cours de
-// conversation dans ce premier increment.
+// Choisi au demarrage d'une SeanceTutorat, mais PEUT changer en cours de
+// route : une session demarree en EXPLICATION bascule automatiquement en
+// EXERCICE une fois toutes les notions maitrisees (voir
+// SeanceTutorat.passerEnModeExercice et TuteurVocalService.soumettreReponse).
 public enum ModeTutorat {
     EXPLICATION,
     EXERCICE,

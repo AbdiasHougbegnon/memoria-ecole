@@ -25,12 +25,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-// Orchestration du dialogue tour par tour : STT (reutilise tel quel) -> IA
+// Orchestration du dialogue tour par tour : STT ou saisie texte -> IA
 // (evaluation de maitrise + prochaine repartie) -> mise a jour de la
-// maitrise -> avance de notion si maitrisee. La synthese vocale (TTS) N'EST
-// PAS appelee ici : elle est resynthetisee a la demande par
-// obtenirAudioDuTour, cote endpoint audio dedie -- voir
-// docs/phases/phase-9-tuteur-vocal.md.
+// maitrise -> avance de notion si maitrisee (EXPLICATION) ou apres
+// NOMBRE_EXERCICES_PAR_NOTION exercices (EXERCICE) -> bascule automatique
+// EXPLICATION -> EXERCICE une fois toutes les notions maitrisees, sur la
+// meme SeanceTutorat. La synthese vocale (TTS) N'EST PAS appelee ici : elle
+// est resynthetisee a la demande par obtenirAudioDuTour, cote endpoint audio
+// dedie -- voir docs/phases/phase-9-tuteur-vocal.md.
 @Service
 public class TuteurVocalService {
 
@@ -41,6 +43,21 @@ public class TuteurVocalService {
     // docs/phases/phase-19-mode-conversation-libre.md.
     private static final String DEFINITION_MODE_LIBRE =
             "Discussion libre sur cette matiere, reponds aux questions de l'etudiant en le guidant progressivement.";
+
+    // Critere de fin propre au mode EXERCICE, independant de l'evaluation de
+    // maitrise du LLM (utilisee uniquement en EXPLICATION) : chaque notion
+    // est exercee ce nombre de fois avant de passer a la suivante.
+    private static final int NOMBRE_EXERCICES_PAR_NOTION = 3;
+
+    // Textes fixes (pas generes par le LLM, pour la fiabilite) annoncant la
+    // bascule automatique vers le mode exercices -- deux variantes selon
+    // qu'elle survient en cours de conversation (feedback de la derniere
+    // notion deja dans texteAEnvoyer) ou des le demarrage (aucun tour
+    // precedent, l'annonce ouvre la conversation).
+    private static final String ANNONCE_TRANSITION_EXERCICE =
+            "Tu maitrises toutes les notions ! Passons maintenant aux exercices pour verifier que tu sais les appliquer.";
+    private static final String ANNONCE_TRANSITION_EXERCICE_DEPART =
+            "Tu maitrises deja toutes les notions de cette seance ! Passons directement aux exercices pour verifier que tu sais les appliquer.";
 
     private final SeanceTutoratRepository seanceTutoratRepository;
     private final TourDialogueTutoratRepository tourDialogueTutoratRepository;
@@ -116,58 +133,115 @@ public class TuteurVocalService {
         }
 
         List<Notion> notionsOrdonnees = seanceService.listerNotionsDeSeance(seanceId);
-        Optional<UUID> premiereNotionId = choisirProchaineNotion(notionsOrdonnees, utilisateurId);
-
-        SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
-                new SeanceTutorat(seanceId, utilisateurId, premiereNotionId.orElse(null), mode)
-        );
-
-        if (premiereNotionId.isEmpty()) {
-            // Aucune notion, ou toutes deja maitrisees avant meme de commencer.
-            seanceTutorat.terminer();
-            seanceTutoratRepository.save(seanceTutorat);
-            return new ResultatTour(seanceTutorat.getId(), null, "Toutes les notions de cette seance sont deja maitrisees.",
-                    null, NiveauMaitrise.MAITRISEE, true);
+        if (notionsOrdonnees.isEmpty()) {
+            return terminerSansNotion(seanceId, utilisateurId, mode);
         }
 
-        Notion notion = notionService.obtenirNotion(premiereNotionId.get());
-        var contexte = new GenerateurTourTuteurPort.ContexteTour(notion.getTerme(), notion.getDefinition(), List.of(), null, mode);
-        GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
+        // Mode EXERCICE : aucun filtre de maitrise, les exercices couvrent
+        // integralement les notions cochees depuis la premiere, meme deja
+        // maitrisees.
+        if (mode == ModeTutorat.EXERCICE) {
+            Notion premiereNotion = notionsOrdonnees.get(0);
+            SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
+                    new SeanceTutorat(seanceId, utilisateurId, premiereNotion.getId(), mode)
+            );
+            return demarrerPremierTour(seanceTutorat, premiereNotion, mode, null);
+        }
 
-        TourDialogueTutorat tour = tourDialogueTutoratRepository.save(
-                new TourDialogueTutorat(seanceTutorat.getId(), notion.getId(), Locuteur.TUTEUR, genere.texteTuteur())
+        // Mode EXPLICATION : reprend a la premiere notion pas encore
+        // maitrisee (permet de reprendre une seance interrompue sans
+        // re-expliquer ce qui l'est deja).
+        Optional<UUID> premiereNotionId = choisirProchaineNotion(notionsOrdonnees, utilisateurId);
+        if (premiereNotionId.isEmpty()) {
+            // Toutes deja maitrisees avant meme de commencer : enchaine
+            // directement sur le mode exercices plutot que de terminer.
+            Notion premiereNotionExercice = notionsOrdonnees.get(0);
+            SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
+                    new SeanceTutorat(seanceId, utilisateurId, premiereNotionExercice.getId(), ModeTutorat.EXERCICE)
+            );
+            return demarrerPremierTour(seanceTutorat, premiereNotionExercice, ModeTutorat.EXERCICE, ANNONCE_TRANSITION_EXERCICE_DEPART);
+        }
+
+        SeanceTutorat seanceTutorat = seanceTutoratRepository.save(
+                new SeanceTutorat(seanceId, utilisateurId, premiereNotionId.get(), mode)
         );
-
-        return new ResultatTour(seanceTutorat.getId(), tour.getId(), genere.texteTuteur(), notion.getId(),
-                NiveauMaitrise.NON_ABORDEE, false);
+        Notion notion = notionService.obtenirNotion(premiereNotionId.get());
+        return demarrerPremierTour(seanceTutorat, notion, mode, null);
     }
 
     @Transactional
     public ResultatTour soumettreReponse(UUID seanceTutoratId, byte[] audioReponse, UUID utilisateurId) {
         SeanceTutorat seanceTutorat = obtenirEtVerifierProprietaire(seanceTutoratId, utilisateurId);
+        verifierEnCours(seanceTutorat);
+        return traiterReponse(seanceTutorat, transcrire(audioReponse), utilisateurId);
+    }
+
+    // Alternative a la reponse vocale : meme traitement de bout en bout,
+    // simplement sans passer par la transcription -- l'etudiant peut
+    // repondre au clavier plutot qu'au micro.
+    @Transactional
+    public ResultatTour soumettreReponseTexte(UUID seanceTutoratId, String texteEtudiant, UUID utilisateurId) {
+        SeanceTutorat seanceTutorat = obtenirEtVerifierProprietaire(seanceTutoratId, utilisateurId);
+        verifierEnCours(seanceTutorat);
+        return traiterReponse(seanceTutorat, texteEtudiant, utilisateurId);
+    }
+
+    private void verifierEnCours(SeanceTutorat seanceTutorat) {
         if (seanceTutorat.getStatut() != StatutSeanceTutorat.EN_COURS) {
-            throw new SeanceTutoratNonActiveException(seanceTutoratId);
+            throw new SeanceTutoratNonActiveException(seanceTutorat.getId());
         }
+    }
 
+    private ResultatTour traiterReponse(SeanceTutorat seanceTutorat, String texteEtudiant, UUID utilisateurId) {
         if (seanceTutorat.getMode() == ModeTutorat.LIBRE) {
-            return soumettreReponseLibre(seanceTutorat, audioReponse);
+            return traiterReponseLibre(seanceTutorat, texteEtudiant);
         }
+        return traiterReponseStructuree(seanceTutorat, texteEtudiant, utilisateurId);
+    }
 
+    private ResultatTour traiterReponseStructuree(SeanceTutorat seanceTutorat, String texteEtudiant, UUID utilisateurId) {
+        UUID seanceTutoratId = seanceTutorat.getId();
         UUID notionCouranteId = seanceTutorat.getNotionCouranteId();
         Notion notionCourante = notionService.obtenirNotion(notionCouranteId);
         ModeTutorat mode = seanceTutorat.getMode();
 
-        String texteEtudiant = transcrire(audioReponse);
-
-        List<GenerateurTourTuteurPort.TourHistorique> historique = tourDialogueTutoratRepository
-                .findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutoratId, notionCouranteId).stream()
+        List<TourDialogueTutorat> toursNotion = tourDialogueTutoratRepository
+                .findBySeanceTutoratIdAndNotionIdOrderByDateCreationAsc(seanceTutoratId, notionCouranteId);
+        List<GenerateurTourTuteurPort.TourHistorique> historique = toursNotion.stream()
                 .map(tour -> new GenerateurTourTuteurPort.TourHistorique(tour.getLocuteur(), tour.getTexte()))
                 .toList();
 
-        tourDialogueTutoratRepository.save(new TourDialogueTutorat(seanceTutoratId, notionCouranteId, Locuteur.ETUDIANT, texteEtudiant));
+        tourDialogueTutoratRepository.save(new TourDialogueTutorat(seanceTutoratId, notionCouranteId, Locuteur.ETUDIANT, texteEtudiant, mode));
+
+        // EXPLICATION : c'est le LLM qui decide qu'une notion est comprise
+        // (doitAvancer connu seulement apres l'appel au generateur, voir plus
+        // bas). EXERCICE : critere de fin propre, independant de cette
+        // evaluation -- NOMBRE_EXERCICES_PAR_NOTION exercices poses sur cette
+        // notion (le tour courant, pas encore persiste, compte pour un de
+        // plus) -- calculable AVANT l'appel au generateur, ce qui permet de
+        // prevenir le modele que ce tour est le dernier exercice sur cette
+        // notion (voir ContexteTour.dernierExercice) pour qu'il ne propose
+        // pas un exercice suivant que l'etudiant n'aura jamais l'occasion de
+        // faire. Filtre explicitement par TourDialogueTutorat.mode ==
+        // EXERCICE (pas seulement par notion) : une notion peut avoir ete
+        // visitee une premiere fois en EXPLICATION avant la bascule
+        // automatique, ses tours de l'epoque ne doivent pas compter comme
+        // des exercices.
+        //
+        // PAS de "+1" ici (contrairement a une premiere version) : ce tour
+        // en cours EVALUE la reponse au Nieme exercice deja pose, il n'en
+        // pose pas lui-meme un nouveau tant qu'on n'a pas atteint le compte.
+        // Avec "+1", seuls NOMBRE_EXERCICES_PAR_NOTION-1 exercices etaient
+        // reellement poses avant la fin (verifie en conditions reelles) :
+        // le tour d'ouverture (transition ou demarrage direct) pose deja le
+        // premier exercice et compte pour 1, donc la comparaison sans "+1"
+        // suffit a garantir exactement NOMBRE_EXERCICES_PAR_NOTION exercices
+        // poses avant le dernier tour (evaluation sans nouvel exercice).
+        boolean dernierExerciceDeCetteNotion = mode == ModeTutorat.EXERCICE
+                && compterToursTuteurExercice(toursNotion) >= NOMBRE_EXERCICES_PAR_NOTION;
 
         var contexte = new GenerateurTourTuteurPort.ContexteTour(
-                notionCourante.getTerme(), notionCourante.getDefinition(), historique, texteEtudiant, mode
+                notionCourante.getTerme(), notionCourante.getDefinition(), historique, texteEtudiant, mode, dernierExerciceDeCetteNotion
         );
         GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
 
@@ -177,26 +251,44 @@ public class TuteurVocalService {
         UUID notionPourTour = notionCouranteId;
         boolean seanceTerminee = false;
 
-        if (genere.notionMaitrisee()) {
+        boolean doitAvancer = mode == ModeTutorat.EXERCICE ? dernierExerciceDeCetteNotion : genere.notionMaitrisee();
+
+        if (doitAvancer) {
             List<Notion> notionsOrdonnees = seanceService.listerNotionsDeSeance(seanceTutorat.getSeanceId());
-            Optional<UUID> prochaineNotionId = choisirProchaineNotion(notionsOrdonnees, utilisateurId);
+            Optional<UUID> prochaineNotionId = mode == ModeTutorat.EXERCICE
+                    ? notionSuivanteParOrdre(notionsOrdonnees, notionCouranteId)
+                    : choisirProchaineNotion(notionsOrdonnees, utilisateurId);
+
             if (prochaineNotionId.isPresent()) {
                 notionPourTour = prochaineNotionId.get();
                 seanceTutorat.avancerNotion(notionPourTour);
                 Notion nouvelleNotion = notionService.obtenirNotion(notionPourTour);
-                var contexteOuverture = new GenerateurTourTuteurPort.ContexteTour(
-                        nouvelleNotion.getTerme(), nouvelleNotion.getDefinition(), List.of(), null, mode
-                );
-                GenerateurTourTuteurPort.TourTuteurGenere ouverture = appellerGenerateur(contexteOuverture);
+                GenerateurTourTuteurPort.TourTuteurGenere ouverture = genererOuverture(nouvelleNotion, mode);
                 texteAEnvoyer = genere.texteTuteur() + " " + ouverture.texteTuteur();
+            } else if (mode == ModeTutorat.EXPLICATION) {
+                // Toutes les notions maitrisees : bascule automatique vers
+                // le mode exercices, sur les memes notions depuis le debut
+                // (pas seulement celles restantes) -- voir contexte du plan.
+                Notion premiereNotionExercice = notionsOrdonnees.get(0);
+                seanceTutorat.passerEnModeExercice();
+                seanceTutorat.avancerNotion(premiereNotionExercice.getId());
+                GenerateurTourTuteurPort.TourTuteurGenere ouvertureExercice =
+                        genererOuverture(premiereNotionExercice, ModeTutorat.EXERCICE);
+                texteAEnvoyer = genere.texteTuteur() + " " + ANNONCE_TRANSITION_EXERCICE + " " + ouvertureExercice.texteTuteur();
+                notionPourTour = premiereNotionExercice.getId();
             } else {
                 seanceTutorat.terminer();
                 seanceTerminee = true;
             }
         }
 
+        // seanceTutorat.getMode() (pas la variable locale `mode`, capturee
+        // avant une eventuelle bascule ci-dessus) : ce tour doit porter le
+        // mode qui s'applique desormais, notamment quand cette meme
+        // sauvegarde correspond a l'ouverture du premier exercice juste
+        // apres la bascule automatique.
         TourDialogueTutorat tourTuteur = tourDialogueTutoratRepository.save(
-                new TourDialogueTutorat(seanceTutoratId, notionPourTour, Locuteur.TUTEUR, texteAEnvoyer)
+                new TourDialogueTutorat(seanceTutoratId, notionPourTour, Locuteur.TUTEUR, texteAEnvoyer, seanceTutorat.getMode())
         );
         seanceTutoratRepository.save(seanceTutorat);
 
@@ -208,27 +300,26 @@ public class TuteurVocalService {
     // toutes les autres requetes de ce service le sont), aucun appel a
     // mettreAJourMaitrise, jamais de fin automatique -- voir
     // docs/phases/phase-19-mode-conversation-libre.md.
-    private ResultatTour soumettreReponseLibre(SeanceTutorat seanceTutorat, byte[] audioReponse) {
+    private ResultatTour traiterReponseLibre(SeanceTutorat seanceTutorat, String texteEtudiant) {
         UUID seanceTutoratId = seanceTutorat.getId();
-        String texteEtudiant = transcrire(audioReponse);
 
         List<GenerateurTourTuteurPort.TourHistorique> historique = tourDialogueTutoratRepository
                 .findBySeanceTutoratIdOrderByDateCreationAsc(seanceTutoratId).stream()
                 .map(tour -> new GenerateurTourTuteurPort.TourHistorique(tour.getLocuteur(), tour.getTexte()))
                 .toList();
 
-        tourDialogueTutoratRepository.save(new TourDialogueTutorat(seanceTutoratId, null, Locuteur.ETUDIANT, texteEtudiant));
+        tourDialogueTutoratRepository.save(new TourDialogueTutorat(seanceTutoratId, null, Locuteur.ETUDIANT, texteEtudiant, ModeTutorat.LIBRE));
 
         Seance seance = seanceService.obtenirSeance(seanceTutorat.getSeanceId());
         Matiere matiere = matiereService.obtenirMatiere(seance.getMatiereId());
 
         var contexte = new GenerateurTourTuteurPort.ContexteTour(
-                matiere.getNom(), construireContexteMatiere(matiere.getId(), seanceTutorat.getUtilisateurId()), historique, texteEtudiant, ModeTutorat.LIBRE
+                matiere.getNom(), construireContexteMatiere(matiere.getId(), seanceTutorat.getUtilisateurId()), historique, texteEtudiant, ModeTutorat.LIBRE, false
         );
         GenerateurTourTuteurPort.TourTuteurGenere genere = appellerGenerateur(contexte);
 
         TourDialogueTutorat tourTuteur = tourDialogueTutoratRepository.save(
-                new TourDialogueTutorat(seanceTutoratId, null, Locuteur.TUTEUR, genere.texteTuteur())
+                new TourDialogueTutorat(seanceTutoratId, null, Locuteur.TUTEUR, genere.texteTuteur(), ModeTutorat.LIBRE)
         );
 
         return new ResultatTour(seanceTutoratId, tourTuteur.getId(), genere.texteTuteur(), null, null, false);
@@ -274,6 +365,31 @@ public class TuteurVocalService {
             throw new AccesTutoratRefuseException(seanceTutoratId, utilisateurId);
         }
         return seanceTutorat;
+    }
+
+    // Aucune notion rattachee a la seance : rien a faire, la seance se
+    // termine immediatement (comme aujourd'hui). Distinct du cas "toutes
+    // deja maitrisees" (celui-ci enchaine sur le mode exercices, voir
+    // demarrerTutorat).
+    private ResultatTour terminerSansNotion(UUID seanceId, UUID utilisateurId, ModeTutorat mode) {
+        SeanceTutorat seanceTutorat = seanceTutoratRepository.save(new SeanceTutorat(seanceId, utilisateurId, null, mode));
+        seanceTutorat.terminer();
+        seanceTutoratRepository.save(seanceTutorat);
+        return new ResultatTour(seanceTutorat.getId(), null, "Aucune notion associee a cette seance.", null, null, true);
+    }
+
+    private ResultatTour demarrerPremierTour(SeanceTutorat seanceTutorat, Notion notion, ModeTutorat mode, String prefixeAnnonce) {
+        GenerateurTourTuteurPort.TourTuteurGenere ouverture = genererOuverture(notion, mode);
+        String texte = prefixeAnnonce == null ? ouverture.texteTuteur() : prefixeAnnonce + " " + ouverture.texteTuteur();
+        TourDialogueTutorat tour = tourDialogueTutoratRepository.save(
+                new TourDialogueTutorat(seanceTutorat.getId(), notion.getId(), Locuteur.TUTEUR, texte, mode)
+        );
+        return new ResultatTour(seanceTutorat.getId(), tour.getId(), texte, notion.getId(), NiveauMaitrise.NON_ABORDEE, false);
+    }
+
+    private GenerateurTourTuteurPort.TourTuteurGenere genererOuverture(Notion notion, ModeTutorat mode) {
+        var contexte = new GenerateurTourTuteurPort.ContexteTour(notion.getTerme(), notion.getDefinition(), List.of(), null, mode, false);
+        return appellerGenerateur(contexte);
     }
 
     // Notions validees de la matiere (phase 18 : fiches -> candidats ->
@@ -346,11 +462,34 @@ public class TuteurVocalService {
         return contexte.toString();
     }
 
+    // Mode EXPLICATION uniquement : premiere notion pas encore maitrisee,
+    // dans l'ordre de la seance.
     private Optional<UUID> choisirProchaineNotion(List<Notion> notionsOrdonnees, UUID utilisateurId) {
         return notionsOrdonnees.stream()
                 .filter(notion -> notionService.obtenirNiveauMaitrise(notion.getId(), utilisateurId) != NiveauMaitrise.MAITRISEE)
                 .map(Notion::getId)
                 .findFirst();
+    }
+
+    // Mode EXERCICE uniquement : notion suivante par simple ordre de liste,
+    // sans filtre de maitrise -- toutes les notions cochees sont exercees,
+    // meme celles deja maitrisees.
+    private Optional<UUID> notionSuivanteParOrdre(List<Notion> notionsOrdonnees, UUID notionCouranteId) {
+        for (int i = 0; i < notionsOrdonnees.size(); i++) {
+            if (notionsOrdonnees.get(i).getId().equals(notionCouranteId)) {
+                return i + 1 < notionsOrdonnees.size() ? Optional.of(notionsOrdonnees.get(i + 1).getId()) : Optional.empty();
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Filtre par TourDialogueTutorat.mode == EXERCICE (pas seulement par
+    // notion) : voir le commentaire dans traiterReponseStructuree, une
+    // notion peut avoir des tours d'une precedente phase EXPLICATION.
+    private long compterToursTuteurExercice(List<TourDialogueTutorat> toursNotion) {
+        return toursNotion.stream()
+                .filter(tour -> tour.getLocuteur() == Locuteur.TUTEUR && tour.getMode() == ModeTutorat.EXERCICE)
+                .count();
     }
 
     private String transcrire(byte[] audio) {

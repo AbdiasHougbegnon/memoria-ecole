@@ -1,5 +1,8 @@
 package com.memoria.ecole.tuteurvocal;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,8 +40,9 @@ public class TuteurVocalController {
         return ResultatTourResponse.depuis(tuteurVocalService.demarrerTutorat(seanceId, utilisateurId, requete.mode()));
     }
 
-    // Entree directe depuis le menu de navigation (voir Layout.tsx cote
-    // frontend), sans passer par une seance choisie au prealable.
+    // Discussion libre sur toute une matiere, sans passer par une seance
+    // choisie au prealable (bouton "Discussion libre" sur MatiereApercuPage
+    // cote frontend, distinct du tutorat structure d'une seance precise).
     @PostMapping("/matieres/{matiereId}/tutorat")
     @ResponseStatus(HttpStatus.CREATED)
     public ResultatTourResponse demarrerTutoratPourMatiere(
@@ -63,6 +67,17 @@ public class TuteurVocalController {
         return ResultatTourResponse.depuis(tuteurVocalService.soumettreReponse(id, audio.getBytes(), utilisateurId));
     }
 
+    // Alternative a /reponse : reponse ecrite plutot que vocale, meme
+    // traitement de bout en bout cote service (voir soumettreReponseTexte).
+    @PostMapping("/tutorat/{id}/reponse-texte")
+    public ResultatTourResponse soumettreReponseTexte(
+            @PathVariable UUID id,
+            @Valid @RequestBody SoumettreReponseTexteRequest requete,
+            @AuthenticationPrincipal UUID utilisateurId
+    ) {
+        return ResultatTourResponse.depuis(tuteurVocalService.soumettreReponseTexte(id, requete.texte(), utilisateurId));
+    }
+
     @PostMapping("/tutorat/{id}/arreter")
     public EtatTutoratResponse arreterTutorat(@PathVariable UUID id, @AuthenticationPrincipal UUID utilisateurId) {
         SeanceTutorat seanceTutorat = tuteurVocalService.arreterTutorat(id, utilisateurId);
@@ -76,5 +91,8 @@ public class TuteurVocalController {
     }
 
     public record DemarrerTutoratRequest(ModeTutorat mode) {
+    }
+
+    public record SoumettreReponseTexteRequest(@NotBlank(message = "le texte est obligatoire") String texte) {
     }
 }

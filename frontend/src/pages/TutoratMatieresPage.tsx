@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { demarrerTutoratMatiere, listerCouloirs, listerMesMatieres } from '../api'
+import { Link } from 'react-router-dom'
+import { listerCouloirs, listerMesMatieres } from '../api'
 import type { Couloir, Matiere } from '../types'
 
-// Point d'entree "Tutorat" du menu de navigation (voir Layout.tsx) : demarre
-// directement une discussion libre sur la matiere choisie, sans passer par la
-// creation/le choix d'une seance au prealable (cote serveur,
-// TuteurVocalService.demarrerTutoratLibrePourMatiere resout/cree une seance
-// "Discussion libre" partagee).
+// Point d'entree "Tutorat" du menu de navigation (voir Layout.tsx) : liste
+// les matieres, chacune menant a MatiereApercuPage (ses seances, chacune
+// avec son propre tutorat structure a notions cochees -- voir
+// SeanceDetailPage -- et un bouton "Discussion libre" separe pour toute la
+// matiere). Ne demarre plus rien directement ici : avant, cliquer une
+// matiere lancait toujours une discussion libre, ce qui rendait le tutorat
+// structure inaccessible depuis ce menu.
 export function TutoratMatieresPage() {
   const [matieres, setMatieres] = useState<Matiere[]>([])
   const [couloirs, setCouloirs] = useState<Couloir[]>([])
   const [chargement, setChargement] = useState(true)
-  const [demarrageEnCoursId, setDemarrageEnCoursId] = useState<string | null>(null)
-  const [erreur, setErreur] = useState<string | null>(null)
-  const navigate = useNavigate()
 
   useEffect(() => {
     Promise.all([listerMesMatieres(), listerCouloirs()])
@@ -29,18 +28,6 @@ export function TutoratMatieresPage() {
     return couloirs.find((c) => c.id === couloirId)?.nom ?? ''
   }
 
-  async function demarrer(matiereId: string) {
-    setErreur(null)
-    setDemarrageEnCoursId(matiereId)
-    try {
-      const resultat = await demarrerTutoratMatiere(matiereId)
-      navigate(`/tutorat/${resultat.seanceTutoratId}`)
-    } catch {
-      setErreur('Impossible de demarrer la discussion avec le tuteur.')
-      setDemarrageEnCoursId(null)
-    }
-  }
-
   if (chargement) {
     return <p className="p-6 text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
   }
@@ -49,10 +36,9 @@ export function TutoratMatieresPage() {
     <div className="mx-auto max-w-[900px] px-8 py-10">
       <h1 className="text-[26px] font-bold tracking-tight">Tutorat</h1>
       <p className="mt-1 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
-        Choisis une matiere pour discuter directement avec le tuteur vocal -- il s'appuie sur tous ses cours,
-        documents et travaux papier deja soumis.
+        Choisis une matiere : tu y retrouveras ses seances (tutorat structure, notions a maitriser puis
+        exercices) et une discussion libre pour poser rapidement une question.
       </p>
-      {erreur && <p className="mt-3 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
 
       {matieres.length === 0 && (
         <p className="mt-8 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
@@ -63,17 +49,14 @@ export function TutoratMatieresPage() {
       <ul className="mt-7 flex flex-col gap-2.5">
         {matieres.map((matiere) => (
           <li key={matiere.id}>
-            <button
-              onClick={() => void demarrer(matiere.id)}
-              disabled={demarrageEnCoursId === matiere.id}
-              className="flex w-full items-center justify-between rounded-2xl border bg-white px-5 py-4 text-left transition-all hover:-translate-y-px hover:shadow-md disabled:opacity-60"
+            <Link
+              to={`/matieres/${matiere.id}`}
+              className="flex w-full items-center justify-between rounded-2xl border bg-white px-5 py-4 text-left transition-all hover:-translate-y-px hover:shadow-md"
               style={{ borderColor: 'var(--color-border-soft)' }}
             >
               <span className="font-semibold">{matiere.nom}</span>
-              <span className="text-xs" style={{ color: 'var(--color-ink-faint)' }}>
-                {demarrageEnCoursId === matiere.id ? 'Ouverture...' : nomCouloir(matiere.couloirId)}
-              </span>
-            </button>
+              <span className="text-xs" style={{ color: 'var(--color-ink-faint)' }}>{nomCouloir(matiere.couloirId)}</span>
+            </Link>
           </li>
         ))}
       </ul>

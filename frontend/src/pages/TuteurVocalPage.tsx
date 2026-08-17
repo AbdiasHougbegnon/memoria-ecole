@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { arreterTutorat, listerNotionsDeSeance, obtenirAudioTutorat, obtenirEtatTutorat, obtenirMaitriseSeance, soumettreReponseTutorat } from '../api'
+import {
+  arreterTutorat,
+  listerNotionsDeSeance,
+  obtenirAudioTutorat,
+  obtenirEtatTutorat,
+  obtenirMaitriseSeance,
+  soumettreReponseTexteTutorat,
+  soumettreReponseTutorat,
+} from '../api'
 import { useTutorRecorder } from '../hooks/useTutorRecorder'
-import type { EtatTutorat, NiveauMaitrise, Notion } from '../types'
+import type { EtatTutorat, ModeTutorat, NiveauMaitrise, Notion } from '../types'
 
 const LIBELLE_MAITRISE: Record<NiveauMaitrise, string> = {
   NON_ABORDEE: 'Non abordee',
@@ -16,6 +24,12 @@ const COULEUR_MAITRISE: Record<NiveauMaitrise, string> = {
   MAITRISEE: '#2E9E6B',
 }
 
+const LIBELLE_PHASE: Record<ModeTutorat, string> = {
+  EXPLICATION: 'Explication',
+  EXERCICE: 'Exercices',
+  LIBRE: 'Discussion libre',
+}
+
 export function TuteurVocalPage() {
   const { seanceTutoratId: id } = useParams<{ seanceTutoratId: string }>()
   const navigate = useNavigate()
@@ -25,6 +39,11 @@ export function TuteurVocalPage() {
   const [chargement, setChargement] = useState(true)
   const [envoiEnCours, setEnvoiEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
+  // Desactive par defaut : la lecture automatique des reponses du tuteur ne
+  // doit pas surprendre l'etudiant (bruit dans une salle, casque non branche,
+  // etc.), il l'active lui-meme s'il la veut.
+  const [hautParleurActif, setHautParleurActif] = useState(false)
+  const [texteReponse, setTexteReponse] = useState('')
   const { enregistrement, erreur: erreurMicro, demarrer, arreter } = useTutorRecorder()
 
   const dernierTourJoueRef = useRef<string | null>(null)
@@ -46,11 +65,11 @@ export function TuteurVocalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Joue automatiquement l'audio du dernier tour du tuteur des qu'il arrive
-  // -- fetch authentifie + URL de blob, pas un <audio src=...> direct (voir
-  // api.ts, obtenirAudioTutorat).
+  // Joue automatiquement l'audio du dernier tour du tuteur des qu'il arrive,
+  // uniquement si le haut-parleur est active -- fetch authentifie + URL de
+  // blob, pas un <audio src=...> direct (voir api.ts, obtenirAudioTutorat).
   useEffect(() => {
-    if (!etat) return
+    if (!etat || !hautParleurActif) return
     const tours = etat.tours
     const dernier = tours.length > 0 ? tours[tours.length - 1] : null
     if (!dernier || dernier.locuteur !== 'TUTEUR' || !dernier.audioUrl) return
@@ -65,7 +84,7 @@ export function TuteurVocalPage() {
         }
       })
       .catch(() => {})
-  }, [etat])
+  }, [etat, hautParleurActif])
 
   async function gererRelachement() {
     if (!id) return
@@ -75,6 +94,22 @@ export function TuteurVocalPage() {
     setErreur(null)
     try {
       await soumettreReponseTutorat(id, blob)
+      await rafraichir()
+    } catch {
+      setErreur("Le tuteur n'a pas pu repondre, reessaie.")
+    } finally {
+      setEnvoiEnCours(false)
+    }
+  }
+
+  async function gererEnvoiTexte(e: React.FormEvent) {
+    e.preventDefault()
+    if (!id || !texteReponse.trim()) return
+    setEnvoiEnCours(true)
+    setErreur(null)
+    try {
+      await soumettreReponseTexteTutorat(id, texteReponse.trim())
+      setTexteReponse('')
       await rafraichir()
     } catch {
       setErreur("Le tuteur n'a pas pu repondre, reessaie.")
@@ -100,7 +135,29 @@ export function TuteurVocalPage() {
       <audio ref={lecteurAudioRef} />
 
       <div>
-        <h1 className="text-[22px] font-bold tracking-tight">Tuteur vocal</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[22px] font-bold tracking-tight">Tuteur vocal</h1>
+            <span
+              className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+              style={{ background: '#F4F2EE', color: 'var(--color-ink-muted)' }}
+            >
+              {LIBELLE_PHASE[etat.mode]}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHautParleurActif((v) => !v)}
+            title={hautParleurActif ? 'Desactiver la lecture audio automatique' : 'Activer la lecture audio automatique'}
+            className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+            style={{
+              borderColor: 'var(--color-border-soft)',
+              color: hautParleurActif ? 'var(--color-brand)' : 'var(--color-ink-muted)',
+            }}
+          >
+            {hautParleurActif ? 'Haut-parleur active' : 'Haut-parleur coupe'}
+          </button>
+        </div>
         {notions.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-2">
             {notions.map((notion) => (
@@ -151,7 +208,7 @@ export function TuteurVocalPage() {
 
       {seanceTerminee ? (
         <div className="rounded-2xl border p-5 text-center" style={{ borderColor: '#BEE3CE', background: '#EAF7EF' }}>
-          <p className="font-semibold" style={{ color: '#2E9E6B' }}>Toutes les notions de cette seance sont maitrisees.</p>
+          <p className="font-semibold" style={{ color: '#2E9E6B' }}>Seance de tutorat terminee.</p>
           <button
             onClick={() => navigate(`/seances/${etat.seanceId}`)}
             className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-white"
@@ -161,22 +218,44 @@ export function TuteurVocalPage() {
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-4">
-          <button
-            onClick={() => void (enregistrement ? gererRelachement() : demarrer())}
-            disabled={envoiEnCours}
-            className="flex-1 rounded-2xl py-5 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: enregistrement ? 'var(--color-live)' : 'var(--color-brand)' }}
-          >
-            {envoiEnCours ? 'Le tuteur reflechit...' : enregistrement ? 'Clique pour envoyer...' : 'Parler'}
-          </button>
-          <button
-            onClick={gererArret}
-            className="rounded-2xl border px-4 py-5 text-sm font-semibold"
-            style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}
-          >
-            Terminer
-          </button>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              onClick={() => void (enregistrement ? gererRelachement() : demarrer())}
+              disabled={envoiEnCours}
+              className="flex-1 rounded-2xl py-5 text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: enregistrement ? 'var(--color-live)' : 'var(--color-brand)' }}
+            >
+              {envoiEnCours ? 'Le tuteur reflechit...' : enregistrement ? 'Clique pour envoyer...' : 'Parler'}
+            </button>
+            <button
+              onClick={gererArret}
+              className="rounded-2xl border px-4 py-5 text-sm font-semibold"
+              style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}
+            >
+              Terminer
+            </button>
+          </div>
+
+          <form onSubmit={(e) => void gererEnvoiTexte(e)} className="flex gap-2">
+            <input
+              type="text"
+              value={texteReponse}
+              onChange={(e) => setTexteReponse(e.target.value)}
+              placeholder="Ou ecris ta reponse ici..."
+              disabled={envoiEnCours}
+              className="flex-1 rounded-lg border px-3.5 py-2.5 text-sm outline-none disabled:opacity-60"
+              style={{ borderColor: 'var(--color-border-soft)', background: '#FCFBF9' }}
+            />
+            <button
+              type="submit"
+              disabled={envoiEnCours || !texteReponse.trim()}
+              className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: 'var(--color-brand)' }}
+            >
+              Envoyer
+            </button>
+          </form>
         </div>
       )}
     </div>

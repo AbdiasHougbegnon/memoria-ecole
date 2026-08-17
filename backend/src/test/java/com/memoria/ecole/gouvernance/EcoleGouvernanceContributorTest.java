@@ -90,7 +90,7 @@ class EcoleGouvernanceContributorTest {
     void exporterSeancesTutorat_inclut_lhistorique_des_tours_dans_lordre() {
         UUID utilisateurId = UUID.randomUUID();
         SeanceTutorat seance = new SeanceTutorat(UUID.randomUUID(), utilisateurId, null, ModeTutorat.LIBRE);
-        TourDialogueTutorat tour = new TourDialogueTutorat(seance.getId(), null, Locuteur.ETUDIANT, "Bonjour");
+        TourDialogueTutorat tour = new TourDialogueTutorat(seance.getId(), null, Locuteur.ETUDIANT, "Bonjour", ModeTutorat.LIBRE);
         when(seanceTutoratRepository.findByUtilisateurId(utilisateurId)).thenReturn(List.of(seance));
         when(tourDialogueTutoratRepository.findBySeanceTutoratIdOrderByDateCreationAsc(seance.getId())).thenReturn(List.of(tour));
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   creerNotion,
   creerSeance,
+  demarrerTutoratMatiere,
   listerNotionsParMatiere,
   listerSeancesParMatiere,
   obtenirCouloir,
@@ -26,6 +27,7 @@ export function MatiereApercuPage() {
   const [definition, setDefinition] = useState('')
   const [titreSeance, setTitreSeance] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
+  const [discussionLibreEnCours, setDiscussionLibreEnCours] = useState(false)
 
   async function rafraichir() {
     if (!matiereId) return
@@ -102,6 +104,23 @@ export function MatiereApercuPage() {
     }
   }
 
+  // Discussion libre sur toute la matiere (pas rattachee a une seance
+  // precise) : accès rapide pour une question ponctuelle, distinct du
+  // tutorat structure (notions cochees) d'une seance -- voir
+  // SeanceDetailPage.
+  async function demarrerDiscussionLibre() {
+    if (!matiereId) return
+    setErreur(null)
+    setDiscussionLibreEnCours(true)
+    try {
+      const resultat = await demarrerTutoratMatiere(matiereId)
+      navigate(`/tutorat/${resultat.seanceTutoratId}`)
+    } catch {
+      setErreur('Impossible de demarrer la discussion libre.')
+      setDiscussionLibreEnCours(false)
+    }
+  }
+
   if (chargement || !matiere || !couloir) {
     return <p className="p-6 text-center text-sm" style={{ color: 'var(--color-ink-muted)' }}>Chargement...</p>
   }
@@ -110,6 +129,16 @@ export function MatiereApercuPage() {
     <div className="mx-auto max-w-[900px] px-8 py-10">
       <MatiereSousNav matiere={matiere} couloir={couloir} actif="" />
       {erreur && <p className="mt-4 text-sm" style={{ color: '#B02631' }}>{erreur}</p>}
+
+      <button
+        type="button"
+        onClick={() => void demarrerDiscussionLibre()}
+        disabled={discussionLibreEnCours}
+        className="mt-5 rounded-lg border px-3.5 py-2 text-xs font-semibold disabled:opacity-60"
+        style={{ borderColor: 'var(--color-border-soft)', color: 'var(--color-ink-muted)' }}
+      >
+        {discussionLibreEnCours ? 'Ouverture...' : 'Discussion libre sur cette matiere'}
+      </button>
 
       <div className="mt-6 grid grid-cols-2 gap-6">
         <div>

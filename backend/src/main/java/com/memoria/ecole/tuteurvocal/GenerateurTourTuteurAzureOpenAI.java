@@ -76,10 +76,8 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
 
             Ton but est que l'etudiant maitrise vraiment cette notion, pas seulement qu'il recite
             une reponse correcte une fois. Si sa reponse montre une incomprehension ou une
-            confusion, NE PASSE PAS a la notion suivante : change d'approche (nouvelle analogie,
-            reformulation plus simple, exemple concret different) plutot que de repeter la meme
-            explication. Si sa reponse est correcte et montre une comprehension solide, felicite-le
-            brievement et indique que la notion est maitrisee.
+            confusion, change d'approche (nouvelle analogie, reformulation plus simple, exemple
+            concret different) plutot que de repeter la meme explication.
 
             %s
             %s
@@ -93,8 +91,30 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
             Aucun texte avant ou apres le JSON, aucun bloc de code markdown.
             """;
 
-    private static final String MODE_EXPLICATION = "tu expliques la notion et verifies la comprehension par des questions";
-    private static final String MODE_EXERCICE = "tu poses des exercices/questions d'application sur cette notion, sans la re-expliquer d'abord";
+    private static final String MODE_EXPLICATION =
+            "tu expliques la notion et verifies la comprehension par des questions ; si sa reponse est correcte "
+            + "et montre une comprehension solide, felicite-le brievement et indique que la notion est maitrisee "
+            + "(ne passe pas a la notion suivante avant cela)";
+    // "sans declarer toi-meme la notion terminee" : c'est TuteurVocalService
+    // qui decide du passage a la notion suivante en mode EXERCICE (compteur
+    // de NOMBRE_EXERCICES_PAR_NOTION exercices, independant de ce que le
+    // modele renvoie dans notion_maitrisee pour ce mode) -- sans cette
+    // consigne le modele felicite et conclut des le premier bon exercice,
+    // ce qui detonne avec les exercices suivants qui arrivent quand meme.
+    private static final String MODE_EXERCICE =
+            "tu poses un exercice d'application different et reflechi a chaque tour sur cette notion, sans la "
+            + "re-expliquer d'abord ; corrige clairement chaque reponse puis enchaine directement sur un nouvel "
+            + "exercice, sans jamais declarer toi-meme que la notion est terminee ou maitrisee";
+    // Variante utilisee quand ContexteTour.dernierExercice() est vrai : Java
+    // a deja decide, avant meme cet appel, que la reponse a evaluer ici est
+    // la derniere sur cette notion (passage a la notion suivante ou fin de
+    // seance juste apres) -- sans cette consigne separee, le modele proposait
+    // un nouvel exercice que l'etudiant n'a ensuite jamais l'occasion de
+    // faire (verifie en conditions reelles).
+    private static final String MODE_EXERCICE_DERNIER =
+            "tu evalues sa reponse a un exercice d'application sur cette notion ; corrige-la clairement, felicite "
+            + "ou explique l'erreur, mais NE POSE PAS de nouvel exercice -- c'est le dernier sur cette notion, "
+            + "conclus simplement sur cette notion";
 
     // Mode LIBRE : pas de notion a evaluer, contrat JSON allege (un seul
     // champ) -- l'etudiant parle en premier, le tuteur repond simplement a
@@ -169,7 +189,7 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
                 : CONSIGNE_TEMPLATE.formatted(
                         contexte.notionTerme(),
                         contexte.notionDefinition(),
-                        contexte.mode() == ModeTutorat.EXERCICE ? MODE_EXERCICE : MODE_EXPLICATION,
+                        texteMode(contexte),
                         REGLE_PAS_DACTION_REELLE, REGLE_PAS_DINVENTION_DE_FAITS
                 );
         String input = construireInput(contexte);
@@ -212,6 +232,13 @@ public class GenerateurTourTuteurAzureOpenAI implements GenerateurTourTuteurPort
                 ? (tokens / 1000.0) * eurosPar1000Tokens
                 : coutAzureService.coutForfaitaireEuros();
         coutAzureService.enregistrerAppel(ServiceAzure.OPENAI_CHAT, coutEuros);
+    }
+
+    private String texteMode(ContexteTour contexte) {
+        if (contexte.mode() != ModeTutorat.EXERCICE) {
+            return MODE_EXPLICATION;
+        }
+        return contexte.dernierExercice() ? MODE_EXERCICE_DERNIER : MODE_EXERCICE;
     }
 
     private String construireInput(ContexteTour contexte) {
